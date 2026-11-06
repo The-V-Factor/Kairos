@@ -1,54 +1,45 @@
 # Kairos
 
-原生 iPhone 骑行补给实验：手动填写每段距离和到段尾的提示，通过 WorkoutKit 提交当日训练，由 Apple Watch 系统“体能训练”记录骑行、呈现分段提示。没有独立手表 App、账号、网络服务或补给算法。
+出发前安排好补给，骑行时交给手表。
 
-## 在 iPhone 上运行
+Kairos 是一款 iPhone 骑行补给计划 App。你在手机上安排什么时候喝水、吃胶或补充其他食物，将计划发送到 Apple Watch，再用手表自带的“体能训练”开始骑行，由系统记录运动并在对应里程呈现补给提醒。
 
-1. 用 Xcode 16 或更新版本打开 `Kairos.xcodeproj`，选择 `Kairos` scheme。
-2. 在 Signing & Capabilities 中自行选择开发团队，必要时改为自己的唯一 Bundle Identifier。仓库不保存团队、证书或账号配置。
-3. 选择已配对 Apple Watch 的真实 iPhone，运行。最低 iOS 18；分段名称需要 watchOS 11 或更新版本。
-4. 在“编辑计划”中填写每段距离（单位米，可用小数）和到段尾的提示。初始没有预设距离。“添加补给点”增加分段，每个补给点右上角的减号删除；编辑自动保存到本机。
-5. 切换“里程预览”核对累计提醒里程，点底部“发送到 Apple Watch”，按系统提示授权训练排程。按钮上方会显示未完成原因；右上角问号可以查看完整使用条件。
-6. 等待系统同步，在 Apple Watch 的“体能训练”里找到 Kairos 当日的“骑行补给”计划，检查分段后手动启动。
+## 安排这一趟的补给
 
-本机提交完成不等于手表已经收到。没有远端同步回执；需在手表核对。修改后需要重新发送，已开始的训练不保证随修改更新，先停止测试再重发。
+- **先定这趟骑多远**：设置计划距离，再手动安排每个补给点的距出发里程与提醒内容，包括 0 公里的出发补给。
+- **自己决定每一站**：添加、修改或删除一个点，其他补给点保持原位。
+- **看清沿途安排**：通过可缩放、左右浏览的距离尺查看整份计划，已有补给标在尺上。
+- **补给不止水和胶**：水默认提醒“喝水”，能量胶默认提醒“吃胶”；也可以自定义补给名称与提醒内容。
+- **选一种骑行气质**：沿途、节奏、路书、口袋补给、精密刻度，五套皮肤随心切换。
+- **打开就能继续**：计划和外观偏好保存在本机，无需注册账号。
+- **按日期留下计划**：选择骑行日期，发送后保留历史；可查看系统排程、完成状态，并撤回指定日期的排程。
 
-只请求 WorkoutKit 的训练排程授权，不申请 HealthKit 数据读写、定位、通知或后台运动权限。`HealthKit` 的导入仅用于构造训练类型，没有访问健康数据存储。无需开启 HealthKit capability。
+例如，计划骑行 100 公里，沿途可以这样安排：
 
-## 分段与提示
+| 距出发里程 | 到点提醒 |
+| --- | --- |
+| 25 公里 | 吃第一包胶 |
+| 45 公里 | 喝水 |
+| 70 公里 | 吃第二包胶 |
 
-输入的是**每一段的长度**，不是累计里程。例如自行输入 `125.5 米 → 吃胶`、`300 米 → 喝水`，预览会显示累计 `125.5 米` 和 `425.5 米`。
+删除 45 公里的补给点，70 公里的提醒仍在原位。距离可用米或公里输入。
 
-| 系统分段 | 距离目标 | 分段名称 |
-| --- | --- | --- |
-| 第一段 | 125.5 米 | 开始骑行 |
-| 第二段 | 300 米 | 吃胶 |
-| 最后一段 | 开放目标 | 喝水 |
+最后一个补给点之后，仍可继续骑行，由你决定何时结束运动。
 
-这是将到点提示放在**下一段开始时**呈现的设计。提示也可能提前出现在系统的下一段预览里，并持续作为当前分段名称；实际是否容易察觉必须真机验证。最后一条提示使用开放目标，继续骑行后由用户手动结束。
+## 从计划到出发
 
-距离必须大于零、有限；不接受千位分隔符、单位后缀或科学计数法，小数分隔符随系统区域。空计划、空白文案不能发送。重复发送复用本机保存的计划 UUID；编辑后先移除这个 UUID 对应的旧排程，再添加新版，不删除其他计划。系统没有原子替换接口，若新排程未确认，页面提示重试。重装 App 后本地数据和标识会丢失，旧计划可能需要用户从系统中自行移除。
+1. 在 iPhone 上选择骑行日期、设置计划距离，拨动距离尺选位置，点“＋补给”填写内容并保存，核对沿途安排。
+2. 点击“发送到 Apple Watch”，允许添加训练计划。
+3. 在手表的“体能训练”中确认 Kairos 骑行补给计划，再手动开始。
 
-## 验证
+手机显示提交完成后，仍需在手表上确认计划已收到。修改计划后需要重新发送。
 
-无需第三方依赖。核心代码同时编入 iPhone App 和 Swift Package；Swift Package 在 macOS 15+ 运行测试，使用实际 WorkoutKit 对象及可控排程替身，不访问真实训练排程。
+历史入口在右上角。历史按骑行日期分组，同一计划同一天重发会更新当天版本，其他日期保留。撤回系统排程会保留手机历史与已完成的运动记录。系统排程状态不等于手表实时接收确认。
 
-```sh
-rtk proxy swift test
-rtk proxy xcodebuild -project Kairos.xcodeproj -target Kairos -configuration Debug -sdk iphoneos SYMROOT=/private/tmp/kairos-device-products OBJROOT=/private/tmp/kairos-device-objects CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= build
-rtk proxy xcodebuild -project Kairos.xcodeproj -target Kairos -configuration Debug -sdk iphonesimulator SYMROOT=/private/tmp/kairos-simulator-products OBJROOT=/private/tmp/kairos-simulator-objects CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= build
-rtk proxy swift format lint --strict --recursive Kairos KairosCore Tests Package.swift
-```
+## 使用条件与当前状态
 
-App 的 Xcode scheme 用于构建/运行；自动测试使用 `swift test`，不是 Xcode 的空 Test Action。上面的 SDK 构建不需要签名或启动模拟器。模拟器可验证编辑页面，无法证明真实手表同步、声音、震动或续航。真机执行步骤与本地验证记录见 [真机测试](docs/device-test.md)。
+需要 iOS 18 或更新版本，以及配对的 Apple Watch（watchOS 11 或更新版本）。
 
-实现文件：`Kairos/` 为界面，`KairosCore/` 为输入校验、训练转换、本机保存与排程提交，`Tests/` 为行为测试。
+补给提醒依据实际骑行累计距离，绕路或定位误差可能改变提醒地点；它不代表你已经完成补给。
 
-界面参考、10 个 App 的公开设计依据及配色/布局规则见 [界面设计](docs/design.md)。
-
-## 官方依据
-
-- [WorkoutKit：创建与同步训练](https://developer.apple.com/documentation/workoutkit)
-- [Apple 演示：自定义分段名称及分段切换提示](https://developer.apple.com/videos/play/wwdc2024/10084/?time=193)
-
-当前是实验程序，不声称提醒体验已通过真机验收。系统使用实际骑行累计距离，不是路线上的位置；绕路、定位误差可能改变提醒地点。手动跳段尊重用户选择。
+Kairos 当前处于早期版本，Apple Watch 上的实际文字、声音和触感提醒效果仍待真机验证。
