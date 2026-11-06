@@ -21,20 +21,24 @@ extension WorkoutScheduler: WorkoutScheduling {
 }
 
 enum SubmissionError: LocalizedError, Equatable {
-  case unsupported, denied, restricted, full, notConfirmed
+  case unsupported, denied, restricted, full, notConfirmed, completed, authorizationRequired
 
   var errorDescription: String? {
     switch self {
     case .unsupported:
       "当前设备不支持此骑行计划的排程。请使用已配对 Apple Watch 的 iPhone，并确认 watchOS 11 或更新版本及系统体能训练可用。"
     case .denied:
-      "未获准添加训练。请在 iPhone 的 Watch App → 体能训练中允许 Kairos，再回来重试。"
+      "未获准管理训练排程。请在 iPhone 的 Watch App → 体能训练中允许 Kairos，再回来重试。"
     case .restricted:
       "系统限制了训练排程权限，请检查设备限制后重试。"
     case .full:
       "训练排程已满。请先移除不需要的训练，再重试；Kairos 不会替你删除其他计划。"
     case .notConfirmed:
       "本机暂未确认本次排程，请重试并在手表体能训练中检查计划。"
+    case .completed:
+      "这份计划当天已完成，请刷新后重新发送，以保留为新一次骑行。"
+    case .authorizationRequired:
+      "尚未授权训练排程。点右上角刷新可授权并读取已有计划。"
     }
   }
 }
@@ -44,6 +48,7 @@ enum WorkoutSubmission {
   static func submit(
     _ plan: WorkoutPlan,
     using scheduler: some WorkoutScheduling,
+    day: PlanDay? = nil,
     now: Date = .now,
     calendar: Calendar = .current
   ) async throws {
@@ -57,8 +62,32 @@ enum WorkoutSubmission {
     else { throw SubmissionError.unsupported }
     // Apple's encoder validates the composition before we replace any existing schedule.
     _ = try plan.dataRepresentation
+    let existing = try await schedules(using: scheduler, requestAuthorization: true)
+    let date = day?.components ?? calendar.dateComponents([.year, .month, .day], from: now)
+    let owned = existing.filter { $0.plan.id == plan.id && sameDay($0.date, date) }
+    guard !owned.contains(where: \.complete) else { throw SubmissionError.completed }
+    if owned.count == 1, let entry = owned.first, entry.plan == plan {
+      return
+    }
+    guard existing.count - owned.count < scheduler.capacity else { throw SubmissionError.full }
+    for entry in owned {
+      await scheduler.remove(entry.plan, at: entry.date)
+    }
+    await scheduler.schedule(plan, at: date)
+    let updated = try await schedules(using: scheduler)
+    guard updated.contains(where: { $0.plan == plan && sameDay($0.date, date) && !$0.complete })
+    else {
+      throw SubmissionError.notConfirmed
+    }
+  }
+
+  static func schedules(
+    using scheduler: some WorkoutScheduling, requestAuthorization: Bool = false
+  ) async throws -> [ScheduledWorkoutPlan] {
+    guard scheduler.supportsScheduling else { throw SubmissionError.unsupported }
     var authorization = await scheduler.authorizationState
     if authorization == .notDetermined {
+      guard requestAuthorization else { throw SubmissionError.authorizationRequired }
       authorization = await scheduler.requestAuthorization()
     }
     switch authorization {
@@ -68,24 +97,7 @@ enum WorkoutSubmission {
     default: throw SubmissionError.notConfirmed
     }
 
-    let date = calendar.dateComponents([.year, .month, .day], from: now)
-    let existing = await scheduler.scheduledWorkouts
-    let owned = existing.filter { $0.plan.id == plan.id }
-    if owned.count == 1, let entry = owned.first, entry.plan == plan,
-      sameDay(entry.date, date), !entry.complete
-    {
-      return
-    }
-    guard existing.count - owned.count < scheduler.capacity else { throw SubmissionError.full }
-    for entry in owned {
-      await scheduler.remove(entry.plan, at: entry.date)
-    }
-    await scheduler.schedule(plan, at: date)
-    let updated = await scheduler.scheduledWorkouts
-    guard updated.contains(where: { $0.plan == plan && sameDay($0.date, date) && !$0.complete })
-    else {
-      throw SubmissionError.notConfirmed
-    }
+    return await scheduler.scheduledWorkouts
   }
 
   private static func sameDay(_ lhs: DateComponents, _ rhs: DateComponents) -> Bool {

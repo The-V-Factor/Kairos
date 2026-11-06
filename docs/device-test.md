@@ -4,9 +4,27 @@
 
 ## 本地验证记录
 
+### 同页新增、0 公里与终点（2026-11-06）
+
+- 本轮 28 项核心测试通过，覆盖自适应刻度、草稿与保存点隔离、0 公里出发补给、重复 0 点、仅出发点的开放训练，以及原有权限/保存/转换回归。两套 iOS SDK 无签名构建、严格格式检查通过。
+- 模拟器已验证：同页输入 TEST 并在当前 42.5 公里保存，已有点不动；测试点已删除。自定义名称/提醒仍为独立字段，拨尺后草稿位置同步，取消不保存。77 公里全览按 20 公里间隔，放大后按 10 公里间隔；鼠标拖动改变读数，真实触感未验证。
+- 用户测试中将总距离改为 77 公里，原 15.9259/41.7593/55.1852 公里三个点保留，没有替换回旧的 85 公里。当前显示分别为 15.9/41.8/55.2 公里。
+- 新增样式的三种替代图仅用于比较，尚待选择；本轮没有把未确认的新样式写进 App。
+- 补充验收：在 0 米实际保存 ZEROQA，列表出现出发点且发送校验通过；该临时点已删除，原三个点及 77 公里总距离保留。全览和滑到最后一刻度时，77 km 标签均正常显示；没有发送到真实训练排程。
+- 五套主题焦点文字对各自背景的计算对比度分别为 5.14、15.29、5.81、6.32、4.53:1；这不替代完整真机无障碍测试。
+
+### 当前模型：计划总距离与固定点位（2026-11-06）
+
+- 当前核心测试为 23 项，覆盖删除/修改中间点不影响后续里程、乱序固定点排序、重复及超界里程校验、旧分段数据迁移一次、旧草稿保留、保存/恢复和实际 WorkoutKit 距离差转换。
+- iPhoneOS / iPhoneSimulator SDK 无签名编译、严格格式和差异空白检查通过。
+- 独立模拟器测试副本输入计划 100 公里、点位 25/45/70 公里，删除中点后保持 25/70，撤销恢复；计划改短至 60 公里时阻止保存，改为 120 公里后点位仍是 25/45/70。已检查单层高对比距离尺及整趟骑行范围。
+- 原 App 的四点及文案已在界面确认保留；原总距离未知，留待用户设置，没有代填。上述流程没有发起 WorkoutKit 排程，也没有真实 Watch 骑行验证。
+
+### 初版验证（历史）
+
 - 环境：Xcode 26.6 (17F113)、Swift 6.3.3、iPhoneOS/iPhoneSimulator SDK 26.5。
 - `rtk proxy env CLANG_MODULE_CACHE_PATH=/private/tmp/kairos-clang-cache swift test --scratch-path /private/tmp/kairos-swift-build --cache-path /private/tmp/kairos-swift-cache --config-path /private/tmp/kairos-swift-config --security-path /private/tmp/kairos-swift-security`：18 项测试通过，含参数化非法距离/授权用例。覆盖实际 WorkoutKit 对象及其编码往返、距离/文案位置、开放尾段、权限、容量、重复提交、替换时保留其他计划、提交后本机查询、跨时区日期、本机保存/恢复和损坏数据。
-- README 中两个 `xcodebuild -target Kairos -sdk ...` 命令：无签名编译通过；未安装真机。
+- [开发说明](development.md)中的两个 `xcodebuild -target Kairos -sdk ...` 命令：无签名编译通过；未安装真机。
 - `rtk proxy swift format lint --strict --recursive Kairos KairosCore Tests Package.swift`：通过；工程 plist 及新增文件空白检查通过。
 - 当前 sandbox 不允许运行 SwiftPM 的子 sandbox 与 Swift 宏，测试/构建已通过明确的提升权限命令执行，没有访问健康记录或实际手表排程。
 - 初次验证时，本机 `generic/platform=iOS` 目标选择报 iOS 26.5 未安装；直接针对已安装 SDK 的 target 构建通过。当时没有可用模拟器设备，未执行 UI 验收；随后用户自行完成配置。
@@ -24,6 +42,13 @@
 
 ## 环境记录
 
+### Issue #1 原生皮肤与交互回归（2026-11-06）
+
+- 自动测试现为 21 项，新增旧存档兼容和自定义补给验证；两套 iOS SDK 无签名编译、严格格式检查通过。
+- 模拟器已逐一检查五套皮肤、选择持久化、点位面板、250 米→0.25 公里换算、自定义名称/提醒保存、删除与撤销，以及放大按钮不改变计划。
+- 真 iPhone 仍须确认：横滑跟手/惯性/边界、双指锚点缩放、慢拨刻度与经过补给点的触感区别、快滑限频、关闭触感、减弱动态效果、增删动效节奏和快速连续操作。另查密集点位、长名称/文案及极大字号；不得仅凭模拟器截图勾选这些项目。
+- 新增交互不会替代下文 Apple Watch 真机骑行检查表，真实提醒实验状态仍为未验证。
+
 | 项目 | 实测记录 |
 | --- | --- |
 | 日期、测试人、App 版本 | 待填写 |
@@ -31,14 +56,53 @@
 | Apple Watch 型号 / watchOS 版本 | 待填写 |
 | 手表静音 / 触感 / 音量 / 专注模式 | 待填写 |
 | 常亮显示 / 低电量模式 / 自动暂停 | 待填写 |
-| 计划各段距离与提示、累计里程 | 自行填写；App 无固定测试距离 |
+| 计划总距离、各点距出发里程与提示 | 自行填写；App 无固定测试距离 |
 | 骑行环境、GPS 信号 | 待填写 |
 
 使用配对的 iPhone（iOS 18+）与 Apple Watch（watchOS 11+），手表已解锁且系统体能训练可用。先用适合测试地点的短距离计划，提示用可区分的中文。以下每次测试均在开始前重新核对手表里的实际计划；中途编辑与重新发送不会被视为更新了进行中的训练。
 
+## 补给主角界面验收（2026-11-06）
+
+环境：Xcode 26.6，iPhone 17 Pro 模拟器 / iOS 26.5。通过 CUA 操作实际安装的 App，保留用户原计划。
+
+- B 节奏与 C 路书均显示标题内联全程，点位读数和新增面板使用对应强调色。普通输入与自定义名称／提醒层级清楚；键盘展开后仍能切换类型和添加。
+- 空提醒禁止添加；自定义有提醒但缺名称时显示原因并禁止添加。水／胶／其他／自定义切换不丢输入，选中状态可被辅助功能读取；关闭和添加按钮可访问。
+- 新增临时 38.5 km 水点，回到编辑面板确认读数和提醒；新增 0 m 自定义点，回读名称与提醒分别保存。两点验收后删除，重启确认原有 77 km 计划及三个用户点不变，测试撤销条已清除，皮肤恢复 B。
+- 本轮未发送系统训练；真 iPhone 的触感、极大字号和下表中的 Apple Watch 提醒实验仍待实测。
+
+自动检查（均通过）：
+
+```sh
+rtk proxy env CLANG_MODULE_CACHE_PATH=/private/tmp/kairos-clang-cache swift test --scratch-path /private/tmp/kairos-swift-build --cache-path /private/tmp/kairos-swift-cache --config-path /private/tmp/kairos-swift-config --security-path /private/tmp/kairos-swift-security
+rtk proxy xcodebuild -project Kairos.xcodeproj -target Kairos -configuration Debug -sdk iphoneos SYMROOT=/private/tmp/kairos-device-products OBJROOT=/private/tmp/kairos-device-objects CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= -quiet build
+rtk proxy xcodebuild -project Kairos.xcodeproj -target Kairos -configuration Debug -sdk iphonesimulator SYMROOT=/private/tmp/kairos-simulator-products OBJROOT=/private/tmp/kairos-simulator-objects CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= -quiet build
+rtk proxy swift format lint --strict --recursive Kairos KairosCore Tests Package.swift
+rtk proxy git diff --check
+```
+
+Swift Testing 报告 28 项通过；XCTest 的 0 项计数不是本项目 Swift Testing 的执行数量。iPhone SDK 编译关闭签名，仅证明构建成功，不代表设备安装或 Watch 验收。
+
+## 五套皮肤与列表动作复核（2026-11-06）
+
+- 安装前基准为 C 路书、77 km，三个用户点显示为 15.9／38.5／55.2 km，提醒均为“喝水”。本轮保留这份实际状态，不恢复上一轮不同的点位。
+- A／B／C／D／E 的实际页面逐套检查。A 的人物截断已替换为完整系统图形；标题、全程、距离尺及列表无明显重叠。检查后恢复 C 路书。
+- 新增面板只出现水／胶／自定义。水初始为“喝水”，切到胶为“吃胶”，不必输入即可点添加；标准类型不自动展开键盘。手改为 `QA Swipe` 后切回水，内容保留。
+- 在 0 m 保存临时水点，通过原生列表暴露的辅助功能删除动作移除，再点撤销，确认内容和位置恢复。随后只清理该临时点，重启确认原三点、全程及 C 皮肤保留，测试撤销条已清除。
+- 自动化拖动及横向滚动未稳定触发模拟器的滑出手势。用户随后在同一模拟器人工检查，并回复“能正常滑出”；滑出按钮据此记为人工验收通过，删除／撤销动作则由上述辅助功能操作验证。没有将自动化失败写成自动化通过。
+- 核心测试增加旧 `other` 迁移覆盖，共 29 项通过，验证空名称和已有名称的旧其他点迁移、UUID／精确距离／文案保持、JSON 再保存和 WorkoutKit 提示保持。沿用上节命令，两种 SDK 编译与格式检查通过。
+
+## 日期历史与导出修正（2026-11-06）
+
+- 41 项核心测试通过。覆盖按日期存档／重发／重启、旧系统排程找回、系统完成状态、权限未确定时不自行弹框、撤回指定计划和日期、撤回失败不误报、满额不清理其他日期、替换失败保留原历史、历史损坏不覆盖，以及同日完成后再次骑行保留旧记录。
+- 精度与终点回归使用用户截图的 75 km、14,542／31,617／51,061 m：保存与导出为 14,500／31,600／51,100 m；系统段长为 14,500／17,100／19,500／23,900 m，再进入 75 km 完成开放段。另覆盖 0 km 补给、终点补给与取整重合校验。
+- iPhone 与模拟器 SDK 无签名构建、Swift 严格格式检查、`git diff --check` 通过，命令沿用上节。用户的项目签名配置未修改。
+- 合并前复核：41 项核心测试与两种 SDK 构建再次通过。本机签名团队从项目中的固定值移至被忽略的 `Config/Signing.local.xcconfig`；通过 `xcodebuild -showBuildSettings -json` 核对 Debug／Release 的有效团队值保持原样，AppIcon 设置仍为 AppIcon。共享工程仅可选读取本地文件，不提交个人团队配置。
+- 界面样本使用独立 `dev.the-v-factor.Kairos.QA` 模拟器容器，与真实手机及正常 App 数据分开。iPhone 17 / iOS 26.5 实际查看两天历史分组、详情中的累计里程／系统分段、23.9 km 尾段与 75 km 完成提示、日期切换不移动历史、曾完成但待刷新状态，以及未授权时的说明。样本应用已清理；正常应用也检查了 A 皮肤空历史和首次授权说明。样本状态不是手表实测证据。最后将详情的分段目标改为显示实际米数，对照手表更直接；该文字格式调整通过两种 SDK 构建和格式检查。
+- 真实 Watch 上的撤回传播、重发后的全屏文案、到点触感／声音、终点后继续记录，仍待用户更新手机 App 后实测。模拟器与替身测试未对真实手表执行撤回或重发。
+
 ## 步骤与结果
 
-1. 在 App 的“编辑计划”中输入每段距离及到段尾提示，切换“里程预览”核对累计里程。“添加补给点”新增，卡片右上减号删除；重新打开 App，确认保存正确。按钮旁显示未完成原因，右上问号显示使用说明。
+1. 先设置计划总距离，再“添加补给点”，填写距出发里程与到点提示。点击条目进入编辑/删除，可撤销最近删除。删除中间点，确认后续点里程不变；修改总距离不会移动点位。重新打开 App，确认保存正确。按钮旁显示未完成原因，右上问号显示使用说明。
 2. 第一次发送时授权。分别记录授权允许和拒绝的行为；拒绝后到 iPhone 的 Watch App → 体能训练检查 Kairos 权限，恢复后重试。
 3. App 显示本机提交后，在手表系统体能训练检查计划名称、分段、距离及文案；记录同步耗时。找不到时检查配对、权限、手表版本、系统体能训练，再重试，不能把手机提示当成手表同步证据。
 4. 修改一个距离/文案后重发，确认实际使用的是新版；连续发送确认没有多份旧计划。不要删除与本次实验无关的训练。

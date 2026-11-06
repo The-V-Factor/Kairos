@@ -15,6 +15,7 @@ final class FakeScheduler: WorkoutScheduling {
   var submissions = 0
   var removed: [UUID] = []
   var acceptsSchedule = true
+  var acceptsRemoval = true
   var authorizationState: WorkoutScheduler.AuthorizationState { get async { state } }
   var scheduledWorkouts: [ScheduledWorkoutPlan] { get async { entries } }
 
@@ -31,14 +32,14 @@ final class FakeScheduler: WorkoutScheduling {
 
   func remove(_ workout: WorkoutPlan, at date: DateComponents) async {
     removed.append(workout.id)
-    entries.removeAll { $0.plan.id == workout.id && $0.date == date }
+    if acceptsRemoval { entries.removeAll { $0.plan.id == workout.id && $0.date == date } }
   }
 }
 
 @MainActor
 private func examplePlan() throws -> WorkoutPlan {
-  var plan = FuelPlan()
-  plan.segments = [FuelSegment(distance: "150", reminder: "吃胶")]
+  var plan = FuelPlan(totalDistance: "1000")
+  plan.stops = [FuelStop(distance: "150", reminder: "吃胶")]
   return try plan.workoutPlan()
 }
 
@@ -109,11 +110,11 @@ private func examplePlan() throws -> WorkoutPlan {
   scheduler.entries = [
     ScheduledWorkoutPlan(old, date: date), ScheduledWorkoutPlan(other, date: date),
   ]
-  var updated = FuelPlan()
+  var updated = FuelPlan(totalDistance: "1000")
   updated.id = old.id
-  updated.segments = [FuelSegment(distance: "750", reminder: "喝水")]
+  updated.stops = [FuelStop(distance: "750", reminder: "喝水")]
   let new = try updated.workoutPlan()
-  try await WorkoutSubmission.submit(new, using: scheduler)
+  try await WorkoutSubmission.submit(new, using: scheduler, day: PlanDay(date))
   #expect(scheduler.removed == [old.id])
   #expect(scheduler.entries.count == 2)
   #expect(scheduler.entries.contains { $0.plan == other })
@@ -137,4 +138,18 @@ private func examplePlan() throws -> WorkoutPlan {
   try await WorkoutSubmission.submit(examplePlan(), using: scheduler, now: now, calendar: calendar)
   let scheduledDate = scheduler.entries[0].date
   #expect(scheduledDate.year == 2026 && scheduledDate.month == 11 && scheduledDate.day == 5)
+}
+
+@Test @MainActor func fullScheduleDoesNotReplaceSamePlanOnAnotherDay() async throws {
+  let scheduler = FakeScheduler()
+  scheduler.capacity = 1
+  let plan = try examplePlan()
+  let previous = DateComponents(year: 2026, month: 11, day: 5)
+  scheduler.entries = [ScheduledWorkoutPlan(plan, date: previous)]
+  await #expect(throws: SubmissionError.full) {
+    try await WorkoutSubmission.submit(
+      plan, using: scheduler, day: PlanDay(DateComponents(year: 2026, month: 11, day: 6)))
+  }
+  #expect(scheduler.removed.isEmpty && scheduler.entries.count == 1)
+  #expect(PlanDay(scheduler.entries[0].date) == PlanDay(previous))
 }

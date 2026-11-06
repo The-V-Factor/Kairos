@@ -2,380 +2,472 @@ import SwiftUI
 
 struct ContentView: View {
   @State private var store = PlanStore()
-  @State private var showingPreview = false
+  @AppStorage("kairos.appearance.v1") private var themeName = RideTheme.trail.rawValue
+  @AppStorage("kairos.haptics.v1") private var haptics = true
+  @State private var showingThemes = false
   @State private var showingHelp = false
-  @FocusState private var editing: Bool
-  @ScaledMetric(relativeTo: .largeTitle) private var distanceFontSize = 42
+  @State private var showingDistance = false
+  @State private var showingHistory = false
+  @State private var editingSegment: FuelStop?
+  @State private var selectedID: UUID?
+  @State private var arrivingID: UUID?
+  @State private var arrivalEvent: UUID?
+  @State private var removingIDs: Set<UUID> = []
+  @State private var deleted: DeletedPoint?
+  @State private var rulerIdentity = UUID()
+  @State private var rulerZoomCommand = 0
+  @State private var pendingDelete: UUID?
+  @State private var pendingSave: FuelStop?
+  @State private var isAdding = false
+  @State private var addingAt = 0.0
+  @State private var cursorMeters = 0.0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private var points: [FuelPoint]? { try? store.plan.points() }
+  private struct DeletedPoint {
+    var segment: FuelStop
+    var index: Int
+  }
+  private var theme: RideTheme { RideTheme(rawValue: themeName) ?? .trail }
+  private var themeBinding: Binding<RideTheme> {
+    Binding(get: { theme }, set: { themeName = $0.rawValue })
+  }
+  private var plannedMeters: Double? {
+    guard let meters = FuelPlan.meters(store.plan.totalDistance) else { return nil }
+    let rounded = PlanDistance.roundedMeters(meters)
+    return rounded.isFinite && rounded > 0 ? rounded : nil
+  }
+  private var points: [FuelPoint] {
+    store.plan.orderedStops.compactMap { stop in
+      guard let meters = FuelPlan.meters(stop.distance, allowZero: true) else { return nil }
+      return FuelPoint(
+        id: stop.id, cumulativeMeters: PlanDistance.roundedMeters(meters), reminder: stop.reminder,
+        kind: stop.kind)
+    }
+  }
+  private var canSend: Bool {
+    store.validationMessage == nil && removingIDs.isEmpty && pendingDelete == nil
+      && pendingSave == nil && !isAdding && !store.isWorking
+  }
+  private var motion: Animation? { reduceMotion ? .easeOut(duration: 0.1) : theme.motion }
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 26) {
-          overview
-          Picker("计划显示方式", selection: $showingPreview) {
-            Text("编辑计划").tag(false)
-            Text("里程预览").tag(true)
+      ScrollViewReader { proxy in
+        List {
+          overview.padding(.top, 10).padding(.bottom, 16)
+            .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+            .listRowSeparator(.hidden).listRowBackground(theme.canvas)
+          if let plannedMeters {
+            VStack(spacing: 4) {
+              DistanceRuler(
+                points: points, selectedID: selectedID, theme: theme, haptics: haptics,
+                totalMeters: plannedMeters,
+                zoomCommand: rulerZoomCommand,
+                onSelect: { id in
+                  selectedID = id
+                  if !isAdding {
+                    withAnimation(motion) { proxy.scrollTo(id, anchor: .center) }
+                  }
+                },
+                onBrowse: { cursorMeters = $0 }
+              ).frame(height: 124).id(rulerIdentity)
+                .overlay(alignment: .topTrailing) {
+                  Button {
+                    addingAt = cursorMeters
+                    isAdding = true
+                  } label: {
+                    Label("补给", systemImage: "plus").font(.caption.weight(.semibold))
+                      .foregroundStyle(theme.accent)
+                      .padding(.horizontal, 10).padding(.vertical, 7)
+                      .background(theme.ink.opacity(0.05), in: Capsule())
+                      .frame(minHeight: 44)
+                  }.buttonStyle(.plain).accessibilityLabel("在当前里程添加补给")
+                    .accessibilityIdentifier("addSegment")
+                    .disabled(isAdding || store.isSending || !removingIDs.isEmpty)
+                    .offset(y: -12)
+                }
+              HStack {
+                Text("累计距离 · 双指缩放")
+                Spacer()
+                Button {
+                  rulerZoomCommand -= 1
+                } label: {
+                  Image(systemName: "minus.magnifyingglass").frame(width: 36, height: 32)
+                }
+                .accessibilityLabel("缩小距离尺")
+                Button {
+                  rulerZoomCommand += 1
+                } label: {
+                  Image(systemName: "plus.magnifyingglass").frame(width: 36, height: 32)
+                }
+                .accessibilityLabel("放大距离尺")
+                Button("全览") {
+                  selectedID = nil
+                  cursorMeters = plannedMeters / 2
+                  rulerIdentity = UUID()
+                }
+              }.font(.caption2).foregroundStyle(theme.muted).buttonStyle(.plain)
+            }.padding(.bottom, 16).id("ruler")
+              .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+              .listRowSeparator(.hidden).listRowBackground(theme.canvas)
           }
-          .pickerStyle(.segmented)
-          .onChange(of: showingPreview) { editing = false }
-
-          if showingPreview {
-            preview
-          } else {
-            editor
-          }
-
-          Label("最后一次补给后，继续自由骑行。", systemImage: "infinity")
-            .font(.footnote)
-            .foregroundStyle(RidePalette.muted)
-            .frame(maxWidth: .infinity, alignment: .leading)
+          itinerary
+          Label("骑至计划终点后，可继续骑行。", systemImage: "infinity")
+            .font(.footnote).foregroundStyle(theme.muted)
+            .padding(.top, 16).padding(.bottom, 24)
+            .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+            .listRowSeparator(.hidden).listRowBackground(theme.canvas)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 24)
-        .frame(maxWidth: 600)
-        .frame(maxWidth: .infinity)
+        .listStyle(.plain).scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
+        .frame(maxWidth: 600).frame(maxWidth: .infinity)
+        .scrollDismissesKeyboard(.interactively)
       }
-      .background(RidePalette.canvas)
-      .scrollDismissesKeyboard(.interactively)
-      .safeAreaInset(edge: .top, spacing: 0) {
-        masthead
-          .padding(.horizontal, 24)
-          .padding(.top, 8)
-          .padding(.bottom, 12)
-          .frame(maxWidth: 600)
-          .frame(maxWidth: .infinity)
-          .background(RidePalette.canvas)
-      }
+      .background(theme.canvas)
+      .safeAreaInset(edge: .top, spacing: 0) { masthead }
       .safeAreaInset(edge: .bottom, spacing: 0) { sendDock }
       .toolbar(.hidden, for: .navigationBar)
-      .toolbar {
-        ToolbarItemGroup(placement: .keyboard) {
-          Spacer()
-          Button("完成") { editing = false }
+      .sheet(isPresented: $showingThemes) { ThemePicker(selected: themeBinding, haptics: $haptics) }
+      .sheet(isPresented: $showingHelp) { help }
+      .sheet(isPresented: $showingHistory) { PlanHistoryView(store: store, theme: theme) }
+      .sheet(isPresented: $showingDistance) {
+        PlanDistanceEditor(plan: store.plan, theme: theme) { distance in
+          store.plan.totalDistance = distance
         }
       }
-      .sheet(isPresented: $showingHelp) { help }
-      .tint(RidePalette.accent)
+      .sheet(
+        isPresented: $isAdding,
+        onDismiss: {
+          if let stop = pendingSave {
+            pendingSave = nil
+            save(stop)
+          }
+        }
+      ) {
+        FuelComposer(position: addingAt, plan: store.plan, theme: theme, haptics: haptics) { stop in
+          pendingSave = stop
+          isAdding = false
+        } onCancel: {
+          isAdding = false
+        }
+        .presentationDetents([.height(360), .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(28)
+        .presentationBackground(theme.surface)
+      }
+      .sheet(
+        item: $editingSegment,
+        onDismiss: {
+          if let segment = pendingSave {
+            pendingSave = nil
+            save(segment)
+          }
+          if let id = pendingDelete {
+            pendingDelete = nil
+            remove(id)
+          }
+        }
+      ) { segment in
+        FuelEditor(
+          segment: segment, plan: store.plan, theme: theme,
+          haptics: haptics, canDelete: store.plan.stops.contains(where: { $0.id == segment.id }),
+          onSave: { pendingSave = $0 }, onDelete: { pendingDelete = segment.id })
+      }
+      .tint(theme.accent).foregroundStyle(theme.ink)
+      .preferredColorScheme(theme == .rhythm ? .dark : .light)
+      .sensoryFeedback(.selection, trigger: themeName) { _, _ in haptics }
+      .sensoryFeedback(.impact(weight: .light), trigger: arrivalEvent) { _, _ in haptics }
+      .onAppear { cursorMeters = plannedMeters.map { $0 / 2 } ?? 0 }
+      .onChange(of: plannedMeters) { old, value in
+        if let value {
+          cursorMeters = old == nil ? value / 2 : min(cursorMeters, value)
+        }
+      }
     }
   }
 
   private var masthead: some View {
-    HStack(spacing: 10) {
-      Image(systemName: "bicycle")
-        .font(.title3.weight(.semibold))
-        .foregroundStyle(RidePalette.accent)
-        .accessibilityHidden(true)
-      Text("KAIROS")
-        .font(.caption.weight(.bold))
-        .tracking(3)
+    HStack {
+      Text("KAIROS").font(.system(.caption, design: theme.fontDesign).weight(.black)).tracking(3)
       Spacer()
       Button {
-        editing = false
+        showingThemes = true
+      } label: {
+        Label(theme.title, systemImage: "swatchpalette").font(.caption.weight(.semibold))
+          .padding(.horizontal, 12).frame(minHeight: 44)
+          .background(theme.ink.opacity(0.05), in: Capsule())
+      }.accessibilityLabel("选择皮肤，当前\(theme.title)")
+      Button {
+        showingHistory = true
+      } label: {
+        Image(systemName: "clock.arrow.circlepath").frame(width: 44, height: 44)
+      }.accessibilityLabel("历史计划")
+      Button {
         showingHelp = true
       } label: {
-        Image(systemName: "questionmark")
-          .font(.callout.weight(.semibold))
-          .frame(width: 44, height: 44)
-          .background(RidePalette.surface, in: Circle())
+        Image(systemName: "questionmark.circle").frame(width: 44, height: 44)
       }
       .accessibilityLabel("使用说明")
-    }
+    }.buttonStyle(.plain).padding(.horizontal, 24).padding(.vertical, 6)
+      .frame(maxWidth: 600).frame(maxWidth: .infinity).background(theme.canvas)
   }
 
   private var overview: some View {
-    VStack(alignment: .leading, spacing: 20) {
-      VStack(alignment: .leading, spacing: 6) {
-        Text("为下一程，补给。")
-          .font(.system(.largeTitle, design: .rounded).weight(.bold))
-          .accessibilityAddTraits(.isHeader)
-        Text("出发前安排好，骑行时交给手表。")
-          .font(.subheadline)
-          .foregroundStyle(RidePalette.muted)
+    VStack(alignment: .leading, spacing: 12) {
+      if theme == .rhythm {
+        HStack {
+          Text("READY TO RIDE").font(.system(size: 10, weight: .medium)).tracking(3)
+          Rectangle().fill(theme.line).frame(height: 1)
+        }
       }
-
-      HStack(alignment: .center, spacing: 16) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("最后补给里程")
-            .font(.caption)
-            .foregroundStyle(RidePalette.muted)
-          HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(points?.last.map { distanceParts($0.cumulativeMeters).value } ?? "—")
-              .font(.system(size: distanceFontSize, weight: .semibold, design: .rounded))
-              .monospacedDigit()
-              .lineLimit(1)
-              .minimumScaleFactor(0.5)
-            if let last = points?.last {
-              Text(distanceParts(last.cumulativeMeters).unit)
-                .font(.callout)
-                .foregroundStyle(RidePalette.muted)
+      ViewThatFits(in: .horizontal) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+          heading.fixedSize()
+          Spacer(minLength: 0)
+          plannedDistance.fixedSize()
+        }
+        VStack(alignment: .leading, spacing: 0) {
+          heading
+          plannedDistance
+        }
+      }
+      DatePicker("骑行日期", selection: $store.rideDate, displayedComponents: .date)
+        .font(.footnote).foregroundStyle(theme.muted).disabled(store.isWorking)
+      if plannedMeters == nil && !store.plan.stops.isEmpty {
+        Text("原有补给已按距出发里程保留，请先确认这次骑行的计划距离。")
+          .font(.footnote).foregroundStyle(theme.muted)
+      }
+      if theme == .trail { TrailArtwork(theme: theme) }
+      if theme == .pocket {
+        HStack(spacing: 36) {
+          ForEach(Array(store.plan.orderedStops.prefix(3).enumerated()), id: \.element.id) {
+            index, segment in
+            VStack(spacing: 10) {
+              FuelToken(kind: segment.kind, theme: theme).scaleEffect(1.35)
+                .frame(height: 56).rotationEffect(.degrees(index == 1 ? 8 : -8))
+              Text("\(index + 1)").font(.caption.weight(.black))
             }
           }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        Rectangle()
-          .fill(RidePalette.accent.opacity(0.15))
-          .frame(width: 1, height: 46)
-        VStack(alignment: .leading, spacing: 4) {
-          Text("\(store.plan.segments.count)")
-            .font(.system(.title, design: .rounded).weight(.semibold))
-            .monospacedDigit()
-          Text("补给点")
-            .font(.caption)
-            .foregroundStyle(RidePalette.muted)
-        }
+        }.frame(maxWidth: .infinity).padding(.top, 6)
       }
-      .foregroundStyle(RidePalette.accent)
-      .padding(20)
-      .background(RidePalette.softAccent, in: RoundedRectangle(cornerRadius: 22))
     }
   }
 
-  private var editor: some View {
-    @Bindable var store = store
-    return VStack(alignment: .leading, spacing: 14) {
-      HStack {
-        Text("你的补给点").font(.headline)
-        Spacer()
-        Text("按骑行顺序").font(.caption).foregroundStyle(RidePalette.muted)
+  private var heading: some View {
+    Text(theme == .journal ? "补给路书" : "骑行补给")
+      .font(
+        .system(.largeTitle, design: theme.fontDesign).weight(
+          theme == .journal ? .semibold : .bold)
+      )
+      .fontWidth(theme == .rhythm ? .condensed : .standard).accessibilityAddTraits(.isHeader)
+      .overlay(alignment: .leading) {
+        if theme == .journal { Rectangle().fill(theme.accent).frame(width: 3).offset(x: -12) }
       }
-      if store.plan.segments.isEmpty {
-        Text("先添加一个补给点，安排第一段骑行。")
-          .font(.subheadline)
-          .foregroundStyle(RidePalette.muted)
-          .padding(.vertical, 12)
-      }
-      ForEach($store.plan.segments) { $segment in
-        segmentCard($segment, index: segmentIndex(segment.id))
-      }
-      Button {
-        store.plan.segments.append(FuelSegment())
-      } label: {
-        Label("添加补给点", systemImage: "plus")
-          .font(.subheadline.weight(.semibold))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 17)
-          .background(
-            RoundedRectangle(cornerRadius: 18)
-              .strokeBorder(
-                RidePalette.accent.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+  }
+
+  private var plannedDistance: some View {
+    Button {
+      showingDistance = true
+    } label: {
+      HStack(alignment: .firstTextBaseline, spacing: 5) {
+        Text("全程").font(.caption).foregroundStyle(theme.muted)
+        Text(plannedMeters.map(rideDistance) ?? "设置距离")
+          .font(.system(.headline, design: theme.fontDesign).weight(.bold)).monospacedDigit()
+          .foregroundStyle(Color(uiColor: theme.rulerFocus))
+        Image(systemName: "pencil").font(.caption).foregroundStyle(theme.muted)
+      }.frame(minHeight: 44)
+    }.buttonStyle(.plain).disabled(isAdding || store.isSending || !removingIDs.isEmpty)
+      .accessibilityLabel("计划距离，\(plannedMeters.map(rideDistance) ?? "未设置")，点按修改")
+      .accessibilityIdentifier("editPlanDistance")
+  }
+
+  @ViewBuilder private var itinerary: some View {
+    if store.plan.stops.isEmpty {
+      VStack(alignment: .leading, spacing: 8) {
+        Text("从第一站开始。").font(.title3.weight(.semibold))
+        Text("先设置计划距离，再安排沿途的补给点。").font(.subheadline).foregroundStyle(theme.muted)
+      }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 24)
+        .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+        .listRowSeparator(.hidden).listRowBackground(theme.canvas)
+    }
+    ForEach(Array(store.plan.orderedStops.enumerated()), id: \.element.id) { index, segment in
+      pointRow(segment, index: index).id(segment.id)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+          Button {
+            remove(segment.id)
+          } label: {
+            Label("删除", systemImage: "trash")
+          }.tint(.red).disabled(store.isSending || removingIDs.contains(segment.id))
+            .accessibilityLabel("删除\(segment.displayName)补给点")
+        }
+        .listRowInsets(
+          EdgeInsets(
+            top: theme == .trail || theme == .pocket ? 5 : 0, leading: 24,
+            bottom: theme == .trail || theme == .pocket ? 5 : 0, trailing: 24)
+        )
+        .listRowSeparator(.hidden).listRowBackground(theme.canvas)
+    }
+  }
+
+  private func pointRow(_ segment: FuelStop, index: Int) -> some View {
+    let point = points.first(where: { $0.id == segment.id })
+    let removing = removingIDs.contains(segment.id)
+    return Button {
+      selectedID = segment.id
+      editingSegment = segment
+    } label: {
+      HStack(spacing: 14) {
+        VStack(spacing: 6) {
+          Text(String(format: "%02d", index + 1)).font(.caption2.weight(.bold).monospacedDigit())
+            .foregroundStyle(theme.detail)
+          FuelToken(
+            kind: segment.kind, theme: theme, removing: removing,
+            arrivalEvent: arrivingID == segment.id ? arrivalEvent : nil
           )
-      }
-      .buttonStyle(.plain)
-      .foregroundStyle(RidePalette.accent)
-      .accessibilityIdentifier("addSegment")
-      Text("距离填写本段长度；累计里程会自动计算。")
-        .font(.caption)
-        .foregroundStyle(RidePalette.muted)
-    }
-    .disabled(store.isSending)
-  }
-
-  private func segmentCard(_ segment: Binding<FuelSegment>, index: Int) -> some View {
-    VStack(alignment: .leading, spacing: 16) {
-      HStack {
-        pointNumber(index + 1)
-        Text("补给点 \(index + 1)").font(.subheadline.weight(.semibold))
-        Spacer()
-        Button {
-          editing = false
-          let id = segment.wrappedValue.id
-          store.plan.segments.removeAll { $0.id == id }
-        } label: {
-          Image(systemName: "minus.circle")
-            .font(.title3)
-            .foregroundStyle(RidePalette.muted)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("删除第 \(index + 1) 个补给点")
-      }
-
-      VStack(alignment: .leading, spacing: 7) {
-        Text("本段距离").font(.caption).foregroundStyle(RidePalette.muted)
-        HStack(alignment: .firstTextBaseline) {
-          TextField("输入距离", text: segment.distance)
-            .font(.system(.title2, design: .rounded).weight(.medium))
-            .monospacedDigit()
-            .keyboardType(.decimalPad)
-            .focused($editing)
-            .accessibilityLabel("第 \(index + 1) 段距离，单位米")
-          Text("米").font(.subheadline).foregroundStyle(RidePalette.muted)
+        VStack(alignment: .leading, spacing: 5) {
+          Text(point.map { rideDistance($0.cumulativeMeters) } ?? "填写距离")
+            .font(
+              .system(theme == .journal ? .title : .title2, design: theme.fontDesign).weight(
+                .semibold)
+            )
+            .foregroundStyle(theme.accent).monospacedDigit()
+          Text(segment.reminder.isEmpty ? "未完成的补给点" : segment.reminder)
+            .font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+          Text("\(segment.displayName) · 距出发里程").font(.caption2).foregroundStyle(theme.muted)
         }
-        .padding(14)
-        .background(RidePalette.inset, in: RoundedRectangle(cornerRadius: 12))
+        Spacer(minLength: 0)
+        Image(systemName: "chevron.right").font(.caption.weight(.medium)).foregroundStyle(
+          theme.muted)
       }
-      VStack(alignment: .leading, spacing: 7) {
-        Text("到点提醒").font(.caption).foregroundStyle(RidePalette.muted)
-        TextField("例如：吃一包胶、喝水", text: segment.reminder, axis: .vertical)
-          .font(.body)
-          .focused($editing)
-          .lineLimit(1...4)
-          .padding(14)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(RidePalette.inset, in: RoundedRectangle(cornerRadius: 12))
-          .accessibilityLabel("第 \(index + 1) 段到点提示")
-      }
-    }
-    .padding(18)
-    .background(RidePalette.surface, in: RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var preview: some View {
-    VStack(alignment: .leading, spacing: 18) {
-      VStack(alignment: .leading, spacing: 5) {
-        Text("一路上的补给").font(.headline)
-        Text("按实际累计骑行里程提醒。")
-          .font(.caption)
-          .foregroundStyle(RidePalette.muted)
-      }
-      if let points {
-        VStack(spacing: 0) {
-          ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
-            HStack(alignment: .top, spacing: 14) {
-              pointNumber(index + 1)
-              VStack(alignment: .leading, spacing: 7) {
-                Text("累计 \(distanceLabel(point.cumulativeMeters))")
-                  .font(.subheadline.weight(.semibold))
-                  .foregroundStyle(RidePalette.accent)
-                Text(point.reminder).font(.title3.weight(.medium))
-                Text("本段 \(distanceLabel(point.distanceMeters))")
-                  .font(.caption)
-                  .foregroundStyle(RidePalette.muted)
-              }
-              .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(18)
-            if index < points.count - 1 {
-              Divider().padding(.leading, 66)
-            }
-          }
+      .padding(.vertical, 10).padding(.horizontal, theme == .trail || theme == .pocket ? 14 : 0)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        if theme == .trail || theme == .pocket {
+          RoundedRectangle(cornerRadius: theme.radius).fill(
+            theme.surface.opacity(selectedID == segment.id ? 1 : 0.7))
+        } else if selectedID == segment.id {
+          theme.accent.opacity(0.05)
         }
-        .background(RidePalette.surface, in: RoundedRectangle(cornerRadius: 22))
-      } else {
-        VStack(alignment: .leading, spacing: 10) {
-          Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-            .font(.title)
-            .foregroundStyle(RidePalette.accent)
-          Text("你的补给计划，从第一段开始。")
-            .font(.body.weight(.medium))
-          Text(store.validationMessage ?? "请先填写补给点。")
-            .font(.subheadline)
-            .foregroundStyle(RidePalette.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(RidePalette.surface, in: RoundedRectangle(cornerRadius: 22))
       }
-    }
+      .overlay(alignment: .bottom) {
+        if theme != .trail && theme != .pocket { Rectangle().fill(theme.line).frame(height: 1) }
+      }.opacity(removing ? 0.55 : 1)
+    }.buttonStyle(.plain).disabled(isAdding || removing || store.isSending)
+      .accessibilityLabel(
+        "第\(index + 1)个补给点，\(point.map { rideDistance($0.cumulativeMeters) } ?? "未填写距离")，\(segment.reminder)，编辑"
+      )
+      .transition(
+        reduceMotion
+          ? .opacity
+          : .asymmetric(
+            insertion: .offset(y: 14).combined(with: .opacity),
+            removal: .move(edge: .trailing).combined(with: .opacity)))
   }
 
   private var sendDock: some View {
     VStack(spacing: 10) {
+      if let deleted {
+        HStack {
+          Text("已移除\(deleted.segment.displayName)补给点").font(.footnote)
+          Spacer()
+          Button("撤销") { undo() }.font(.footnote.weight(.bold)).frame(minHeight: 32)
+        }
+      }
       if let message = store.submissionMessage ?? store.storageMessage {
-        Text(message)
-          .font(.footnote)
-          .frame(maxWidth: .infinity, alignment: .leading)
+        Text(message).font(.footnote).frame(maxWidth: .infinity, alignment: .leading)
           .accessibilityIdentifier("submissionMessage")
       }
       if let message = store.validationMessage {
-        Label(message, systemImage: "exclamationmark.circle")
-          .font(.footnote)
-          .foregroundStyle(RidePalette.warning)
-          .frame(maxWidth: .infinity, alignment: .leading)
+        Text(message).font(.caption).foregroundStyle(theme.detail).frame(
+          maxWidth: .infinity, alignment: .leading)
       }
       Button {
-        editing = false
         Task { await store.send() }
       } label: {
-        HStack(spacing: 10) {
+        HStack {
           if store.isSending {
-            ProgressView().tint(RidePalette.onAccent)
+            ProgressView().tint(theme.onAccent)
           } else {
             Image(systemName: "applewatch")
           }
-          Text(store.isSending ? "正在提交…" : "发送到 Apple Watch")
-            .font(.body.weight(.semibold))
+          Text(store.isSending ? "正在提交…" : "发送到 Apple Watch").font(.body.weight(.semibold))
           Spacer(minLength: 0)
           Image(systemName: "arrow.up.right")
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-        .foregroundStyle(
-          store.validationMessage == nil ? RidePalette.onAccent : RidePalette.muted
-        )
-        .background(
-          store.validationMessage == nil ? RidePalette.accent : RidePalette.softAccent,
-          in: RoundedRectangle(cornerRadius: 18)
-        )
-      }
-      .buttonStyle(.plain)
-      .disabled(store.isSending || store.validationMessage != nil)
-      .accessibilityIdentifier("sendPlan")
-      Text("在 Apple 系统“体能训练”中开始骑行")
-        .font(.caption2)
-        .foregroundStyle(RidePalette.muted)
+        }.padding(.horizontal, 18).padding(.vertical, 17)
+          .foregroundStyle(canSend || store.isSending ? theme.onAccent : theme.muted)
+          .background(
+            canSend || store.isSending ? theme.accent : theme.ink.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: theme.radius))
+      }.buttonStyle(.plain).disabled(!canSend).accessibilityIdentifier("sendPlan")
+      Text("在系统“体能训练”中开始骑行").font(.caption2).foregroundStyle(theme.muted)
+    }.padding(.horizontal, 24).padding(.vertical, 12).frame(maxWidth: 600).frame(
+      maxWidth: .infinity
+    )
+    .background(theme.canvas).overlay(alignment: .top) {
+      Rectangle().fill(theme.line).frame(height: 0.5)
     }
-    .padding(.horizontal, 24)
-    .padding(.top, 14)
-    .padding(.bottom, 10)
-    .frame(maxWidth: 600)
-    .frame(maxWidth: .infinity)
-    .background(RidePalette.canvas)
-    .overlay(alignment: .top) { Divider().opacity(0.5) }
   }
 
+  private func save(_ segment: FuelStop) {
+    guard !store.isSending else { return }
+    if let index = store.plan.stops.firstIndex(where: { $0.id == segment.id }) {
+      store.plan.stops[index] = segment
+    } else {
+      store.plan.stops.append(segment)
+    }
+    arrivingID = segment.id
+    arrivalEvent = UUID()
+  }
+  private func remove(_ id: UUID) {
+    guard !store.isSending, !removingIDs.contains(id) else { return }
+    withAnimation(motion) { _ = removingIDs.insert(id) }
+    Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(reduceMotion ? 100 : 480))
+      guard let index = store.plan.stops.firstIndex(where: { $0.id == id }) else {
+        removingIDs.remove(id)
+        return
+      }
+      withAnimation(motion) {
+        deleted = DeletedPoint(segment: store.plan.stops[index], index: index)
+        store.plan.stops.remove(at: index)
+        removingIDs.remove(id)
+        if selectedID == id { selectedID = nil }
+      }
+    }
+  }
+  private func undo() {
+    guard let deleted, !store.isSending,
+      !store.plan.stops.contains(where: { $0.id == deleted.segment.id })
+    else { return }
+    store.plan.stops.insert(deleted.segment, at: min(deleted.index, store.plan.stops.count))
+    arrivingID = deleted.segment.id
+    arrivalEvent = UUID()
+    self.deleted = nil
+  }
   private var help: some View {
     NavigationStack {
       List {
         Section("出发前") {
-          Label("输入每段距离和到点提醒，核对里程预览。", systemImage: "1.circle")
-          Label("发送计划，按系统提示允许训练排程。", systemImage: "2.circle")
-          Label("在手表体能训练中找到 Kairos 骑行补给，确认后手动开始。", systemImage: "3.circle")
+          Text("先设置计划距离，再添加补给点。每个点填写距出发里程与提醒，可切换米/公里；删除或移动一个点不会改变其他点的位置。自定义类型可以填写补给名称。")
+          Text(
+            "左右拨动或缩放距离尺，点击右上角“＋补给”，在底部面板选择补给类型、填写手表提示并点“添加”。位置使用打开面板时的读数，取消不改计划；自定义类型另填补给名称。尺上的图标表示已有补给，点击可定位；密集点以数量聚合。修改已有点仍点击列表进入编辑。"
+          )
+          Text("右上角切换皮肤及交互触感，不改变计划。系统开启减弱动态效果时会简化动画。")
         }
-        Section("使用条件") {
-          Text("iPhone 需要 iOS 18+，配对的 Apple Watch 需要 watchOS 11+。")
-          Text("本机提交不代表手表已收到，请在手表确认。修改计划后需要重新发送。")
-          Text("距离使用米，小数按系统格式输入，不使用千位分隔符。")
-          Text("里程依据实际骑行距离，不是路线上的地点；最后一次补给后可继续骑行。")
-          Text("提示文字、声音和震动效果需要真机确认。")
+        Section("发送与使用") {
+          Text(
+            "iPhone 需要 iOS 18+，配对的 Apple Watch 需要 watchOS 11+。发送并授权后，在手表系统体能训练里确认 Kairos 骑行补给，再手动开始。"
+          )
+          Text("本机提交不代表手表已收到。修改后需要重新发送。里程以显示的一位小数保存和发送；提示名带累计位置，系统下方仍显示分段距离。到计划终点提示完成，仍可继续骑行。")
+          Text(
+            "历史计划按骑行日期分组，发送后保存当天版本。可刷新 Kairos 的系统排程、查看完成状态或撤回指定日期的计划；这些状态不是手表实时接收回执。撤回保留手机历史和运动记录。")
+          Text("水瓶等动效仅为编辑反馈，不表示已经喝水或进食。提醒文字、声音、触感和续航仍需真机测试。")
         }
-      }
-      .navigationTitle("使用说明")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("完成") { showingHelp = false }
+      }.navigationTitle("使用说明").navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+          ToolbarItem(placement: .confirmationAction) { Button("完成") { showingHelp = false } }
         }
-      }
     }
-    .presentationDetents([.medium, .large])
-  }
-
-  private func pointNumber(_ number: Int) -> some View {
-    Text(number.formatted(.number.precision(.integerLength(2...))))
-      .font(.caption.weight(.bold).monospacedDigit())
-      .foregroundStyle(RidePalette.accent)
-      .frame(width: 32, height: 32)
-      .background(RidePalette.softAccent, in: Circle())
-      .accessibilityHidden(true)
-  }
-
-  private func segmentIndex(_ id: UUID) -> Int {
-    store.plan.segments.firstIndex(where: { $0.id == id }) ?? 0
-  }
-
-  private func distanceParts(_ meters: Double) -> (value: String, unit: String) {
-    let kilometers = meters >= 1000
-    let value = kilometers ? meters / 1000 : meters
-    return (value.formatted(.number.precision(.significantDigits(1...15))), kilometers ? "公里" : "米")
-  }
-
-  private func distanceLabel(_ meters: Double) -> String {
-    let parts = distanceParts(meters)
-    return "\(parts.value) \(parts.unit)"
   }
 }
