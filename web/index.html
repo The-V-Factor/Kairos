@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#141711">
+    <link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./style.css">
+    <title>Kairos · 训练文件分享实验</title>
+  </head>
+  <body>
+    <main>
+      <header><a href="./" aria-label="Kairos 首页"><img src="./assets/app-icon.svg" alt="">KAIROS</a><span>文件分享实验</span></header>
+      <div class="eyebrow">READY TO RIDE <i></i></div>
+      <h1>补给，交给系统。</h1>
+      <p class="intro">在网页安排好，分享给“健身”，<br>再用手表自带的“体能训练”开始骑行。</p>
+      <a class="jump" href="#share-title">先试试分享 ↓</a>
+
+      <form id="plan" novalidate>
+        <label class="total">计划全程 <span><input id="total" type="text" inputmode="decimal" value="1.0" aria-label="全程，公里"><b>km</b></span></label>
+        <div class="section-title"><h2>沿途补给</h2><button id="add" type="button">＋ 补给</button></div>
+        <p class="hint">填写距出发的累计里程。0 米和终点都可以安排补给。</p>
+        <div id="stops"></div>
+        <template id="stop-template">
+          <div class="stop">
+            <label class="position"><span>距出发里程</span><div><input class="meters" type="text" inputmode="decimal" aria-label="距出发里程，米"><b>m</b></div></label>
+            <label class="reminder"><span>到点提示</span><input type="text" maxlength="160" aria-label="手表提示" placeholder="例如：喝水、吃胶"></label>
+            <button class="remove" type="button" aria-label="删除此补给点">×</button>
+          </div>
+        </template>
+      </form>
+
+      <p id="error" class="error" role="alert" hidden></p>
+      <details class="preview"><summary>核对系统分段</summary><ol id="steps"></ol><p>补给名称在到点后开始的下一段呈现。末段为开放目标，可继续骑行；文字、声音及触感以真机为准。</p></details>
+
+      <section class="handoff" aria-labelledby="share-title">
+        <div class="section-title"><h2 id="share-title">交给手表</h2><span id="file-size">正在准备</span></div>
+        <p id="support" class="support" role="status"></p>
+        <button id="share" class="primary" type="button" disabled><span>分享训练</span><span aria-hidden="true">↗</span></button>
+        <p class="instruction">在分享面板选择“健身”，<br>预览后确认添加到 Apple Watch。</p>
+        <p id="result" class="result" role="status" aria-live="polite"></p>
+        <button id="download" class="download" type="button" disabled>下载 .workout 文件作对照</button>
+      </section>
+
+      <details class="diagnostics"><summary>本次测试信息</summary><dl id="diagnostics"></dl><p>“浏览器允许分享”不代表分享面板一定有“健身”。网页也无法确认手表是否已接收。</p><button id="copy" type="button">复制测试信息</button></details>
+      <footer>计划只在这个页面里处理，不会上传。<br>当前为导入实验页，刷新会重置；尚不保存草稿。</footer>
+    </main>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
