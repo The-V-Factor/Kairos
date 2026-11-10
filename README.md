@@ -4,6 +4,25 @@
 
 Kairos 是一款 iPhone 骑行补给计划 App。你在手机上安排什么时候喝水、吃胶或补充其他食物，将计划发送到 Apple Watch，再用手表自带的“体能训练”开始骑行，由系统记录运动并在对应里程呈现补给提醒。
 
+## 看看 Kairos
+
+安排沿途补给，快速添加一站，按日期回看计划。
+
+<table>
+  <tr>
+    <th>计划总览</th>
+    <th>添加补给</th>
+    <th>历史计划</th>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/plan.png" width="250" alt="骑行补给计划首页，展示距离尺与沿途补给点"></td>
+    <td><img src="docs/assets/screenshots/add-fuel.png" width="250" alt="添加补给面板，可选择水、能量胶或自定义补给"></td>
+    <td><img src="docs/assets/screenshots/history.png" width="250" alt="按骑行日期分组的历史计划与排程状态"></td>
+  </tr>
+</table>
+
+*图中为示例计划。*
+
 ## 安排这一趟的补给
 
 - **先定这趟骑多远**：设置计划距离，再手动安排每个补给点的距出发里程与提醒内容，包括 0 公里的出发补给。
