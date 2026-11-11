@@ -36,6 +36,9 @@ h1 { font-size: 34px; letter-spacing: -1.3px; font-weight: 750; margin: 0; line-
 .ruler-scroll { position: absolute; inset: 32px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
 .ruler-scroll::-webkit-scrollbar { display: none; }
 .ruler-track { height: 100%; }
+.haptic-surface { position: absolute; inset: 72px 0 0; touch-action: none; }
+.haptic-clip { position: absolute; inset: 0; overflow: hidden; opacity: 0; }
+.haptic-clip input { all: revert; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; margin: 0; transform: translate(-50%, -50%); touch-action: none; }
 .ruler-ticks { position: absolute; width: 100%; height: 144px; inset: 0; pointer-events: none; overflow: hidden; }
 .ruler-ticks line { stroke: var(--ink); stroke-linecap: round; }
 .ruler-ticks .focus-tick { stroke: var(--accent); }
@@ -143,6 +146,8 @@ input::placeholder { color: #a8afa0; font-size: 17px; font-weight: 400; }
 .help-body ol { padding-left: 20px; }
 .help-body li { padding-bottom: 8px; }
 .help-body p { color: var(--muted); }
+.haptics-option { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 16px; font-weight: 600; }
+.haptics-option input { width: 22px; height: 22px; accent-color: var(--accent); }
 .help-body .secondary { min-height: 44px; padding: 10px 14px; color: var(--accent); border: 1px solid #5b6344; border-radius: 12px; font-size: 13px; }
 .fine-print { font-size: 11px; }
 .experiment-entry { display: inline-block; text-decoration: none; margin: 8px 0; }

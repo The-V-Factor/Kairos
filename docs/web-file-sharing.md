@@ -137,3 +137,38 @@ rtk proxy swift format lint --strict tools/verify-workout.swift
 本轮验证：26 项 Node 测试通过（含 Worker 激活等待、慢旧写入不会覆盖新计划、失败后恢复、不依赖 Web Share）。本地 Pages 发布包解析两条响应头规则。iPhone 17e / iOS 26.5 模拟器 Safari：首页主操作弹出正确 `Kairos-<id>.workout` 下载确认，已取消下载；不将此当作真实手表导入验证。内置浏览器能确认编辑后链接重新启用，但下载自动化两次超时，未拿到下载产物；以 Safari 下载确认和缓存字节测试作为本轮对应证据。
 
 ![首页 B 主入口在 iOS Safari 弹出正确文件名的下载确认](assets/screenshots/web-download-ios.jpg)
+
+
+## 主屏幕模式改用系统分享（本地试验，2026-11-11）
+
+用户报告：添加到主屏幕后，B 文件网址可以直接进入健身，但回来停在文件界面，没有返回计划页的方法。当前本地改动以 `navigator.standalone` 或 `display-mode: standalone` 识别主屏幕模式：主操作改用已准备 File 的系统分享，不导航文件地址、不准备 B 缓存。Safari 保持 B 下载入口。PWA 不支持文件分享时明确禁用并给说明，不自动退回会卡住的文件导航。
+
+验证：26 项 Node 回归通过，涵盖同步分享、取消、失败和不支持。iPhone 17e / iOS 26.5 模拟器，实际通过 Safari 添加 localhost:8792 到主屏幕并启动：PWA 显示「分享训练到健身」，点击弹出系统文件分享面板，识别为 Apple Watch 训练文件；取消后保留原 75 km 和三个补给点，仍可打开并取消编辑。Safari 显示原「下载训练」入口。模拟器分享目标列表没有健身，因此没有验证真实健身导入后返回，也没有真实触感设备证据。本轮未提交、推送或部署。
+
+| PWA 文件分享 | 取消后计划仍可继续编辑 |
+| --- | --- |
+| ![PWA 的系统文件分享](assets/screenshots/web-pwa-share-ios.jpg) | ![取消分享后返回原计划](assets/screenshots/web-pwa-return-ios.jpg) |
+
+### 触感演示源码调查（未接入）
+
+调查版本：`samdenty/ios-vibrator-pro-max` 提交 `032cc0aed2b8097d7d5cd8e286fedd63d5e85d11`。以下为源码事实与解释，不能替代真实 iPhone 触感测试：
+
+- [time-picker.tsx](https://github.com/samdenty/ios-vibrator-pro-max/blob/032cc0aed2b8097d7d5cd8e286fedd63d5e85d11/demo/src/components/time-picker.tsx)：以 `Math.round(-y / 52)` 决定索引，索引变化请求 40 ms 震动。因此移动半格便改变索引，无需下个数字到达中心；松手后的 spring 动画也继续请求触感，没有按拖动状态过滤。快速漏震的具体原因没有真机追踪，不能说仅由该公式造成。
+- [slide-to-unlock.tsx](https://github.com/samdenty/ios-vibrator-pro-max/blob/032cc0aed2b8097d7d5cd8e286fedd63d5e85d11/demo/src/components/slide-to-unlock.tsx)：按进度多次请求震动，间隔从约 20% 缩小至终点附近约 1%，每次 10–20 ms。不是解锁完成时单次反馈；慢拖有多次触感符合此设计。代码注释写开始约 5%，与公式不同，以公式为准。
+- [elastic-slider.tsx](https://github.com/samdenty/ios-vibrator-pro-max/blob/032cc0aed2b8097d7d5cd8e286fedd63d5e85d11/demo/src/components/elastic-slider.tsx)：页面称 Haptic slider；按原始手指位置跨过画出的刻度边界触发 20 ms，与数值四舍五入分离；按下也请求 20 ms。这更符合尺上实际刻度和触感同步的目标。
+- [movable.ts](https://github.com/samdenty/ios-vibrator-pro-max/blob/032cc0aed2b8097d7d5cd8e286fedd63d5e85d11/src/methods/click-passthrough/movable.ts)：触感窗口内不断随 pointermove 翻转隐藏开关方向，并覆盖 pointer capture。每次 vibrate 请求不等于系统承诺的一次物理触感。由此推断，慢拖的窗口内多个原生变化可能出现多次触感，快拖或松手后可能漏触感。
+
+结论：不把整库接入当前原生惯性滚动距离尺。若后续实验，应按实际跨刻度触发、静止不重复、快速滑动不排队补震，并分别验证拖动、惯性与双指缩放。系统触感送达仍需真机判断。
+
+
+## Issue #10：距离尺触感试验实现（2026-11-11）
+
+触感入口位于「使用说明 → 距离尺触感试验」，默认关闭，仅本次页面打开有效。使用 Haptic slider 的实际跨刻度语义，与显示数值四舍五入分开；慢拖到刻度才请求、静止不重复、40 ms 内快速跨格丢弃额外请求，不排队补震。
+
+`haptics.mjs` 局部实现：支持标准振动 API 的浏览器在原生拖动中请求反馈；iOS 原生 switch 路径只在距离尺的刻度轨道覆盖真实手势，使用一次方向切换请求一次跨格反馈，不创建持续脉冲窗口，不引入整页 polyfill。没有重写 document.body、navigator、其他控件事件或 pointer capture，没有后台弹窗或主线程阻塞。仅在该试验路径内驱动横向拖动与衰减惯性，纵向手势转为页面滚动，双指触控停止当前触感并交给原有缩放处理。关闭时移除覆盖、停止惯性并恢复原生滚动；移动标记、改总距、缩放、开面板与隐藏页面也取消触感状态。没有复制第三方库；机制参考前述固定版本源码。
+
+验证：32 项 Node 测试通过，新增 6 项覆盖实际边界、快速不补发、正反向与非整数终点、缩放／范围变化、局部原生拖动／关闭清理及双指／取消清理。iOS 26.5 / iPhone 17e 模拟器检查了开关可启用、缩放、取消补给编辑、关闭试验后全览；浏览器检查了普通下载入口、开关、键盘浏览及缩放，无 console error。原生模拟器自动拖动没有稳定改变读数，不作为手势或触感通过证据。多指真实手势、震动节奏及健身导入后返回仍待真实 iPhone 验证。
+
+![iOS 模拟器的触感试验开关](assets/screenshots/web-haptics-ios.jpg)
+
+PWA 分享代码与前述取消返回证据一同纳入 #10；编码协议与草稿数据格式不变。用户已授权本次提交、合并与部署，真实触感和完整健身往返结果继续在 #10 跟踪，不宣称已通过。

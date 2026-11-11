@@ -8,6 +8,13 @@ import { createFileAddressPreparer } from './file-address.mjs';
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const loaded = loadDraft(storage);
+const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+$('open-workout').hidden = standalone;
+$('share-workout').hidden = !standalone;
+if (standalone) {
+  document.querySelector('.send-dock').setAttribute('aria-label', '分享计划');
+  $('export-instruction').textContent = '在系统分享面板选择“健身”';
+}
 const prepareAddress = createFileAddressPreparer({ serviceWorker: navigator.serviceWorker, caches: window.caches, baseURL: new URL('./', location.href), secure: isSecureContext });
 let preparation = 0;
 let plan = loaded.plan ?? samplePlan();
@@ -23,6 +30,11 @@ const ruler = new DistanceRuler($('ruler'), value => { cursor = value; }, id => 
   selectedID = id; updateSelection();
   rows.get(id)?.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'instant' : 'smooth' });
 });
+$('haptics-toggle').disabled = !ruler.haptics.available;
+$('haptics-status').textContent = ruler.haptics.available
+  ? '本次打开有效。开启后在刻度线上拖动，尝试跨刻度触感；松手后的惯性不震动，效果以真机为准。'
+  : '当前浏览器未提供可用的触感路径，距离尺仍可正常使用。';
+$('haptics-toggle').addEventListener('change', () => ruler.haptics.setEnabled($('haptics-toggle').checked));
 
 function message(id, text = '') { $(id).textContent = text; $(id).hidden = !text; }
 function displayName(stop) { return stop.kind === 'custom' ? stop.name : kinds[stop.kind].title; }
@@ -138,7 +150,7 @@ function prepare() {
   const open = $('open-workout');
   open.removeAttribute('href'); open.setAttribute('aria-disabled', 'true'); open.tabIndex = -1;
   $('open-label').textContent = '下载训练';
-  prepared = null; $('share').disabled = true; $('download').disabled = true;
+  prepared = null; $('share').disabled = true; $('share-workout').disabled = true; $('download').disabled = true;
   $('steps').replaceChildren(); message('error');
   try {
     const valid = validatePlan(plan), bytes = encodeWorkout(valid);
@@ -154,9 +166,11 @@ function prepare() {
     const support = shareSupport(prepared, navigator, isSecureContext);
     $('support').textContent = support.message;
     $('share').disabled = sharing || removing.size > 0 || !support.ok;
+    $('share-workout').disabled = $('share').disabled;
     $('download').disabled = sharing || removing.size > 0;
     diagnostics(support, bytes.byteLength);
-    if (!sharing && !removing.size) {
+    if (standalone && !support.ok) message('error', '当前主屏幕环境无法分享此训练文件，请在 Safari 打开 Kairos 后使用下载。');
+    if (!standalone && !sharing && !removing.size) {
       $('open-label').textContent = '正在准备训练…';
       prepareAddress(prepared, plan.id).then(url => {
         if (revision !== preparation) return;
@@ -193,6 +207,7 @@ $('undo').addEventListener('click', () => {
 
 let sheetScrollY = 0;
 function openSheet(dialog) {
+  ruler.haptics.stop();
   sheetScrollY = window.scrollY;
   Object.assign(document.body.style, { overflow: 'hidden', position: 'fixed', top: `${-sheetScrollY}px`, width: '100%' });
   dialog.showModal(); updateViewport();
@@ -306,18 +321,21 @@ $('help').addEventListener('click', () => openSheet($('help-dialog')));
 $('replace-draft').hidden = writable;
 $('replace-draft').addEventListener('click', () => { writable = true; persist(); $('replace-draft').hidden = true; });
 
-$('share').addEventListener('click', async () => {
+async function shareWorkout() {
   if (!prepared || sharing || removing.size) return;
+  ruler.haptics.stop();
   sharing = true; $('app').inert = true;
   ++preparation; $('open-workout').removeAttribute('href'); $('open-workout').setAttribute('aria-disabled', 'true'); $('open-workout').tabIndex = -1;
-  $('share').disabled = true; $('download').disabled = true;
+  $('share').disabled = true; $('share-workout').disabled = true; $('download').disabled = true;
   try {
     // Keep the prepared File and invoke share before any await or network work.
     const outcome = await sharePrepared(prepared, navigator, isSecureContext);
     lastShare = outcome;
     message('result', outcome.message);
   } finally { sharing = false; $('app').inert = false; prepare(); }
-});
+}
+$('share').addEventListener('click', shareWorkout);
+$('share-workout').addEventListener('click', shareWorkout);
 $('open-workout').addEventListener('click', event => {
   if (!$('open-workout').hasAttribute('href') || sharing || removing.size) { event.preventDefault(); return; }
   message('result', '请确认下载，再从 Safari 下载列表打开训练，在“健身”添加到手表。');
