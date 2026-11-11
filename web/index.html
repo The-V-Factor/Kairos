@@ -40,7 +40,8 @@
         <p id="result" class="notice" role="status" aria-live="polite" hidden></p>
         <p id="error" class="notice" role="status" hidden></p>
         <a id="open-workout" class="primary" aria-disabled="true" tabindex="-1"><span data-icon="watch"></span><span id="open-label">下载训练</span><span class="outward" data-icon="arrow"></span></a>
-        <p class="instruction">下载后，从 Safari 下载列表打开</p>
+        <button id="share-workout" class="primary" type="button" hidden disabled><span data-icon="watch"></span><span>分享训练到健身</span><span class="outward" data-icon="arrow"></span></button>
+        <p id="export-instruction" class="instruction">下载后，从 Safari 下载列表打开</p>
       </div>
     </aside>
 
@@ -67,12 +68,14 @@
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
       <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭使用说明"><span data-icon="close"></span></button><h2 id="help-title">出发前，安排好。</h2><span class="header-spacer"></span></div>
       <div class="sheet-body help-body">
-        <h3>从计划到出发</h3><ol><li>设置全程，拨动距离尺选位置，添加水、胶或自定义补给。0 公里和终点都可以。</li><li>用 iPhone Safari 点“下载训练”，确认下载，再从 Safari 下载列表点开训练，在“健身”核对并添加到手表。</li><li>在 Apple Watch 自带的“体能训练”里确认计划，再手动开始骑行。</li></ol>
+        <h3>从计划到出发</h3><ol><li>设置全程，拨动距离尺选位置，添加水、胶或自定义补给。0 公里和终点都可以。</li><li>从主屏幕打开时，点“分享训练到健身”，在系统分享面板选择“健身”。Safari 中点“下载训练”，确认下载，再从下载列表打开。核对训练并添加到手表。</li><li>在 Apple Watch 自带的“体能训练”里确认计划，再手动开始骑行。</li></ol>
         <p>首次打开为可编辑的示例计划。计划只保存在这个浏览器，不会上传。修改后需重新下载并导入；系统导入后如何覆盖或保留旧计划，以设备实际表现为准。网页无法查看或撤回手表中的计划。</p>
-        <p>提醒按实际骑行累计距离出现。系统分段显示和声音、触感以真机为准；这里的物件动效不代表已经吃喝。网页距离尺没有原生 App 的触感反馈。</p>
+        <p>提醒按实际骑行累计距离出现。系统分段显示和声音、触感以真机为准；这里的物件动效不代表已经吃喝。</p>
+        <label class="haptics-option"><span>距离尺触感试验</span><input id="haptics-toggle" type="checkbox" aria-describedby="haptics-status" disabled></label>
+        <p id="haptics-status" class="fine-print"></p>
         <p id="support" class="muted"></p>
         <button id="share" class="secondary" type="button" disabled>分享训练到健身</button>
-        <button id="download" class="secondary" type="button" disabled>备用下载</button><p class="fine-print">无法从下载列表打开时，可在系统分享面板选择“健身”，或下载后从“文件”中分享。网页无法确认导入或手表接收结果。</p>
+        <button id="download" class="secondary" type="button" disabled>备用下载</button><p class="fine-print">主屏幕模式请优先使用分享，直接打开文件可能无法返回计划页。Safari 中无法从下载列表打开时，可从“文件”中分享至“健身”。网页无法确认导入或手表接收结果。</p>
         <a class="secondary experiment-entry" href="./open/">打开方式对照实验</a>
         <details class="preview"><summary>核对系统分段</summary><ol id="steps"></ol></details>
         <details class="diagnostics"><summary>兼容性信息</summary><dl id="diagnostics"></dl><button id="copy" class="secondary" type="button">复制兼容性信息</button></details>
