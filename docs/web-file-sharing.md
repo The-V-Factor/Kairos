@@ -99,3 +99,27 @@ rtk proxy swift format lint --strict tools/verify-workout.swift
 5. 修改后重新分享，观察覆盖／新增及旧项删除行为；没有回执的状态不推定成功。
 
 若直接分享不支持或没有“健身”目标，保存本次测试信息与截图。可下载文件作独立对照，但不能把备用路径当成主流程通过，更不能擅自回到自有原生 App 方案。
+
+## 直接进入健身预览的实验（2026-11-11）
+
+用户要求进一步省掉寻找文件及选择分享目标：点击网页按钮后直接展示**这份计划**的健身预览，用户只作系统添加确认。下载确认、分享菜单及只打开健身首页均不算通过。跟踪 [Issue #8](https://github.com/The-V-Factor/Kairos/issues/8)，使用独立测试分支，不合并生产 main；Pages 预览与真机结果记录在 Issue。
+
+从计划页使用说明的「试试直接打开健身」进入 `/open/`，或直接访问该路径。页面读取同域名已保存草稿；未保存的编辑先在计划页保存。此页不写入或覆盖草稿，不变更二进制编码和主分享按钮。
+
+| 路径 | 具体操作 | iOS 26.5 模拟器 Safari、本地 HTTP 的结果 |
+| --- | --- | --- |
+| A：当前计划 File URL | 预先生成 File，以 Blob URL 导航；不使用 download 属性或 share() | 弹出下载确认，名称 Unknown；未直达健身 |
+| B：当前计划的本机文件地址 | `/open/` 范围的 Service Worker 从 Cache Storage 返回当前计划，提供 `.workout` 路径和 inline 文件名 | 弹出下载确认，正确识别 `.workout` 文件名；未直达健身 |
+| C：服务器静态文件直链 | 打开 `assets/direct-open.workout`，响应含 octet-stream 类型、inline 文件名、no-store | 弹出下载确认；未直达健身 |
+
+固定控制文件为 1 km 户外骑行，200 m「直达测试·喝水」、600 m「直达测试·吃胶」；只用于文件打开对照，不限制用户计划。源码输入保存在 `web/test/direct-open-plan.json`，修改时使用现有 encodeWorkout 重新生成对应二进制，测试会检查二者一致。Apple WorkoutKit 已解析该文件并与原生 WorkoutPlan 完整比对，257 字节，合计 10 个互操作案例通过。
+
+读取测试模拟器的系统 Fitness.app 应用包元数据，确认其声明文件类型 `com.apple.workout`、扩展名 `workout`，且 document handler 为 Owner；没有注册专用 MIME 字符串，因此没有编造 MIME 类型绕过系统。URL scheme 声明包含 fitnessapp，但未查到可接受我们计划数据的可靠入口，实验没有用仅打开训练首页代替导入。
+
+浏览器 Service Worker 仅注册于 `/open/`，只拦截同源 GET 的测试 `.workout` 文件；缓存缺项返回明确 404，不向服务器回退取计划。只保留一份最新测试文件在浏览器，不读健康数据、不上传内容、不接管其他页面、第三方网址或写入请求。若健身自身随后联网取这个本机文件地址，它无法读取浏览器缓存，所以保留 C 的真实服务器文件作独立对照。
+
+`node --test web/test/*.test.mjs` 21 项通过；新增测试覆盖静态文件一致性、本地响应字节及 inline 头、过期缓存 404 与范围隔离。Pages 本地模拟器已解析两条 header 规则，固定文件返回 200，Content-Disposition 为 inline。
+
+![本地 iOS Safari 对静态训练直链仍弹出下载确认](assets/screenshots/direct-open-ios.jpg)
+
+**当前结论：此环境下三条路径均未实现直达，未达到交互验收标准。** 已保留实验入口供真实 HTTPS／iPhone、Safari／主屏幕模式分别复测；未把本地 HTTP 结果说成所有 iPhone 均不支持。真机复测使用 Issue #8 对应测试分支的 Pages 预览，不自动替换生产主流程。

@@ -144,6 +144,16 @@ input::placeholder { color: #a8afa0; font-size: 17px; font-weight: 400; }
 .help-body p { color: var(--muted); }
 .help-body .secondary { min-height: 44px; padding: 10px 14px; color: var(--accent); border: 1px solid #5b6344; border-radius: 12px; font-size: 13px; }
 .fine-print { font-size: 11px; }
+.experiment-entry { display: inline-block; text-decoration: none; margin: 8px 0; }
+.experiment-back { color: var(--muted); font-size: 13px; text-decoration: none; padding: 12px 0; }
+.direct-open-test { padding-bottom: 40px; }
+.direct-open-test h1 { font-size: 30px; margin-top: 18px; }
+.direct-open-test .experiment-summary { color: var(--accent); font-variant-numeric: tabular-nums; }
+.open-case { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+.open-case h2 { font-size: 17px; margin: 0; }
+.open-case .primary { text-decoration: none; font-size: 15px; justify-content: center; }
+.open-case .secondary { display: inline-block; text-decoration: none; }
+.open-case a[aria-disabled="true"] { opacity: .4; pointer-events: none; cursor: default; }
 details { border-top: 1px solid var(--line); margin-top: 18px; padding: 16px 0 0; }
 summary { cursor: pointer; font-size: 13px; }
 .preview li { margin-top: 8px; }
