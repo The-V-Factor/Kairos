@@ -8,7 +8,7 @@ self.addEventListener('fetch', event => {
       !url.pathname.startsWith(scope.pathname) || !/\/Kairos-[A-F\d-]+\.workout$/i.test(url.pathname)) return;
   event.respondWith((async () => {
     const response = await (await caches.open(cacheName)).match(event.request.url);
-    return response ?? new Response('测试文件已失效，请返回直接打开实验页重新准备。', {
+    return response ?? new Response('训练文件已失效，请返回 Kairos 计划页刷新后重新下载。', {
       status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });
   })());

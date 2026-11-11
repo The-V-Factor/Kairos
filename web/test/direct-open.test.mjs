@@ -44,7 +44,7 @@ test('an expired local file is an explicit 404, never a remote request or fabric
   const runtime = worker();
   const response = await runtime.request(address);
   assert.equal(response.status, 404);
-  assert.ok((await response.text()).includes('测试文件已失效'));
+  assert.ok((await response.text()).includes('训练文件已失效'));
   assert.equal(runtime.networkCalls(), 0);
 });
 test('the experiment does not intercept the planner, static controls, other origins, or writes', () => {

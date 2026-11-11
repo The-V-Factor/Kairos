@@ -1,8 +1,9 @@
 import { encodeWorkout, validatePlan, distanceLabel } from '../workout.mjs';
 import { loadDraft, samplePlan } from '../plan.mjs';
+import { createFileAddressPreparer } from '../file-address.mjs';
 
 const $ = id => document.getElementById(id);
-const cacheName = 'kairos.direct-open.v1';
+const fileAddress = createFileAddressPreparer({ serviceWorker: navigator.serviceWorker, caches: window.caches, baseURL: new URL('../', location.href), secure: isSecureContext });
 const loaded = loadDraft({ getItem: key => localStorage.getItem(key) });
 const candidate = loaded.plan ?? (loaded.writable ? samplePlan() : null);
 
@@ -12,39 +13,9 @@ function enableLink(id, url, text) {
 }
 
 async function prepareAddress(file, plan) {
-  if (!isSecureContext || !('serviceWorker' in navigator) || !('caches' in window)) {
-    $('address-status').textContent = '当前环境不能准备本机文件地址。请用 HTTPS 下的 Safari，或先试 A／C。';
-    $('open-address').textContent = '文件地址不可用'; return;
-  }
   try {
-    const registration = await navigator.serviceWorker.register('./worker.mjs', { scope: './', type: 'module' });
-    // Wait for this registration, not an unrelated worker at a different scope.
-    if (!registration.active) {
-      const worker = registration.installing ?? registration.waiting;
-      if (!worker) throw new Error('No worker');
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          worker.removeEventListener('statechange', check); reject(new Error('Activation timeout'));
-        }, 10000);
-        const check = () => {
-          if (worker.state === 'activated' || worker.state === 'redundant') {
-            clearTimeout(timer); worker.removeEventListener('statechange', check);
-            if (worker.state === 'activated') resolve(); else reject(new Error('Activation failed'));
-          }
-        };
-        worker.addEventListener('statechange', check); check();
-      });
-    }
-    const url = new URL(`./Kairos-${plan.id}.workout`, location.href);
-    const cache = await caches.open(cacheName);
-    // The experiment keeps only its latest file; it never edits the plan's localStorage.
-    for (const key of await cache.keys()) await cache.delete(key);
-    await cache.put(url.href, new Response(file, { headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `inline; filename="${file.name}"`,
-      'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
-    } }));
-    enableLink('open-address', url.href, '通过文件网址打开当前计划');
+    const url = await fileAddress(file, plan.id);
+    enableLink('open-address', url, '通过文件网址打开当前计划');
     $('address-status').textContent = '文件地址已准备。若成功，健身应展示当前计划的内容。';
   } catch {
     $('open-address').textContent = '文件地址未能准备';

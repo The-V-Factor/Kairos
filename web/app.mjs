@@ -3,10 +3,13 @@ import { sharePrepared, shareSupport } from './share.mjs';
 import { kinds, newID, samplePlan, parseDistance, validateDraft, saveStop, loadDraft, storeDraft } from './plan.mjs';
 import { fuelArtwork, icon } from './artwork.mjs';
 import { DistanceRuler } from './ruler.mjs';
+import { createFileAddressPreparer } from './file-address.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const loaded = loadDraft(storage);
+const prepareAddress = createFileAddressPreparer({ serviceWorker: navigator.serviceWorker, caches: window.caches, baseURL: new URL('./', location.href), secure: isSecureContext });
+let preparation = 0;
 let plan = loaded.plan ?? samplePlan();
 let writable = loaded.writable;
 let prepared = null, sharing = false, cursor = plan.totalDistanceMeters / 2, deleted = null, editing = null, lastShare = null;
@@ -131,6 +134,10 @@ function diagnostics(support, bytes) {
   }
 }
 function prepare() {
+  const revision = ++preparation;
+  const open = $('open-workout');
+  open.removeAttribute('href'); open.setAttribute('aria-disabled', 'true'); open.tabIndex = -1;
+  $('open-label').textContent = '下载训练';
   prepared = null; $('share').disabled = true; $('download').disabled = true;
   $('steps').replaceChildren(); message('error');
   try {
@@ -148,8 +155,19 @@ function prepare() {
     $('support').textContent = support.message;
     $('share').disabled = sharing || removing.size > 0 || !support.ok;
     $('download').disabled = sharing || removing.size > 0;
-    if (!support.ok) message('error', '此浏览器无法直接分享训练，请用 iPhone Safari，或在使用说明中下载文件。');
     diagnostics(support, bytes.byteLength);
+    if (!sharing && !removing.size) {
+      $('open-label').textContent = '正在准备训练…';
+      prepareAddress(prepared, plan.id).then(url => {
+        if (revision !== preparation) return;
+        open.href = url; open.removeAttribute('aria-disabled'); open.tabIndex = 0;
+        $('open-label').textContent = '下载训练';
+      }).catch(() => {
+        if (revision !== preparation) return;
+        $('open-label').textContent = '文件地址暂不可用';
+        message('error', '未能准备下载地址，请在使用说明中分享或备用下载。');
+      });
+    }
   } catch (error) {
     message('error', plan.stops.length ? error.message : '先添加一个补给点，再交给手表。');
     $('support').textContent = '补全计划后即可分享或下载训练文件。'; diagnostics({ ok: false }, 0);
@@ -290,7 +308,9 @@ $('replace-draft').addEventListener('click', () => { writable = true; persist();
 
 $('share').addEventListener('click', async () => {
   if (!prepared || sharing || removing.size) return;
-  sharing = true; $('app').inert = true; $('share').disabled = true; $('download').disabled = true;
+  sharing = true; $('app').inert = true;
+  ++preparation; $('open-workout').removeAttribute('href'); $('open-workout').setAttribute('aria-disabled', 'true'); $('open-workout').tabIndex = -1;
+  $('share').disabled = true; $('download').disabled = true;
   try {
     // Keep the prepared File and invoke share before any await or network work.
     const outcome = await sharePrepared(prepared, navigator, isSecureContext);
@@ -298,12 +318,16 @@ $('share').addEventListener('click', async () => {
     message('result', outcome.message);
   } finally { sharing = false; $('app').inert = false; prepare(); }
 });
+$('open-workout').addEventListener('click', event => {
+  if (!$('open-workout').hasAttribute('href') || sharing || removing.size) { event.preventDefault(); return; }
+  message('result', '请确认下载，再从 Safari 下载列表打开训练，在“健身”添加到手表。');
+});
 $('download').addEventListener('click', () => {
   if (!prepared || sharing || removing.size) return;
   const url = URL.createObjectURL(prepared), link = document.createElement('a');
   link.href = url; link.download = prepared.name; document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
-  message('result', '已请求下载。请从“文件”分享至“健身”，再在手表确认计划。');
+  message('result', '已请求备用下载。可先从 Safari 下载列表打开；若无法打开，再从“文件”分享至“健身”。');
 });
 $('copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(`${$('diagnostics').innerText} 浏览器：${navigator.userAgent}`); message('result', '兼容性信息已复制，不含补给内容。'); }
@@ -312,5 +336,7 @@ $('copy').addEventListener('click', async () => {
 message('storage-message', loaded.message);
 if (!loaded.plan && writable) persist();
 render();
+// Returning from the experiment may restore a page whose cached file was replaced.
+window.addEventListener('pageshow', event => { if (event.persisted) prepare(); });
 // Keep long results and larger text from covering the final list item.
 new ResizeObserver(() => { document.querySelector('main').style.paddingBottom = `${document.querySelector('.send-dock').offsetHeight + 32}px`; }).observe(document.querySelector('.send-dock'));
