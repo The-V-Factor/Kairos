@@ -1,0 +1,8 @@
+{
+  "id": "B437004B-FB98-45B3-A13D-3B6408DB1108",
+  "totalDistanceMeters": 1000,
+  "stops": [
+    { "distanceMeters": 200, "reminder": "直达测试·喝水" },
+    { "distanceMeters": 600, "reminder": "直达测试·吃胶" }
+  ]
+}

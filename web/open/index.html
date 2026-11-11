@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#141614">
+    <title>Kairos · 直接打开实验</title>
+    <link rel="icon" href="../assets/app-icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../style.css">
+  </head>
+  <body>
+    <header class="masthead"><a class="wordmark" href="../">KAIROS</a><a class="experiment-back" href="../">返回计划</a></header>
+    <main class="direct-open-test help-body">
+      <div class="eyebrow">OPEN IN FITNESS <i></i></div>
+      <h1>少一步，直接打开。</h1>
+      <p>目标：点下方按钮后，直接进入健身的这份训练预览。只打开健身首页、下载文件或出现分享菜单，都不算通过。</p>
+      <p id="plan-summary" class="experiment-summary"></p>
+      <p id="open-error" class="notice" role="status" hidden></p>
+
+      <section class="open-case" aria-labelledby="case-a">
+        <h2 id="case-a">A · 打开当前计划文件</h2>
+        <p>在浏览器内准备文件后直接打开，不主动调用分享，也不设置强制下载。</p>
+        <a id="open-local" class="primary" aria-disabled="true">打开当前计划</a>
+      </section>
+      <section class="open-case" aria-labelledby="case-b">
+        <h2 id="case-b">B · 通过文件网址打开</h2>
+        <p>当前计划使用本站的文件地址打开。文件仍只在你的浏览器中准备和保存，不上传。</p>
+        <a id="open-address" class="primary" aria-disabled="true">准备文件地址…</a>
+        <p id="address-status" class="fine-print" role="status"></p>
+      </section>
+      <section class="open-case" aria-labelledby="case-c">
+        <h2 id="case-c">C · 固定示例作对照</h2>
+        <p>这是服务器上的真实文件直链：1.0 公里，200 米“直达测试·喝水”、600 米“直达测试·吃胶”。用它确认系统是否能接管这种文件网址。</p>
+        <a id="open-control" class="secondary" href="../assets/direct-open.workout">打开固定示例</a>
+      </section>
+      <p class="fine-print">页面不会自动判断“已添加到手表”。测试时观察是否出现训练内容及确认添加按钮；若进入文件预览或下载，直接返回即可。现有分享和下载入口仍在计划页的使用说明中。</p>
+      <p class="fine-print">A／B 使用本机已保存的计划，进入本页前先保存编辑。Safari 与添加到主屏幕后打开的行为需要分别测试。</p>
+    </main>
+    <script type="module" src="./test.mjs"></script>
+  </body>
+</html>

@@ -92,7 +92,8 @@ h1 { font-size: 34px; letter-spacing: -1.3px; font-weight: 750; margin: 0; line-
 .finish-note > span { font-size: 29px; line-height: 1; font-weight: 300; }
 .send-dock { position: fixed; inset: auto 0 0; z-index: 3; border-top: 1px solid var(--line); background: var(--canvas); }
 .dock-content { max-width: 600px; margin: auto; padding: 12px 24px max(14px, env(safe-area-inset-bottom)); }
-.primary { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 16px 18px; border-radius: 22px; background: var(--accent); color: #080b00; font-size: 16px; font-weight: 650; }
+.primary { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 16px 18px; border-radius: 22px; background: var(--accent); color: #080b00; font-size: 16px; font-weight: 650; text-decoration: none; }
+.primary[aria-disabled="true"] { opacity: .4; cursor: default; }
 .primary .outward { margin-left: auto; }
 .primary .icon { width: 22px; height: 22px; }
 .instruction { color: var(--muted); font-size: 11px; text-align: center; line-height: 1.6; margin: 10px 0 0; }
@@ -144,6 +145,16 @@ input::placeholder { color: #a8afa0; font-size: 17px; font-weight: 400; }
 .help-body p { color: var(--muted); }
 .help-body .secondary { min-height: 44px; padding: 10px 14px; color: var(--accent); border: 1px solid #5b6344; border-radius: 12px; font-size: 13px; }
 .fine-print { font-size: 11px; }
+.experiment-entry { display: inline-block; text-decoration: none; margin: 8px 0; }
+.experiment-back { color: var(--muted); font-size: 13px; text-decoration: none; padding: 12px 0; }
+.direct-open-test { padding-bottom: 40px; }
+.direct-open-test h1 { font-size: 30px; margin-top: 18px; }
+.direct-open-test .experiment-summary { color: var(--accent); font-variant-numeric: tabular-nums; }
+.open-case { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+.open-case h2 { font-size: 17px; margin: 0; }
+.open-case .primary { text-decoration: none; font-size: 15px; justify-content: center; }
+.open-case .secondary { display: inline-block; text-decoration: none; }
+.open-case a[aria-disabled="true"] { opacity: .4; pointer-events: none; cursor: default; }
 details { border-top: 1px solid var(--line); margin-top: 18px; padding: 16px 0 0; }
 summary { cursor: pointer; font-size: 13px; }
 .preview li { margin-top: 8px; }
