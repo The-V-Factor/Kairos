@@ -172,3 +172,16 @@ rtk proxy swift format lint --strict tools/verify-workout.swift
 ![iOS 模拟器的触感试验开关](assets/screenshots/web-haptics-ios.jpg)
 
 PWA 分享代码与前述取消返回证据一同纳入 #10；编码协议与草稿数据格式不变。用户已授权本次提交、合并与部署，真实触感和完整健身往返结果继续在 #10 跟踪，不宣称已通过。
+
+
+## 真机反馈后的主入口调整（2026-11-11）
+
+用户确认原「备用下载」体验最好。将这条已验证路径提升为首页「下载训练」：继续使用准备好的 File、Blob URL 和带 download 属性的链接，不改变文件字节、文件名及 URL 回收时机。Safari 与主屏幕模式统一此入口，系统分享留在说明中，B 文件网址保留在打开方式对照实验页；主页不再等待 Service Worker 地址准备。下载前停止局部触感手势。
+
+用户另确认「快速移动不震动」发生在松手后的惯性滑动，并非手指按着快拖。当前明确在 pointerup 后结束 TickFeedback，惯性帧只移动刻度。iPhone 的局部 switch 路径依赖真实触摸，不能简单地在惯性动画内重复调用标准 vibration API 或模拟 click 来可靠获得反馈；本轮不修改该机制，不宣称已修复惯性震动。
+
+WebKit 当前 [CheckboxInputType.cpp](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/html/CheckboxInputType.cpp) 的 handleTouchEvent 在 touchend 停止触控计时，触控跟踪依赖 trusted event；[相关修复 PR #65327](https://github.com/WebKit/WebKit/pull/65327) 明确限制脚本点击 label 触发触感。公开开源 polyfill 的拖动样例仍依赖真实手势，不是惯性触感的可靠方案。
+
+本地 32 项 Node 回归通过；17 文件发布包与源码一致、语法与 diff 检查通过。浏览器检查了主按钮可用、说明与入口一致，无 console error；本轮未重复导入真实手表。提交及部署状态见 Issue #10。
+
+![原备用下载成为主操作](assets/screenshots/web-download-primary.jpg)
