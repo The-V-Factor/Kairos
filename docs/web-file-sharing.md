@@ -1,12 +1,14 @@
-# 纯网页训练文件分享实验
+# 纯网页训练文件与界面验证
 
-跟踪：[Issue #4](https://github.com/The-V-Factor/Kairos/issues/4)。目标是不安装自有 iPhone / Watch App，不使用苹果开发者账号或重签，把网页计划作为数据文件交给系统“健身／体能训练”。
+技术实验 [Issue #4](https://github.com/The-V-Factor/Kairos/issues/4) 已按用户验收通过 PR #6 合并；后续 [Issue #5](https://github.com/The-V-Factor/Kairos/issues/5) 对齐 App UI 并准备 Pages 发布。目标是不安装自有 iPhone / Watch App，不使用苹果开发者账号或重签，把网页计划作为数据文件交给系统“健身／体能训练”。
 
 ## 当前范围
 
-第一阶段只有文件和分享实验页，尚未进入完整网页编辑器阶段。可手动改变总距离和各点的距出发里程／提示，增加或删除点；默认 200／400 米只是方便短距离测试的样例，不是限制。支持 0 米和终点；只修改对应点，不挪动其余点位。
+当前已完成 B「节奏」网页编辑界面：全程融入标题，单层距离尺可浏览、缩放并显示已有补给；右上角加补给打开「补给主角」面板，水默认“喝水”，胶默认“吃胶”，自定义另填名称。支持 0 米和终点，单点增改删与撤销不改变其余点的位置；主页面浏览不直接修改已有点。
 
-此页尚无完整水／胶类型选择、距离尺、五套皮肤或草稿存储；刷新会重置，页面已明确说明。核心真机导入通过后再推进这些产品能力。原有 iPhone 代码及 README 未改动。
+草稿保存在当前域名的 localStorage（kairos.web.plan.v1），包含计划和点位的稳定 ID、补给类型、自定义名称与累计位置；刷新恢复，取消面板不保存。首次打开为可编辑的 75 km 示例。无法读取旧草稿时不自动覆盖，帮助中可明确选择替换；保存失败会提示，并保留当前可分享计划。
+
+本轮只迁移 B，不提供其他四套皮肤或系统排程历史；不伪造网页无法读取的设备状态。原有 iPhone 源码及 README 未改动。设计对照见 docs/design.md，发布步骤见 [Cloudflare Pages](cloudflare-pages.md)。
 
 ## 文件与分享
 
@@ -20,7 +22,7 @@
 
 分享成功返回只说明交给系统，不表示导入或手表接收。取消保留表单；拒绝和不支持有明确状态。折叠的测试信息记录文件、环境和分享错误类别，不包含补给内容。下载按钮只作对照，不以下载成功替代直接分享验收。
 
-同一页内修改复用计划 UUID；刷新生成新的 UUID。导入时实际是覆盖还是新增、如何删除旧项，尚待真机记录。
+修改及草稿恢复复用计划 UUID。导入时实际是覆盖还是新增、如何删除旧项，尚待真机记录；稳定 UUID 不等于系统一定覆盖旧导入项。
 
 ## 静态托管
 
@@ -32,7 +34,7 @@ Pages＋D1 并不意味着浏览器直连数据库。未来需要持久化时可
 
 ## 本机运行与打包
 
-网页无 npm 依赖、无构建步骤，Node.js 22 可运行测试；Python 3 可提供本机静态预览：
+网页无 npm 依赖，Node.js 22 可运行测试与打包；Python 3 可提供本机静态预览：
 
 ```sh
 rtk proxy python3 -m http.server 8787 --bind 127.0.0.1 --directory web
@@ -40,7 +42,7 @@ rtk proxy node --test web/test/*.test.mjs
 rtk proxy node tools/package-web.mjs
 ```
 
-打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，只包含 8 个发布文件，排除测试和工具源码。把该目录的内容上传至 Pages 静态项目，首页为 `index.html`，无需构建命令。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
+打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，当前包含 11 个发布文件，排除测试和工具源码。也可传入新目录，例如 Git 集成使用 `node tools/package-web.mjs dist`。预构建目录上传方式无需另执行构建；Git 集成的构建参数详见 Pages 文档。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
 
 `127.0.0.1` 是访问设备自身：Mac 和模拟器可用本机预览，真实 iPhone 不能用这个地址访问 Mac。局域网普通 HTTP 不满足 Web Share 安全环境要求，真机用实际 HTTPS 地址；不要通过忽略证书警告作为验证步骤。
 
@@ -57,7 +59,7 @@ rtk proxy /private/tmp/kairos-verify-workout /private/tmp/kairos-workout-interop
 rtk proxy swift format lint --strict tools/verify-workout.swift
 ```
 
-## 已取得的证据（2026-11-10）
+## #4 实验取得的证据（2026-11-10）
 
 - 10 项 Node 行为测试通过：分段语义、删除保留绝对位置、出发／终点、尾段、精度、非法值、二进制、同步调用分享、取消和拒绝。
 - 发布工具只打包 8 个静态文件，生成可供 Pages 上传的目录／压缩包，排除测试和工具源码。本地 Wrangler Pages 模拟器已解析 `_headers` 并返回 HTTP 200，CSP、`web-share=(self)` 和其他响应头可读取；不涉及远端部署。
@@ -68,6 +70,25 @@ rtk proxy swift format lint --strict tools/verify-workout.swift
 - 桌面内嵌浏览器 `canShare` 返回 true，但实际分享返回 `NotAllowedError`（点击激活为 true）。这是真实环境限制，不将其记录为成功；系统 Safari 模拟器测试单独记录。
 
 ![iOS 模拟器 Safari 直接分享训练文件](assets/screenshots/web-file-share-ios.png)
+
+## #5 界面与发布包验证（2026-11-10）
+
+- `rtk proxy node --test web/test/*.test.mjs`：17 项通过。新增验证草稿读写保留 ID／类型／自定义名、单点移动及删除撤销、出发与终点、空草稿、缩短全程边界、取整重合、异常存储保留原文、距离解析和刻度间隔。
+- 402×874 及 320×740 浏览器布局检查：首页、默认提示、手改后切类型不覆盖、取消不保存；新增 0 公里及 75 公里终点香蕉，修改中点 31.6→45 公里，删除与撤销，不移动其他点；刷新恢复全部输入。测试后移除临时点，恢复原示例。
+- 实际水平拖动已露出红色删除按钮，再点按删除及撤销通过；没有整段滑动直接删除。缩放按钮保留精确游标，程序定位不受整数像素量化影响。
+- 新网页实际下载的 286 字节文件，经 Apple WorkoutKit 与原生对象完整比较通过，含 0／14.5／45／51.1／75 km 及终点自定义“吃香蕉”。合计 9 个互操作案例通过；编码器协议未改。
+- iPhone 17e / iOS 26.5 模拟器系统 Safari，在本地 Pages 发布包检查首页、默认类型不自动唤键盘、自定义软键盘与表单可见性；修正视口平移造成的键盘遮挡，关闭后背景恢复。
+- 同一模拟器实际点击新版“分享训练到健身”，直接打开 .workout 分享面板，显示“Apple Watch · 268 字节”；取消后保留计划并明确显示未完成，未虚报接收成功。
+- `node tools/package-web.mjs dist` 本机首次构建通过，最终发布包只含 11 个文件且 ZIP 完整性检查通过。Wrangler 本地 Pages 模拟器返回 200，CSP、web-share 权限及 JS 内容类型可核对；没有 Functions 或 D1，也未创建远端资源。
+- 真实手指连续拖动／双指缩放、减少动态效果与极大字号的设备验收，以及真实 Watch 导入与提醒仍待测，不把鼠标／模拟器结果当成真机手感。
+
+| Safari 模拟器软键盘 | 新版直接系统分享 |
+| --- | --- |
+| ![自定义补给键盘](assets/screenshots/web-keyboard-ios.jpg) | ![直接分享训练文件](assets/screenshots/web-share-ios.jpg) |
+
+## 用户线上验收（2026-11-11）
+
+用户提供部署地址 https://kairos-2rm.pages.dev/，并确认“手机能打开网页，并且下载训练内容”，据此同意 #5 本阶段验收并要求代码提交合并。此处记录用户提供的真机结果，不把下载成功当成直接分享、“健身”导入或 Watch 骑行提醒通过。手机／系统版本、线上部署提交及资源一致性未核验；这些设备验证仍保留为后续边界。
 
 ## 真机门槛（尚未通过）
 
