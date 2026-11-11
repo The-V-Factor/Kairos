@@ -58,7 +58,10 @@ export class DistanceRuler {
       this.targetWave = this.reduced.matches ? 0 : .7;
       this.frame();
     }, { passive: false });
-    const endPinch = () => { this.pinch = null; this.targetWave = 0; this.frame(); };
+    const endPinch = () => {
+      if (!this.pinch) return;
+      this.pinch = null; this.targetWave = 0; this.frame();
+    };
     this.root.addEventListener('touchend', endPinch);
     this.root.addEventListener('touchcancel', endPinch);
     this.haptics = new RulerHaptics(this);

@@ -3,10 +3,12 @@ import { sharePrepared, shareSupport } from './share.mjs';
 import { kinds, newID, samplePlan, parseDistance, validateDraft, saveStop, loadDraft, storeDraft } from './plan.mjs';
 import { fuelArtwork, icon } from './artwork.mjs';
 import { DistanceRuler } from './ruler.mjs';
+import { themes, loadTheme, storeTheme } from './themes.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const loaded = loadDraft(storage);
+let themeID = loadTheme(storage);
 let plan = loaded.plan ?? samplePlan();
 let writable = loaded.writable;
 let prepared = null, sharing = false, cursor = plan.totalDistanceMeters / 2, deleted = null, editing = null, lastShare = null;
@@ -25,6 +27,40 @@ $('haptics-status').textContent = ruler.haptics.available
   ? '本次打开有效。开启后在刻度线上拖动，尝试跨刻度触感；松手后的惯性不震动，效果以真机为准。'
   : '当前浏览器未提供可用的触感路径，距离尺仍可正常使用。';
 $('haptics-toggle').addEventListener('change', () => ruler.haptics.setEnabled($('haptics-toggle').checked));
+
+for (const [index, theme] of themes.entries()) {
+  const button = document.createElement('button'); button.type = 'button'; button.className = 'theme-choice';
+  button.dataset.themeID = theme.id; button.setAttribute('role', 'radio');
+  button.setAttribute('aria-label', `${theme.title}，${theme.caption}`);
+  button.innerHTML = `<span class="theme-preview" data-theme="${theme.id}" aria-hidden="true"><span class="mini-brand">KAIROS <i>${'ABCDE'[index]}</i></span><span class="mini-title">${theme.id === 'journal' ? '补给路书' : '骑行补给'}</span><span class="mini-landscape"></span><span class="mini-ruler"></span><span class="mini-stop">${fuelArtwork('water')}<strong>25.0<small>喝水</small></strong></span><span class="mini-stop">${fuelArtwork('gel')}<strong>45.0<small>吃胶</small></strong></span><span class="mini-action"></span></span><span class="theme-choice-title">${theme.title}<span class="theme-check" aria-hidden="true">✓</span></span><span class="theme-caption">${theme.caption}</span>`;
+  button.addEventListener('click', () => { chooseTheme(theme.id); $('theme-dialog').close(); });
+  button.addEventListener('keydown', event => {
+    let next;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % themes.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index + themes.length - 1) % themes.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = themes.length - 1;
+    else return;
+    event.preventDefault(); chooseTheme(themes[next].id); $('theme-options').children[next].focus();
+  });
+  $('theme-options').append(button);
+}
+function renderTheme() {
+  const theme = themes.find(theme => theme.id === themeID);
+  document.documentElement.dataset.theme = themeID;
+  $('theme-name').textContent = theme.title;
+  $('theme').setAttribute('aria-label', `更换皮肤，当前${theme.title}`);
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim();
+  for (const button of $('theme-options').children) {
+    const selected = button.dataset.themeID === themeID;
+    button.setAttribute('aria-checked', String(selected)); button.tabIndex = selected ? 0 : -1;
+  }
+}
+function chooseTheme(id) {
+  ruler.haptics.stop(); themeID = id; renderTheme();
+  $('theme-status').textContent = storeTheme(storage, id) || '只更换外观，沿途补给仍留在原位。';
+}
+renderTheme();
 
 function message(id, text = '') { $(id).textContent = text; $(id).hidden = !text; }
 function displayName(stop) { return stop.kind === 'custom' ? stop.name : kinds[stop.kind].title; }
@@ -282,7 +318,8 @@ function validateTotal() {
 }
 $('edit-total').addEventListener('click', () => {
   if (sharing || removing.size) return;
-  $('total').value = String(plan.totalDistanceMeters / 1000); validateTotal(); openSheet($('distance-dialog')); $('total').focus(); $('total').select();
+  $('total').value = String(plan.totalDistanceMeters / 1000); validateTotal(); openSheet($('distance-dialog'));
+  $('total').focus(); $('total').setSelectionRange($('total').value.length, $('total').value.length);
 });
 $('total').addEventListener('input', validateTotal);
 $('distance-form').addEventListener('submit', event => {
@@ -290,6 +327,11 @@ $('distance-form').addEventListener('submit', event => {
   $('distance-dialog').close(); apply(next);
 });
 $('help').addEventListener('click', () => openSheet($('help-dialog')));
+$('theme').addEventListener('click', () => {
+  if (sharing || removing.size) return;
+  openSheet($('theme-dialog'));
+  $('theme-options').querySelector('[aria-checked="true"]').focus({ preventScroll: true });
+});
 $('replace-draft').hidden = writable;
 $('replace-draft').addEventListener('click', () => { writable = true; persist(); $('replace-draft').hidden = true; });
 

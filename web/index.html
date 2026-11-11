@@ -7,13 +7,14 @@
     <meta name="description" content="出发前安排好补给，骑行时交给手表。用 Kairos 安排沿途喝水、吃胶与其他补给，再分享至系统健身。">
     <link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./themes.css">
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
     <div id="app">
       <header class="masthead">
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
-        <div class="masthead-actions"><span class="theme-badge"><span data-icon="palette"></span>节奏</span><button id="help" class="icon-button" type="button" aria-label="使用说明"><span data-icon="help"></span></button></div>
+        <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="help" class="icon-button" type="button" aria-label="使用说明"><span data-icon="help"></span></button></div>
       </header>
       <main>
         <div class="eyebrow">READY TO RIDE <i></i></div>
@@ -61,6 +62,12 @@
     <dialog id="distance-dialog" class="sheet" aria-labelledby="distance-title">
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
       <form id="distance-form" novalidate><div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="取消修改全程"><span data-icon="close"></span></button><h2 id="distance-title">计划距离</h2><button id="save-total" type="submit">保存</button></div><div class="sheet-body"><label class="total-input">这趟骑多远<div class="distance-input"><input id="total" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><span>km</span></div></label><p class="muted">修改全程，已有补给点仍留在原位。</p><p id="total-error" class="notice" role="status" hidden></p></div></form>
+    </dialog>
+
+    <dialog id="theme-dialog" class="sheet theme-sheet" aria-labelledby="theme-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭皮肤选择"><span data-icon="close"></span></button><h2 id="theme-title">选一种骑行气质</h2><span class="header-spacer"></span></div>
+      <div class="sheet-body"><div id="theme-options" class="theme-options" role="radiogroup" aria-label="皮肤"></div><p id="theme-status" role="status" class="fine-print">只更换外观，沿途补给仍留在原位。</p></div>
     </dialog>
 
     <dialog id="help-dialog" class="sheet help-sheet" aria-labelledby="help-title">

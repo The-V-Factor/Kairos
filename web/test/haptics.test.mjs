@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TickFeedback, RulerHaptics } from '../haptics.mjs';
+import { DistanceRuler } from '../ruler.mjs';
 
 test('slow movement waits for an actual tick, not the half-step rounding boundary', () => {
   const ticks = new TickFeedback(); ticks.begin(0, 100, 770);
@@ -40,7 +41,7 @@ test('zoom or range changes reset the baseline; ending a drag suppresses inertia
   assert.equal(ticks.cross(510, 10, 2000, 500), true);
 });
 
-function nativeRuler(t) {
+function nativeRuler(t, actualRuler = false) {
   class Element {
     constructor() { this.switch = false; this.style = {}; this.events = new Map(); }
     setAttribute() {}
@@ -55,6 +56,8 @@ function nativeRuler(t) {
     navigator: {}, window: new Element(), document: new Element(),
     requestAnimationFrame: fn => { const id = ++sequence; frames.set(id, fn); return id; },
     cancelAnimationFrame: id => frames.delete(id),
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    ResizeObserver: class { observe() {} },
   };
   let sequence = 0;
   replacements.window.scrollBy = () => {};
@@ -64,10 +67,12 @@ function nativeRuler(t) {
     Object.defineProperty(globalThis, name, { configurable: true, value });
     t.after(() => { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; });
   }
-  const ruler = { root, scroll, cursor: 500, step: 100, total: 1000, scale: 1,
+  const parts = new Map([['.ruler-scroll', scroll]]);
+  root.querySelector = selector => { if (!parts.has(selector)) parts.set(selector, new Element()); return parts.get(selector); };
+  const ruler = actualRuler ? new DistanceRuler(root, () => {}, () => {}) : { root, scroll, cursor: 500, step: 100, total: 1000, scale: 1,
     reduced: { matches: false }, clamp: value => Math.max(0, Math.min(1000, value)),
     layout(value) { this.cursor = value; }, frame() {} };
-  const haptics = new RulerHaptics(ruler);
+  const haptics = actualRuler ? ruler.haptics : new RulerHaptics(ruler);
   const send = (type, x, time) => haptics.input.emit(type,
     { isPrimary: true, pointerId: 1, button: 0, clientX: x, clientY: 0, timeStamp: time });
   return { ruler, haptics, frames, send };
@@ -105,4 +110,15 @@ test('a second finger or cancellation stops native feedback and never resumes th
   send('pointerdown', 300, 200); send('pointercancel', 300, 250);
   send('pointermove', 100, 300);
   assert.equal(ruler.cursor, 500);
+});
+test('an ordinary button tap inside the ruler does not redraw at touchend and suppress the iOS click', t => {
+  const { ruler } = nativeRuler(t, true);
+  let frames = 0;
+  ruler.frame = () => { frames++; };
+  ruler.root.emit('touchend');
+  assert.equal(frames, 0);
+  ruler.pinch = {};
+  ruler.root.emit('touchend');
+  assert.equal(frames, 1);
+  assert.equal(ruler.pinch, null);
 });

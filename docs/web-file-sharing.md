@@ -8,7 +8,9 @@
 
 草稿保存在当前域名的 localStorage（kairos.web.plan.v1），包含计划和点位的稳定 ID、补给类型、自定义名称与累计位置；刷新恢复，取消面板不保存。首次打开为可编辑的 75 km 示例。无法读取旧草稿时不自动覆盖，帮助中可明确选择替换；保存失败会提示，并保留当前可分享计划。
 
-本轮只迁移 B，不提供其他四套皮肤或系统排程历史；不伪造网页无法读取的设备状态。原有 iPhone 源码及 README 未改动。设计对照见 docs/design.md，发布步骤见 [Cloudflare Pages](cloudflare-pages.md)。
+网页现已提供沿途／节奏／路书／口袋补给／精密刻度五套皮肤，独立保存外观偏好；不提供系统排程历史，也不伪造网页无法读取的设备状态。原有 iPhone 源码及 README 未改动。设计对照见 docs/design.md，发布步骤见 [Cloudflare Pages](cloudflare-pages.md)。
+
+2026-11-11 本地回归：全程输入改为数字末尾光标；普通单指点按不再触发距离尺的缩放结束重绘；皮肤入口可打开五套选择面板。`rtk proxy node --test --test-reporter=dot web/test/*.test.mjs` 的 36 项测试通过，涵盖点按与缩放结束的区别、皮肤独立保存、未知值及存储拒绝。402×874 浏览器与 iPhone 17e／iOS 26.5 模拟器 Safari 检查新增、换肤、刷新保存和输入光标；测试补给点已清理，未出现控制台错误。`rtk proxy node tools/package-web.mjs /private/tmp/kairos-ui-fixes-20261111-final` 生成 19 个发布文件，逐字节与源码一致，全部发布模块通过 `node --check`，`rtk git diff --check` 通过。实际 iPhone 与独立 PWA 待更新后验证，本轮未提交部署；截图见设计文档。
 
 ## 文件与分享
 
