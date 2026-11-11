@@ -3,48 +3,81 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#141711">
+    <meta name="theme-color" content="#141614">
+    <meta name="description" content="出发前安排好补给，骑行时交给手表。用 Kairos 安排沿途喝水、吃胶与其他补给，再分享至系统健身。">
     <link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./style.css">
-    <title>Kairos · 训练文件分享实验</title>
+    <title>Kairos · 骑行补给</title>
   </head>
   <body>
-    <main>
-      <header><a href="./" aria-label="Kairos 首页"><img src="./assets/app-icon.svg" alt="">KAIROS</a><span>文件分享实验</span></header>
-      <div class="eyebrow">READY TO RIDE <i></i></div>
-      <h1>补给，交给系统。</h1>
-      <p class="intro">在网页安排好，分享给“健身”，<br>再用手表自带的“体能训练”开始骑行。</p>
-      <a class="jump" href="#share-title">先试试分享 ↓</a>
-
-      <form id="plan" novalidate>
-        <label class="total">计划全程 <span><input id="total" type="text" inputmode="decimal" value="1.0" aria-label="全程，公里"><b>km</b></span></label>
-        <div class="section-title"><h2>沿途补给</h2><button id="add" type="button">＋ 补给</button></div>
-        <p class="hint">填写距出发的累计里程。0 米和终点都可以安排补给。</p>
-        <div id="stops"></div>
-        <template id="stop-template">
-          <div class="stop">
-            <label class="position"><span>距出发里程</span><div><input class="meters" type="text" inputmode="decimal" aria-label="距出发里程，米"><b>m</b></div></label>
-            <label class="reminder"><span>到点提示</span><input type="text" maxlength="160" aria-label="手表提示" placeholder="例如：喝水、吃胶"></label>
-            <button class="remove" type="button" aria-label="删除此补给点">×</button>
+    <div id="app">
+      <header class="masthead">
+        <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
+        <div class="masthead-actions"><span class="theme-badge"><span data-icon="palette"></span>节奏</span><button id="help" class="icon-button" type="button" aria-label="使用说明"><span data-icon="help"></span></button></div>
+      </header>
+      <main>
+        <div class="eyebrow">READY TO RIDE <i></i></div>
+        <div class="plan-heading"><h1>骑行补给</h1><button id="edit-total" type="button" aria-label="修改计划全程"><span>全程</span><strong id="total-label"></strong><span data-icon="pencil"></span></button></div>
+        <section class="ruler-section" aria-label="浏览沿途补给">
+          <div id="ruler" class="ruler">
+            <div class="ruler-scroll" role="slider" tabindex="0" aria-label="距离尺" aria-valuemin="0" aria-valuemax="75000" aria-valuenow="37500" aria-describedby="ruler-hint"><div class="ruler-track"></div></div>
+            <svg class="ruler-ticks" aria-hidden="true"></svg>
+            <output aria-label="当前里程" aria-live="off"></output>
+            <div class="ruler-markers"></div>
+            <button id="add" class="add-fuel" type="button"><span data-icon="plus"></span>补给</button>
           </div>
-        </template>
+          <div class="ruler-controls"><span id="ruler-hint">累计距离 · 双指缩放</span><div><button id="zoom-out" type="button" aria-label="缩小距离尺"><span data-icon="minus"></span></button><button id="zoom-in" type="button" aria-label="放大距离尺"><span data-icon="zoom"></span></button><button id="fit" type="button">全览</button></div></div>
+        </section>
+        <div id="stops" class="itinerary" aria-label="沿途补给点"></div>
+        <div id="empty" class="empty" hidden><h2>从第一站开始。</h2><p>拨动距离尺，点“＋补给”安排沿途的一站。</p></div>
+        <p class="finish-note"><span aria-hidden="true">∞</span>骑至计划终点后，可继续骑行。</p>
+        <p id="storage-message" class="notice" role="status" hidden></p>
+      </main>
+    </div>
+    <aside class="send-dock" aria-label="分享计划">
+      <div class="dock-content">
+        <div id="undo-bar" class="undo-bar" hidden><span id="undo-message"></span><button id="undo" type="button">撤销</button></div>
+        <p id="result" class="notice" role="status" aria-live="polite" hidden></p>
+        <p id="error" class="notice" role="status" hidden></p>
+        <button id="share" class="primary" type="button" disabled><span data-icon="watch"></span><span>分享训练到健身</span><span class="outward" data-icon="arrow"></span></button>
+        <p class="instruction">在“健身”添加到手表，再开始骑行</p>
+      </div>
+    </aside>
+
+    <dialog id="composer" class="sheet" aria-labelledby="composer-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <form id="fuel-form" novalidate>
+        <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="取消补给编辑"><span data-icon="close"></span></button><h2 id="composer-title"></h2><button id="save-stop" type="submit">添加</button></div>
+        <div class="sheet-body">
+          <div id="edit-position" class="position-editor" hidden><label for="stop-distance">距出发里程</label><div class="distance-input"><input id="stop-distance" type="text" inputmode="decimal" autocomplete="off"><select id="stop-unit" aria-label="补给距离单位"><option value="km">km</option><option value="m">m</option></select></div></div>
+          <div class="fuel-hero"><div id="hero-art" class="hero-art"></div><div class="hero-fields"><label id="custom-name-field" hidden>补给名称<input id="stop-name" type="text" maxlength="80" placeholder="例如巧克力" autocomplete="off"></label><label>手表提示<input id="stop-reminder" type="text" maxlength="160" placeholder="填写到点提醒" autocomplete="off"></label></div></div>
+          <div class="fuel-types" role="group" aria-label="补给类型"><button type="button" data-kind="water"><span class="type-art"></span><span>水</span></button><button type="button" data-kind="gel"><span class="type-art"></span><span>胶</span></button><button type="button" data-kind="custom"><span class="type-art"></span><span>自定义</span></button></div>
+          <p id="fuel-error" class="notice" role="status" hidden></p>
+          <button id="delete-stop" class="delete-in-editor" type="button" hidden><span data-icon="trash"></span>删除这个补给点</button>
+        </div>
       </form>
+    </dialog>
 
-      <p id="error" class="error" role="alert" hidden></p>
-      <details class="preview"><summary>核对系统分段</summary><ol id="steps"></ol><p>补给名称在到点后开始的下一段呈现。末段为开放目标，可继续骑行；文字、声音及触感以真机为准。</p></details>
+    <dialog id="distance-dialog" class="sheet" aria-labelledby="distance-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <form id="distance-form" novalidate><div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="取消修改全程"><span data-icon="close"></span></button><h2 id="distance-title">计划距离</h2><button id="save-total" type="submit">保存</button></div><div class="sheet-body"><label class="total-input">这趟骑多远<div class="distance-input"><input id="total" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><span>km</span></div></label><p class="muted">修改全程，已有补给点仍留在原位。</p><p id="total-error" class="notice" role="status" hidden></p></div></form>
+    </dialog>
 
-      <section class="handoff" aria-labelledby="share-title">
-        <div class="section-title"><h2 id="share-title">交给手表</h2><span id="file-size">正在准备</span></div>
-        <p id="support" class="support" role="status"></p>
-        <button id="share" class="primary" type="button" disabled><span>分享训练</span><span aria-hidden="true">↗</span></button>
-        <p class="instruction">在分享面板选择“健身”，<br>预览后确认添加到 Apple Watch。</p>
-        <p id="result" class="result" role="status" aria-live="polite"></p>
-        <button id="download" class="download" type="button" disabled>下载 .workout 文件作对照</button>
-      </section>
-
-      <details class="diagnostics"><summary>本次测试信息</summary><dl id="diagnostics"></dl><p>“浏览器允许分享”不代表分享面板一定有“健身”。网页也无法确认手表是否已接收。</p><button id="copy" type="button">复制测试信息</button></details>
-      <footer>计划只在这个页面里处理，不会上传。<br>当前为导入实验页，刷新会重置；尚不保存草稿。</footer>
-    </main>
+    <dialog id="help-dialog" class="sheet help-sheet" aria-labelledby="help-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭使用说明"><span data-icon="close"></span></button><h2 id="help-title">出发前，安排好。</h2><span class="header-spacer"></span></div>
+      <div class="sheet-body help-body">
+        <h3>从计划到出发</h3><ol><li>设置全程，拨动距离尺选位置，添加水、胶或自定义补给。0 公里和终点都可以。</li><li>点“分享训练到健身”，在系统分享面板选择“健身”，核对训练并确认添加到手表。</li><li>在 Apple Watch 自带的“体能训练”里确认计划，再手动开始骑行。</li></ol>
+        <p>首次打开为可编辑的示例计划。计划只保存在这个浏览器，不会上传。修改后需重新分享；系统导入后如何覆盖或保留旧计划，以设备实际表现为准。网页无法查看或撤回手表中的计划。</p>
+        <p>提醒按实际骑行累计距离出现。系统分段显示和声音、触感以真机为准；这里的物件动效不代表已经吃喝。网页距离尺没有原生 App 的触感反馈。</p>
+        <p id="support" class="muted"></p>
+        <button id="download" class="secondary" type="button" disabled>下载训练文件</button><p class="fine-print">分享面板没有“健身”时，可下载后从“文件”中分享。网页无法确认导入或手表接收结果。</p>
+        <details class="preview"><summary>核对系统分段</summary><ol id="steps"></ol></details>
+        <details class="diagnostics"><summary>兼容性信息</summary><dl id="diagnostics"></dl><button id="copy" class="secondary" type="button">复制兼容性信息</button></details>
+        <button id="replace-draft" class="secondary" type="button" hidden>用当前计划替换无法读取的本机草稿</button>
+      </div>
+    </dialog>
+    <noscript><p class="notice">请开启 JavaScript，以便在浏览器本地编辑和生成训练计划。</p></noscript>
     <script type="module" src="./app.mjs"></script>
   </body>
 </html>

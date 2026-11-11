@@ -6,3 +6,4 @@ xcuserdata/
 .swiftpm/
 Config/Signing.local.xcconfig
 .wrangler/
+dist/

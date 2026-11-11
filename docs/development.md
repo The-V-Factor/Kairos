@@ -1,6 +1,6 @@
 # Kairos 开发说明
 
-纯网页 `.workout` 文件与系统分享实验见 [网页训练文件实验](web-file-sharing.md)，目前处于真机导入验证阶段。下文仍描述已合并的 iPhone 版本。
+纯网页 `.workout` 文件与系统分享见 [网页实现及验证](web-file-sharing.md)，已完成 B「节奏」界面与本地草稿；真实设备导入仍待验证。发布步骤见 [Cloudflare Pages](cloudflare-pages.md)。下文仍描述已合并的 iPhone 版本。
 
 原生 iPhone 骑行补给实验：手动填写骑行日期、计划总距离、各补给点的距出发里程和提示，通过 WorkoutKit 提交所选日期的训练，由 Apple Watch 系统“体能训练”记录骑行、呈现分段提示。没有独立手表 App、账号、网络服务或补给算法。
 
