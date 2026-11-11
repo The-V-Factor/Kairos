@@ -1,6 +1,7 @@
 import { distanceLabel, roundedMeters } from './workout.mjs';
 import { majorInterval } from './plan.mjs';
 import { fuelArtwork } from './artwork.mjs';
+import { RulerHaptics } from './haptics.mjs';
 
 // Native horizontal scrolling supplies touch momentum. Only the visible ticks are drawn.
 export class DistanceRuler {
@@ -30,6 +31,7 @@ export class DistanceRuler {
       clearTimeout(this.settle);
       this.settle = setTimeout(() => { this.targetWave = 0; this.frame(); }, 90);
       this.publish(); this.frame();
+      this.haptics.browse();
     });
     this.scroll.addEventListener('keydown', event => {
       const moves = { ArrowLeft: -1, ArrowRight: 1, PageDown: -10, PageUp: 10 };
@@ -38,7 +40,7 @@ export class DistanceRuler {
         this.move(event.key === 'Home' ? 0 : event.key === 'End' ? this.total : this.cursor + moves[event.key] * this.step);
       }
     });
-    this.scroll.addEventListener('touchstart', event => {
+    this.root.addEventListener('touchstart', event => {
       if (event.touches.length !== 2) return;
       const [a, b] = event.touches;
       const x = (a.clientX + b.clientX) / 2 - this.root.getBoundingClientRect().left;
@@ -46,7 +48,7 @@ export class DistanceRuler {
         anchor: this.cursor + (x - this.width / 2) / this.scale };
       this.transition = null;
     }, { passive: true });
-    this.scroll.addEventListener('touchmove', event => {
+    this.root.addEventListener('touchmove', event => {
       if (event.touches.length !== 2 || !this.pinch) return;
       event.preventDefault();
       const [a, b] = event.touches;
@@ -57,9 +59,10 @@ export class DistanceRuler {
       this.frame();
     }, { passive: false });
     const endPinch = () => { this.pinch = null; this.targetWave = 0; this.frame(); };
-    this.scroll.addEventListener('touchend', endPinch);
-    this.scroll.addEventListener('touchcancel', endPinch);
-    new ResizeObserver(() => { if (this.total) this.layout(this.cursor); }).observe(root);
+    this.root.addEventListener('touchend', endPinch);
+    this.root.addEventListener('touchcancel', endPinch);
+    this.haptics = new RulerHaptics(this);
+    new ResizeObserver(() => { this.haptics.stop(); if (this.total) this.layout(this.cursor); }).observe(root);
     this.reduced.addEventListener('change', () => { this.wave = 0; this.targetWave = 0; this.frame(); });
   }
   get width() { return this.root.clientWidth; }
@@ -67,6 +70,7 @@ export class DistanceRuler {
   get step() { return majorInterval(this.total / this.zoom) / 10; }
   clamp(value) { return Math.max(0, Math.min(this.total, value)); }
   update(plan) {
+    this.haptics.stop();
     const changed = this.total !== plan.totalDistanceMeters;
     const first = !this.total;
     this.total = plan.totalDistanceMeters;
@@ -89,16 +93,18 @@ export class DistanceRuler {
     this.onBrowse(roundedMeters(this.cursor));
   }
   move(value) {
+    this.haptics.stop();
     this.transition = null;
     this.scroll.scrollTo({ left: this.clamp(value) * this.scale, behavior: this.reduced.matches ? 'instant' : 'smooth' });
   }
   changeZoom(factor) {
+    this.haptics.stop();
     const destination = Math.min(64, Math.max(1, this.zoom * factor));
     if (this.reduced.matches) { this.zoom = destination; this.layout(this.cursor); return; }
     this.transition = { from: this.zoom, to: destination, cursor: this.cursor, start: performance.now() };
     this.frame();
   }
-  fit() { this.transition = null; this.zoom = 1; this.layout(this.total / 2); }
+  fit() { this.haptics.stop(); this.transition = null; this.zoom = 1; this.layout(this.total / 2); }
   frame() {
     if (this.frameID) return;
     this.frameID = requestAnimationFrame(now => {
