@@ -217,7 +217,14 @@ async function removeStop(id) {
   if (sharing || removing.size) return;
   const stop = plan.stops.find(item => item.id === id);
   if (!stop) return;
-  const row = rows.get(id); removing.add(id); row.classList.add('removing'); row.inert = true; prepare();
+  const row = rows.get(id); removing.add(id); row.inert = true; prepare();
+  // The swipe moves the artwork outside the clipped row. Reveal it before animating.
+  closeSwipes();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  row.style.scrollMarginBottom = `${document.querySelector('.send-dock').offsetHeight + 16}px`;
+  row.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  await Promise.all(row.querySelector('.stop-content').getAnimations().map(animation => animation.finished.catch(() => {})));
+  row.classList.add('removing');
   await new Promise(resolve => setTimeout(resolve, reduced.matches ? 80 : 480));
   deleted = stop; removedPlan = null; removing.delete(id); closeSwipes();
   if (selectedID === id) selectedID = null;

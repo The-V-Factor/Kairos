@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>手机布局与删除动效回归</title>
+<style>body{font:14px system-ui;background:#141614;color:#f7f8eb}button{padding:12px}iframe{display:block;width:402px;height:874px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run">运行删除动效回归</button><pre id="results" role="status">请在独立测试端口运行；会删除再撤销示例补给。</pre><iframe src="../" title="测试页面"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'), output=document.querySelector('#results');
+document.querySelector('#run').addEventListener('click',async()=>{
+ const checks=[], doc=frame.contentDocument, win=frame.contentWindow;
+ const assert=(value,message)=>{if(!value)throw Error(message);checks.push('PASS '+message);};
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ const sample=row=>({removing:row.classList.contains('removing'),opacity:Number(win.getComputedStyle(row.querySelector('.fuel-art')).opacity),left:row.querySelector('.fuel-art').getBoundingClientRect().left,edge:row.getBoundingClientRect().left,fill:win.getComputedStyle(row.querySelector('.water-fill')).transform});
+ async function deletion(row,trigger){
+  const samples=[]; trigger();
+  const end=performance.now()+2500;
+  while(row.isConnected&&performance.now()<end){samples.push(sample(row));await new Promise(resolve=>win.requestAnimationFrame(resolve));}
+  assert(!row.isConnected,'动画后才移除条目');
+  if(!win.matchMedia('(prefers-reduced-motion: reduce)').matches){
+   assert(samples.some(s=>s.removing&&s.left>=s.edge-1&&s.opacity>.1),'删除动画开始时图标已回到可见区域');
+   assert(samples.some(s=>s.removing&&s.opacity>0&&s.opacity<1),'飞走过程存在中间帧');
+   assert(samples.some(s=>s.removing&&s.fill!=='none'&&!s.fill.startsWith('matrix(1, 0, 0, 1,')),'水瓶排空存在中间帧');
+  }
+  doc.querySelector('#undo').click(); await wait(50);
+ }
+ try{
+  const original=[...doc.querySelectorAll('.stop')], row=doc.querySelector('.stop .water-fill').closest('.stop');
+  const other=original.find(item=>item!==row), otherArt=other.querySelector('.fuel-art');
+  row.scrollIntoView({block:'center',behavior:'instant'});
+  const button=row.querySelector('.stop-content'), rect=button.getBoundingClientRect();
+  // Synthetic PointerEvents have no browser pointer to capture; exercise the same swipe handlers.
+  const capture=button.setPointerCapture; button.setPointerCapture=()=>{};
+  for(const [type,x] of [['pointerdown',rect.left+230],['pointermove',rect.left+140],['pointerup',rect.left+140]]) button.dispatchEvent(new win.PointerEvent(type,{pointerId:1,pointerType:'touch',clientX:x,clientY:rect.top+40,bubbles:true}));
+  button.setPointerCapture=capture;
+  await wait(260);
+  assert(sample(row).left<sample(row).edge,'复现：左滑将图标裁到条目外');
+  await deletion(row,()=>row.querySelector('.swipe-delete').click());
+  assert(doc.querySelectorAll('.stop').length===original.length,'撤销恢复原补给数量');
+  assert(other.querySelector('.fuel-art')===otherArt&&!other.classList.contains('removing'),'其他补给保持原图标且不播放删除动画');
+  const restored=doc.querySelector('.stop .water-fill').closest('.stop');
+  restored.querySelector('.stop-content').click(); await wait(320);
+  assert(doc.querySelector('#composer').open,'打开补给编辑面板');
+  await deletion(restored,()=>doc.querySelector('#delete-stop').click());
+  assert(!doc.querySelector('#composer').open&&doc.querySelectorAll('.stop').length===original.length,'编辑面板删除与撤销正常');
+  output.textContent=checks.join('\n')+'\nAll '+checks.length+' checks passed.';
+ }catch(error){output.textContent=checks.join('\n')+'\nFAIL '+error.message;}
+});
+</script></html>

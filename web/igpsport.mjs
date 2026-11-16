@@ -60,6 +60,8 @@ export class IGPSPORT {
     if (!keyword.trim()) throw new Error('输入地点、路书名称或编号。');
     const query = new URLSearchParams({ type: 'find', key: keyword.trim(), pageIndex: page, pageSize: 20 });
     const data = await this.request(`/service/web/api/Routes/RouteListForWeb?${query}`, { token: session.token, signal });
+    // The China endpoint omits items when a successful search has total: 0.
+    if (data.total === 0 && data.items == null) return [];
     if (!Array.isArray(data.items)) throw new Error('路书列表格式已变化，暂时无法读取。');
     return data.items.map(routeSummary);
   }

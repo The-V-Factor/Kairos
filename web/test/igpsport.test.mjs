@@ -65,6 +65,12 @@ test('route searches encode keywords and pages; bearer token never appears in UR
   assert.equal(calls.length, 1);
 });
 
+test('an empty China route search may omit items only when total is explicitly zero', async () => {
+  const { api } = mockAPI([reply({ total: 0 }), reply({ total: 0, items: null }), reply({ items: [] }), reply({}), reply({ total: 1 }), reply({ total: 0, items: {} })]);
+  for (let i = 0; i < 3; i++) assert.deepEqual(await api.search(session, '没有匹配的路书'), []);
+  for (let i = 0; i < 3; i++) await assert.rejects(api.search(session, 'test'), /列表格式/);
+});
+
 test('QR handshake uses a caller-generated device identity and only returns token after app confirmation', async () => {
   const { api, calls } = mockAPI([
     reply({ oauthKey: 'demo-key', platform: 'web', type: 'analyzeWebLogin' }),

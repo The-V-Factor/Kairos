@@ -95,10 +95,12 @@
       <div class="sheet-body">
         <p id="route-notice" class="notice" role="status" hidden></p>
         <div id="route-sources">
-          <p class="muted">路线来源</p><h3>选一条想骑的路。</h3><p class="muted">从熟悉的路书平台开始。</p>
-          <button id="route-saved" class="route-result" type="button" hidden><small>当前计划的路线</small><strong id="route-saved-name"></strong><span>查看详情 ›</span></button>
+          <section id="route-current" hidden><h3 class="route-section-title">当前计划的路线</h3>
+            <button id="route-saved" class="route-saved" type="button"><svg id="route-saved-outline" class="route-outline" viewBox="0 0 320 152" aria-hidden="true"><polyline fill="none"/></svg><span class="route-saved-copy"><strong id="route-saved-name"></strong><span id="route-saved-metrics"></span><small>查看详情 ›</small></span></button>
+          </section>
+          <h3 class="route-section-title route-find-title">查找新路线</h3>
           <div id="route-provider-list" class="route-provider-list"></div>
-          <p class="fine-print muted route-source-hint">选择来源后连接账号，再搜索路线。</p>
+          <p class="fine-print muted route-source-hint">路线用于本次计划，补给点保持原位。</p>
         </div>
         <div id="route-connect" hidden>
           <p id="route-login-caption" class="muted">中国站路书</p><h3>连接你的路书库</h3>
@@ -119,8 +121,15 @@
         </div>
         <div id="route-browse" hidden>
           <p id="route-browse-caption" class="route-provider muted">中国站路书</p>
-          <form id="route-search-form" class="route-search"><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
-          <p id="route-search-status" class="muted" role="status">搜一搜你想骑的地方。</p>
+          <form id="route-search-form" class="route-search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
+          <p id="route-search-status" class="muted" role="status" hidden></p>
+          <div id="route-search-empty" class="route-search-empty">
+            <svg class="route-empty-art" viewBox="0 0 180 114" aria-hidden="true"><path class="map-fold" d="m18 30 45-17 48 15 49-17v72l-49 17-48-15-45 17V30Zm45-17v72m48-57v72"/><path class="map-trail" d="M36 82c21-27 26 0 48-22s23 16 49-21"/><circle class="map-pin" cx="134" cy="36" r="4"/><g class="map-search"><circle cx="130" cy="66" r="21"/><path d="m146 82 20 20"/></g></svg>
+            <h3 id="route-empty-title">下一趟，想骑哪儿？</h3><p id="route-empty-copy" class="muted">输入目的地，找一条适合这趟骑行的路。</p>
+            <p id="route-empty-hint" class="muted" hidden>可以缩短名称，或改搜附近地点。</p>
+            <div class="route-examples"><p>试试这些地点</p><div><button type="button" data-route-example="广州">广州</button><button type="button" data-route-example="南沙">南沙</button><button type="button" data-route-example="南昆山">南昆山</button></div></div>
+            <button id="route-search-clear" type="button" hidden>清空搜索</button>
+          </div>
           <div id="route-results"></div>
           <div id="route-pagination" class="route-pagination" hidden><button id="route-prev" type="button">上一页</button><span id="route-page"></span><button id="route-next" type="button">下一页</button></div>
         </div>
@@ -129,11 +138,11 @@
           <h3 id="route-detail-name"></h3><p id="route-detail-author" class="muted"></p>
           <svg id="route-outline" class="route-outline" viewBox="0 0 320 152" role="img" aria-label="路线走向示意，非导航地图"><polyline fill="none"/><circle r="4"/></svg>
           <div id="route-metrics" class="route-metrics"></div>
-          <div id="elevation-view"><svg id="route-elevation" class="route-elevation" viewBox="0 0 320 112" role="img" tabindex="0" aria-label="路线海拔变化，横轴距离，纵轴海拔高度" aria-describedby="route-elevation-status"></svg><div id="elevation-controls" class="elevation-controls"><output id="elevation-range" aria-label="海拔图可见距离"></output><div><button type="button" data-elevation="out" aria-label="缩小海拔图"><span data-icon="minus"></span></button><button type="button" data-elevation="in" aria-label="放大海拔图"><span data-icon="zoom"></span></button><button type="button" data-elevation="fit">全览</button></div></div></div>
-          <p id="route-elevation-status" class="muted"></p>
-          <p class="fine-print muted">距离与爬升来自路书，图形仅示意。确认后将全程设为路线距离，已有补给保持原位；你仍可手动修改全程。手表按实际骑行累计里程提醒。</p>
+          <div id="elevation-view"><h4>海拔高度 <span>m</span></h4><svg id="route-elevation" class="route-elevation" viewBox="0 0 320 112" role="img" tabindex="0" aria-label="路线海拔变化，横轴距离，纵轴海拔高度；双指缩放，拖动浏览，加减号缩放，Home 全览"></svg><div id="elevation-controls" class="elevation-controls"><output id="elevation-range" aria-label="海拔图可见距离"></output><div><button type="button" data-elevation="out" aria-label="缩小海拔图"><span data-icon="minus"></span></button><button type="button" data-elevation="in" aria-label="放大海拔图"><span data-icon="zoom"></span></button><button type="button" data-elevation="fit">全览</button></div></div></div>
+          <p id="route-elevation-status" class="muted" hidden></p>
+          <p class="fine-print muted route-detail-note">采用路线距离，已有补给保持原位。</p>
           <button id="route-use" class="primary" type="button">使用这条路线</button>
-          <button id="route-remove" class="delete-in-editor" type="button" hidden>移除路线，保留全程与补给</button>
+          <button id="route-remove" class="delete-in-editor" type="button" aria-label="移除路线，保留全程与补给" hidden>移除路线</button>
         </div>
       </div>
     </dialog>
