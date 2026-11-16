@@ -53,6 +53,7 @@ export class ElevationChart {
       for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
       if (text !== undefined) node.textContent = text;
       this.drawing.append(node);
+      return node;
     };
     element('text', { x: 0, y: 10 }, '海拔 m');
     for (const tick of profile.yTicks) {
@@ -60,7 +61,15 @@ export class ElevationChart {
       element('text', { x: 34, y: tick.y + 3, 'text-anchor': 'end' }, tick.label);
     }
     element('polyline', { points: profile.elevation, fill: 'none' });
-    for (const tick of profile.xTicks) element('text', { x: tick.x, y: 101, 'text-anchor': tick.x === 304 ? 'end' : tick.x === 42 ? 'start' : 'middle' }, tick.label);
+    const labels = profile.xTicks.map(tick => element('text', { x: tick.x, y: 101, 'text-anchor': tick.x === 304 ? 'end' : tick.x === 42 ? 'start' : 'middle' }, tick.label));
+    // Keep both window edges and remove interior labels that collide with measured text.
+    const first = labels[0].getBBox(), last = labels.at(-1).getBBox();
+    let right = first.x + first.width;
+    for (const label of labels.slice(1, -1)) {
+      const box = label.getBBox();
+      if (box.x < right + 8 || box.x + box.width > last.x - 8) label.remove();
+      else right = box.x + box.width;
+    }
     const km = this.route.distanceMeters >= 1000, divisor = km ? 1000 : 1;
     this.status.textContent = `${(start / divisor).toFixed(1)}–${(end / divisor).toFixed(1)} ${km ? 'km' : 'm'}`;
     this.svg.setAttribute('aria-label', `海拔图，可见距离 ${this.status.textContent}。加减键缩放，左右键移动，Home 键全览。`);

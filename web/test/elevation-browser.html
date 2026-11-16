@@ -3,6 +3,7 @@
 <main><h1>海拔图交互测试</h1><p>使用合成轨迹，不读取账号或当前计划。</p><svg id="chart" class="route-elevation" viewBox="0 0 320 112" tabindex="0" aria-label="测试海拔图"></svg><div id="controls" class="elevation-controls"><output id="range"></output><div><button data-elevation="out">缩小</button><button data-elevation="in">放大</button><button data-elevation="fit">全览</button></div></div><button id="run" class="secondary">运行浏览器交互测试</button><pre id="results" role="status">尚未运行</pre></main>
 <script type="module">
 import { ElevationChart } from '../elevation-chart.mjs';
+import { zoomIdentity } from '../vendor/d3-zoom.mjs';
 const svg=document.querySelector('#chart'), range=document.querySelector('#range');
 const chart=new ElevationChart(svg,document.querySelector('#controls'),range);
 const route={distanceMeters:80000,points:Array.from({length:1000},(_,i)=>({distanceMeters:i*10,elevationMeters:50+Math.sin(i/50)*30}))};
@@ -12,9 +13,14 @@ document.querySelector('#run').addEventListener('click',()=>{
  const assert=(condition,message)=>{if(!condition)throw Error(message);checks.push('PASS '+message);};
  const position=(x,y)=>{const r=svg.getBoundingClientRect();return {clientX:r.left+x/320*r.width,clientY:r.top+y/112*r.height};};
  const span=()=>{const values=range.textContent.match(/[0-9.]+/g).map(Number);return values[1]-values[0];};
+ const separatedLabels=()=>{
+  const labels=[...svg.querySelectorAll('text[y="101"]')].map(node=>node.getBBox());
+  return labels.length>=2&&labels.every((box,i)=>!i||box.x>=labels[i-1].x+labels[i-1].width+7.9);
+ };
  try {
  chart.setRoute(route); assert(span()===80,'全程 0–80 km');
  document.querySelector('[data-elevation="in"]').click(); assert(span()<80,'放大按钮缩小可见区间');
+ assert(separatedLabels(),'放大后横轴端点与相邻标签保留间距');
  const before=range.textContent;
  svg.dispatchEvent(new MouseEvent('mousedown',{...position(190,45),view:window,bubbles:true,cancelable:true,button:0}));
  window.dispatchEvent(new MouseEvent('mousemove',{...position(150,45),view:window,bubbles:true,cancelable:true,buttons:1}));
@@ -35,7 +41,22 @@ document.querySelector('#run').addEventListener('click',()=>{
  assert(range.textContent!==afterPinch,'原生 TouchEvent 单指平移');
  svg.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}));assert(span()===80,'键盘 Home 全览');
  svg.dispatchEvent(new KeyboardEvent('keydown',{key:'+',bubbles:true,cancelable:true}));assert(span()<80,'键盘加号缩放');
+ for(const total of [800,80000,1500000]){
+  chart.setRoute({...route,distanceMeters:total}); let views=0;
+  for(const k of [1,1.5,2.25,3.375,8,32,64].filter(k=>k<=Math.min(64,total/100))){
+   for(const fraction of [0,.13,.5,.87,1]){
+    const start=(total-total/k)*fraction, x=42-k*42-start/total*262*k;
+    chart.selection.call(chart.behavior.transform,zoomIdentity.translate(x,0).scale(k));
+    if(!separatedLabels())throw Error(`横轴标签重叠：全程 ${total} m，缩放 ${k}，位置 ${fraction}`);
+    const labels=[...svg.querySelectorAll('text[y="101"]')];
+    if(labels[0].getAttribute('x')!=='42'||labels.at(-1).getAttribute('x')!=='304')throw Error('横轴端点丢失');
+    views++;
+   }
+  }
+  assert(true,`${total} m 路线 ${views} 个缩放／拖动位置均无重叠且保留两端`);
+ }
  chart.clear();chart.setRoute({...route,distanceMeters:1000});assert(range.textContent==='0.0–1.0 km','清理后换路线重置视图');
+ chart.setRoute(route);chart.scale(1.5);
  document.querySelector('#results').textContent=checks.join('\n')+'\nAll '+checks.length+' checks passed.';
  }catch(error){document.querySelector('#results').textContent=checks.join('\n')+'\nFAIL '+error.message;}
 });
