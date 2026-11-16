@@ -143,3 +143,40 @@ A 沿途的骑行图形改用完整的系统 `figure.outdoor.cycle`，与路线�
 按已确认的标题内联与补给主角方案检查大字号、修改全程的可发现性、拨尺时的读数关联，以及键盘出现时新增界面的稳定性。用同一份数据比较普通位置、0 位置和终点位置；当当前值等于全程时，也应能看出两者的语义。静态图用于定方向，动态手感以原生实现和真机为准。
 
 候选图使用内置 imagegen 生成，[标题候选的完整生成提示词](assets/design-references/header-proposals.prompt.txt)随图保留。官方截图版权归原作者，来源页面和原图链接已在各节对应标注。当前实现与验证记录见 [界面设计](design.md)。
+
+
+## 路线库、搜索状态与剖面（2026-11-16）
+
+![B 节奏路线体验评审稿：路线库、开始搜索、没有结果、路线详情](assets/design-references/web-route-experience-v2.png)
+
+这张为生成的 UI 提案，路线数值与轮廓是示例，不作为真实接口验收证据。仅「查看详情」文案与海拔图坐标尺本轮直接落地；来源列表的路线缩略图、分组、初始搜索插画／地点示例，以及无结果页的引导操作尚未实现，等待 UI 评审。地图底图只做评估。
+
+### 参考与取舍
+
+- [Strava 路线发现与卡片更新](https://press.strava.com/articles/strava-makes-route-discovery-easier-with-improved-intuitive-search-expanded-route-inventory-turn-by-turn-audio-coming-soon)：借鉴路线先提供可判断的信息的方向，当前路线卡片建议组合轮廓、名称、距离和累计爬升；不用无来源的照片或热榜填空。
+- [Komoot 规划与海拔剖面](https://support.komoot.com/hc/en-us/articles/10194270667034-Plan-routes-on-the-website)：借鉴轮廓、距离和海拔剖面共同帮助读路线，当前加入横轴距离与纵轴海拔标尺。累计爬升不是海拔轴最大值；海拔缺失时不画假曲线。
+- [IBM Carbon 空状态](https://v10.carbondesignsystem.com/patterns/empty-states-pattern/)：区分首次使用、无结果和错误。初始页建议用小幅路线图形、简短引导与明确标为示例的地点关键词；无结果说明搜索词、建议缩短关键词。不把「没有搜索」做成失败页，不给多个竞争的主按钮。
+
+### PeiXiu 地图评估，未实施
+
+实际阅读 [PeiXiu](https://github.com/The-V-Factor/PeiXiu/tree/1704e8377cd2b0e56ce62cd7bbe387b56c5d5899) 的 README、package.json、src/main.ts、src/map/config.ts、Pages 瓦片 Function 及代理实现。现有做法为 MapLibre GL JS 6.6、OSM 栅格底图、Pages 同域 `/map-tiles/*` Function 代理，独立 Worker 作备用。
+
+Kairos 已有轨迹坐标，叠加到地图只需 GeoJSON LineString、起终点和 fitBounds，不需要复制 PeiXiu 的 Valhalla WASM、路网 graph、定位或路线计算。画出带路网的预览难度不高，稳定发布的工作主要在以下方面：
+
+1. 地图组件和样式按打开预览时加载，失败保留当前 SVG 轮廓。底图不能成为编排和导出的前置条件。
+2. 地图瓦片可达性、缓存和流量。Pages Function 本身使用 Workers 运行时；同域名可能改善入口访问，但不是国内连通或免费无限流量的保证。采用该路径需要调整当前纯静态打包与部署方式，不能只复制一个地图组件。
+3. 核对实际路书坐标系。iGPSPORT 坐标尚无公开契约证明其基准；叠 OSM 或国内底图前要核对地标，不能从经纬度字段名推定基准。高德官方要求将 WGS84 转成其 GCJ-02 后再叠加，避免路线与道路错位。
+4. [OSM 瓦片政策](https://operations.osmfoundation.org/policies/tiles/)要求署名、有效请求标识、遵守缓存、禁止批量预取。当前站点 `Referrer-Policy: no-referrer` 不能原样用于直连 OSM；代理也必须使用 Kairos 自己的标识，不能沿用 PeiXiu 身份。地图免费库不代表所有底图服务都免费或有可用性保证。
+
+建议仅在用户需要判断具体道路、位置时加入「道路底图＋路线」，保留轮廓预览为默认或回退；卫星、3D、导航和路线规划不在这次建议范围内。当前未新增地图依赖、Function、Worker 或瓦片请求。
+
+
+## 交互海拔图组件选择（2026-11-16）
+
+比较官方资料后选择 [D3 d3-zoom](https://d3js.org/d3-zoom)，与当前 SVG 轮廓和海拔坐标系统一致。D3 提供拖动、双指缩放、缩放比例、平移边界及可编程全览；不自行编写多指手势识别。保留现有主题变量，新增小型缩小／放大／全览控件与当前距离窗口，不落实仍待评审的路线库／搜索页面风格稿。
+
+对比 [ECharts 按需导入](https://echarts.apache.org/handbook/en/basics/import/)：适合整体图表和内置 dataZoom，但本次无须替换现有 SVG。对比 [Chart.js zoom 插件](https://www.chartjs.org/chartjs-plugin-zoom/guide/)：需要图表本体、zoom 插件和 Hammer.js 手势依赖。D3 本地组合包实际 54,120 字节，gzip 18,197 字节，保留全部依赖的 ISC 许可，无运行时 CDN 或服务器。
+
+交互沿距离轴缩放与平移，纵轴根据可见区间的海拔调整；图内处理手势、图外可滚动详情。普通滚轮继续滚动详情，Ctrl＋滚轮／触控板 pinch 缩放；加减、方向和 Home 键与屏幕按钮作为替代。可放大到最多 64 倍，短路线保持至少约 100 m 窗口，不能移出实际路线。关闭或切换路线后回到全览，查看不修改任何计划数据。
+
+放大时从完整轨迹重新取可见区间并插值两端，绘制抽样保留各桶最低和最高点，避免把旧抽样折线放大或吞掉窄尖峰。坐标刻度重算，海拔轴仍不等于累计爬升。触摸事件命中的透明层保持挂载，不随曲线重绘销毁，确保连续 pinch 不在第一帧后中断。

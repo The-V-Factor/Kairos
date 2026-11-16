@@ -1,6 +1,6 @@
 # Cloudflare Pages 发布
 
-当前网页版由浏览器本地编辑、保存多份计划与导出历史、生成 `.workout` 文件，再由用户从 Safari 下载列表打开。没有服务端接口、D1、Pages Functions 或独立 Worker，也不需要 Apple 开发者账号。已有 `kairos` Worker 不作为这次发布目标。
+当前网页版由浏览器本地编辑、保存多份计划与导出历史、生成 `.workout` 文件，再由用户从 Safari 下载列表打开。没有 Kairos 服务端接口、D1、Pages Functions 或独立 Worker，也不需要 Apple 开发者账号。已有 `kairos` Worker 不作为这次发布目标。可选的 iGPSPORT 路书连接由浏览器直接访问中国站；`_headers` 的 `connect-src` 只放行 `https://prod.zh.igpsport.com`，不需要配置服务端账号、令牌或环境变量。
 
 ## 推荐：Git 集成
 
@@ -39,7 +39,7 @@ Git 集成和 Direct Upload 是不同的项目创建方式，不能直接互相�
 rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 ```
 
-打包白名单共 21 个文件：`index.html`、`style.css`、`themes.css`、`app.mjs`、`plan.mjs`、`library.mjs`、`plan-controls.mjs`、`themes.mjs`、`ruler.mjs`、`haptics.mjs`、`artwork.mjs`、`workout.mjs`、`share.mjs`、`file-address.mjs`、`_headers`、`NOTICE.txt`、`assets/app-icon.svg`，以及直接打开实验的 `open/index.html`、`open/test.mjs`、`open/worker.mjs`、`assets/direct-open.workout`。不包含 Node 测试、Swift 工具或本地签名配置。
+打包白名单共 31 个文件，包含页面、编辑器、计划库、路书连接与海拔交互模块、图标及直接打开实验。新增的本地 D3／QR 组件随站点交付，并保留 `NOTICE.txt` 与 `vendor/d3-zoom.LICENSE.txt`；完整清单以 `tools/package-web.mjs` 为准。不包含测试页面、Node 测试、Swift 工具、依赖构建 lock 或本地签名配置。
 
 `open/worker.mjs` 是浏览器 Service Worker，不是 Cloudflare Worker。它只处理 `/open/` 中的本机测试文件地址，不接管计划页，也不上传计划。固定示例的响应头明确设置 `Content-Disposition: inline`；需要从真实 HTTPS 页面在 iPhone 上验证，不以本地 HTTP 模拟器结果推定线上行为。
 

@@ -18,6 +18,29 @@
 
 2026-11-11 本地回归：全程输入改为数字末尾光标；普通单指点按不再触发距离尺的缩放结束重绘；皮肤入口可打开五套选择面板。`rtk proxy node --test --test-reporter=dot web/test/*.test.mjs` 的 36 项测试通过，涵盖点按与缩放结束的区别、皮肤独立保存、未知值及存储拒绝。402×874 浏览器与 iPhone 17e／iOS 26.5 模拟器 Safari 检查新增、换肤、刷新保存和输入光标；测试补给点已清理，未出现控制台错误。`rtk proxy node tools/package-web.mjs /private/tmp/kairos-ui-fixes-20261111-final` 生成 19 个发布文件，逐字节与源码一致，全部发布模块通过 `node --check`，`rtk git diff --check` 通过。实际 iPhone 与独立 PWA 待更新后验证，本轮未提交部署；截图见设计文档。
 
+## 路线库与 iGPSPORT连接（2026-11-16）
+
+本轮按用户确认的路线 UI 实现 #14 的路线部分：通用来源列表、iGPSPORT 中国站密码／扫码两种登录、搜索分页、详情预览、应用路线到当前计划。个人档案五项与 #15 自动生成尚未实现；不将本轮视为整个 #14 完成。原 Issue 的「不新增账号」由本轮决定调整为「无需 Kairos 账号，可选连接自己的路书提供商账号」。
+
+- `route-providers.mjs`：来源目录与客户端工厂；当前仅一个已接入来源。
+- `igpsport.mjs`：中国站接口适配；`route-session.mjs`：本地令牌读取、到期检查和断开。密码不持久化、提交后清空，不保存账号或 QR challenge。二维码确认成功后才存令牌，无自动刷新，失效重新连接。
+- `route-picker.mjs`：来源、登录、搜索和预览交互。QR 等待与确认每 1.5 秒查询一次、两分钟客户端有效期；切换方式、返回来源、关闭面板会取消请求和定时等待；后台页面暂停发起轮询，回到前台后在未过期时继续。过期或失败移除旧码并允许刷新。
+- `qr.mjs` 与 `vendor/qrcodegen.mjs`：本地编码，使用 Nayuki MIT 库；不向外部图片服务发送 QR challenge。
+- `routes.mjs`：米制摘要、经纬度和可选海拔，处理官方 `longitute` 拼写；球面距离累计用于轨迹位置，不把轨迹估算长度覆盖路书标称距离。不从海拔缺失的数据假定平路。SVG 轮廓只抽稀显示，保存完整轨迹；不调用导航或地图服务。
+- 可选路线保存在对应计划与导出快照中；旧计划库无此字段继续可用。选路不移动已有点；太短则拒绝使用，用户可先调整。移除路线保留全程与点位；复制、历史复用携带原路线。令牌与计划库分开，路线字段中不含连接令牌。浏览器空间不足时仍保留内存计划并显示未能保存，不声称持久化成功。
+
+接口依据：[iGPSPORT 当前官网](https://app.zh.igpsport.com/) 公开前端及[公开参考代码](https://github.com/ID-VerNe/skill-forge/blob/master/igpsport-downloader/scripts/igpsport_download.py)。这里复用官网网页接口，不是已获批准的第三方 OAuth；官方客户端接口可能变化。
+
+验证：66 项 Node 行为测试通过，新增覆盖密码／QR 响应、等待／已扫／确认／过期、令牌到期、取消与超时、网络与格式错误、轨迹坐标和海拔、计划隔离、路线持久化及历史快照。QR 栅格经过 macOS CoreImage 独立解码核对；首次沙箱识别未成功，软件渲染并在批准的沙箱外验证后通过。真实中国站创建、轮询接口返回成功，浏览器下真实二维码生成及等待状态已观察到；首次浏览器请求失败，重试后成功，不把终端成功当作用户登录验收。
+
+402×874 本机浏览器使用明确标注的模拟数据验证扫码确认后进入搜索、密码登录、搜索／详情／应用、刷新恢复、短路线拒绝、过期重连和断开。慢响应下切回密码后没有轮询、不会让迟到二维码重新出现；320×700 下五套皮肤的密码面板均为 570 px，scrollHeight 与 clientHeight 相等。28 个发布文件逐字节匹配源码，模块语法、导入路径、DOM ID 和差异空白检查通过；8 个原有 `.workout` 样本仍通过 Apple WorkoutKit 精确对象比较。
+
+模拟确认不是用户真实 App 授权的结果；真实账号密码、App 扫码确认后的搜索和详情、同机扫码体验仍需用户验收。未读取或要求用户提供密码／令牌，未引入共享服务端账号。本轮未提交、推送或部署。
+
+连接错误修复：真实页面把原生 `fetch` 保存为客户端方法后，调用时的接收对象变成 `IGPSPORT`，浏览器报 `Illegal invocation`；诊断页同一个匿名请求绑定 `window` 后返回 HTTP 200／code 0。之前成功的测试页绑定过 `window.fetch`，模拟请求也未检查接收对象，不能代表原生调用路径已通过。客户端现将 fetch 绑定到 `globalThis`，新增接收对象回归测试，先复现失败再修复；共 67 项 Node 测试通过。与 iGPSPORT 账号、密码错误或 CORS 拒绝分开判断。
+
+修复后直接刷新 `http://127.0.0.1:8787/`，在未包装／模拟 fetch 的真实页面中已能生成登录二维码并显示等待扫码。没有代用户输入密码或确认登录；账号登录后的搜索仍待用户验收。
+
 ## 文件与分享
 
 `web/workout.mjs` 使用无依赖 JavaScript 写入 protobuf 二进制，输出真正的 WorkoutPlan `.workout`；仅支持本产品需要的户外骑行、单次 work block、米制距离目标、开放末段和中文分段名称。字段参考 [DotnetWorkoutKit](https://github.com/changeforan/DotnetWorkoutKit/tree/0978caf9deafeafa3d371daab6f216376a0ec31f)，许可说明位于 `web/NOTICE.txt`。
@@ -34,7 +57,7 @@
 
 ## 静态托管
 
-当前计算和文件生成都在浏览器，无接口、账号、D1、配对码或服务端计算。**优先用 Cloudflare Pages 静态托管**；已有 Worker 不需要为了这个实验被覆盖。
+当前计算和文件生成都在浏览器，没有 Kairos 账号、D1、配对码或服务端计算。可选 iGPSPORT 路书连接直接调用其中国站接口，用户令牌仅保存在当前浏览器；不需要 Kairos 后端。**优先用 Cloudflare Pages 静态托管**；已有 Worker 不需要为了这个实验被覆盖。
 
 Pages＋D1 并不意味着浏览器直连数据库。未来需要持久化时可用 Pages Functions → D1，或 Pages 静态 → 独立 Worker → D1；绑定与凭据留在服务端。Pages Functions 本身使用 Workers 运行时。域名／线路的可达性应实测，不能从产品名称保证国内访问。
 
@@ -50,7 +73,7 @@ rtk proxy node --test web/test/*.test.mjs
 rtk proxy node tools/package-web.mjs
 ```
 
-打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，当前包含 21 个发布文件，排除测试和工具源码。也可传入新目录，例如 Git 集成使用 `node tools/package-web.mjs dist`。预构建目录上传方式无需另执行构建；Git 集成的构建参数详见 Pages 文档。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
+打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，当前包含 31 个发布文件，排除测试和工具源码。也可传入新目录，例如 Git 集成使用 `node tools/package-web.mjs dist`。预构建目录上传方式无需另执行构建；Git 集成的构建参数详见 Pages 文档。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
 
 `127.0.0.1` 是访问设备自身：Mac 和模拟器可用本机预览，真实 iPhone 不能用这个地址访问 Mac。局域网普通 HTTP 不满足 Web Share 安全环境要求，真机用实际 HTTPS 地址；不要通过忽略证书警告作为验证步骤。
 
@@ -231,3 +254,29 @@ WebKit 当前 [CheckboxInputType.cpp](https://github.com/WebKit/WebKit/blob/main
 - 标题旁铅笔打开当前计划编辑；右上角按皮肤、历史、帮助排列，历史直达导出历史。402×874 和 320 px 窄屏验收通过，后者换肤按钮只显示图标，避免长皮肤名换行；辅助标签保留全名。控制台无警告或错误，原计划和 B 皮肤已恢复。
 - 合并前重新运行 52 项 Node 测试、21 文件发布包逐字节／语法／依赖／HTML ID／README 图片检查，以及 8 份文件的实际 Apple WorkoutKit 解码与往返比较，全部通过；Swift 工具严格格式检查和 `rtk git diff --check` 通过。
 - 最终发布包校验目录为 `/private/tmp/kairos-issue13-merge-20261116`，互操作输入目录为 `/private/tmp/kairos-issue13-merge-interop-20261116`。本节记录本地验证；合并及远端检查结果见 Issue #13 对应 PR，不将合并视为真实手机发布验收。
+
+
+## 路线详情坐标尺（2026-11-16）
+
+当前计划的路线入口文案改为「查看详情」，避免与历史路线库混淆。海拔 SVG 增加米制海拔纵轴、距离横轴与浅网格；范围由完整轨迹海拔决定，横向位置将轨迹累计距离等比映射到路书标称距离，保留真实终点标签。刻度按整 1／2／5 倍数安排，支持零海拔、负海拔、平路与海拔缺失；累计爬升单独显示，不作为海拔坐标。新增 3 项测试，合计 70 项 Node 测试通过。路线库与搜索空状态的风格提案及地图评估见 [设计参考](design-references.md#路线库搜索状态与剖面2026-11-16)，未提前实现待评审样式或地图底图。
+
+
+## 海拔图缩放与拖动（2026-11-16）
+
+使用本地 `vendor/d3-zoom.mjs`（D3 zoom 3.0.1＋selection 3.0.0，含 9 个 ISC 依赖）和 `elevation-chart.mjs`。`routes.mjs` 的 `elevationProfile` 使用原始轨迹构造当前窗口：边界插值、可见海拔范围、保留峰谷的绘制抽样和自适应距离刻度。没有触碰计划、令牌、导出或路线 API。
+
+验证：74 项 Node 测试通过；新增窗口边界、平移限位、可见区间海拔、原始尖峰保留及重置检查。`/test/elevation-browser.html` 为仅开发预览的合成轨迹页面，11 项浏览器集成检查通过，覆盖鼠标拖动、双指连续 TouchEvent 缩放、单指 TouchEvent 平移、触摸目标重绘后仍挂载、键盘和换路线重置。测试页不读取账号或当前计划，不进入发布包。
+
+真实「东涌黄阁南沙」路线上，按钮放大使窗口由 0–80 km 变为 22.2–57.8 km，实际鼠标拖动移至 33.1–68.7 km，全览恢复 0–80 km；402×874 下检查图表和控件，原计划未改动。TouchEvent 集成测试不是物理手机多指手感验收；iPhone Safari／PWA 的实际触摸体验仍需真机确认。
+
+### 依赖构建与许可
+
+`tools/d3-zoom-entry.mjs` 是构建入口，`tools/d3-zoom-package-lock.json` 固定每个依赖的版本及 npm integrity。生产直接托管已构建的 ESM，不要求用户安装 npm。当前包由 esbuild 0.28.2 以 `--bundle --minify --format=esm --target=es2020 --legal-comments=none` 生成；全部原始许可另保存在 `web/vendor/d3-zoom.LICENSE.txt` 并随发布包交付。
+
+重新构建时，在独立临时目录复制入口和 lock 为 `entry.mjs`／`package-lock.json`，从 lock 的 `packages[""].dependencies` 创建临时 package.json，使用 `npm ci --ignore-scripts` 安装精确依赖，再用上述固定版本 esbuild 输出 `web/vendor/d3-zoom.mjs`。更换依赖时同步更新 lock、许可和体积记录。比较与取舍见 [设计参考](design-references.md#交互海拔图组件选择2026-11-16)。本轮仅本地修改，未提交或部署。
+
+## 本次发布验收范围（2026-11-16）
+
+用户自行登录后，真实 iGPSPORT 会话搜索「南昆山」返回 20 条路书，详情「白水寨南昆山正果5689581.gpx」成功显示 136.8 km、累计爬升 741 m、轨迹轮廓与海拔曲线。上述真实链路已验证，不再沿用早期模拟验证阶段的待登录结论。未代用户输入密码、未读取令牌，预览未改动其计划。
+
+本次提交发布范围为路线库入口、密码／扫码连接、搜索与详情、可选路线本地保存、海拔坐标尺及 D3 缩放平移。74 项 Node 测试、11 项浏览器事件集成检查和 31 文件发布包校验通过。个人档案和自动补给模型仍未实现，#14 不关闭；路线库／搜索页的后续风格稿和地图底图仍只作设计参考。真实手机多指手感继续由用户确认。

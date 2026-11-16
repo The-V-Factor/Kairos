@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../style.css"><title>海拔图浏览器交互测试</title>
+<main><h1>海拔图交互测试</h1><p>使用合成轨迹，不读取账号或当前计划。</p><svg id="chart" class="route-elevation" viewBox="0 0 320 112" tabindex="0" aria-label="测试海拔图"></svg><div id="controls" class="elevation-controls"><output id="range"></output><div><button data-elevation="out">缩小</button><button data-elevation="in">放大</button><button data-elevation="fit">全览</button></div></div><button id="run" class="secondary">运行浏览器交互测试</button><pre id="results" role="status">尚未运行</pre></main>
+<script type="module">
+import { ElevationChart } from '../elevation-chart.mjs';
+const svg=document.querySelector('#chart'), range=document.querySelector('#range');
+const chart=new ElevationChart(svg,document.querySelector('#controls'),range);
+const route={distanceMeters:80000,points:Array.from({length:1000},(_,i)=>({distanceMeters:i*10,elevationMeters:50+Math.sin(i/50)*30}))};
+chart.setRoute(route);
+document.querySelector('#run').addEventListener('click',()=>{
+ const checks=[];
+ const assert=(condition,message)=>{if(!condition)throw Error(message);checks.push('PASS '+message);};
+ const position=(x,y)=>{const r=svg.getBoundingClientRect();return {clientX:r.left+x/320*r.width,clientY:r.top+y/112*r.height};};
+ const span=()=>{const values=range.textContent.match(/[0-9.]+/g).map(Number);return values[1]-values[0];};
+ try {
+ chart.setRoute(route); assert(span()===80,'全程 0–80 km');
+ document.querySelector('[data-elevation="in"]').click(); assert(span()<80,'放大按钮缩小可见区间');
+ const before=range.textContent;
+ svg.dispatchEvent(new MouseEvent('mousedown',{...position(190,45),view:window,bubbles:true,cancelable:true,button:0}));
+ window.dispatchEvent(new MouseEvent('mousemove',{...position(150,45),view:window,bubbles:true,cancelable:true,buttons:1}));
+ window.dispatchEvent(new MouseEvent('mouseup',{...position(150,45),view:window,bubbles:true,cancelable:true,button:0}));
+ assert(range.textContent!==before,'原生 mouse 事件可平移');
+ chart.reset(); assert(span()===80,'全览恢复全程');
+ const touchTarget=svg.querySelector('[data-elevation-hit]') || svg.querySelector('polyline');
+ const touch=(id,x)=>new Touch({identifier:id,target:touchTarget,...position(x,45)});
+ const touches=(type,current,changed)=>touchTarget.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:current,targetTouches:current,changedTouches:changed}));
+ let a=touch(0,120),b=touch(1,220);touches('touchstart',[a,b],[a,b]);
+ a=touch(0,80);b=touch(1,260);touches('touchmove',[a,b],[a,b]);
+ assert(svg.contains(touchTarget),'触摸目标在重绘时保持挂载');
+ const firstPinch=span();a=touch(0,70);b=touch(1,270);touches('touchmove',[a,b],[a,b]);
+ assert(span()<firstPinch,'连续双指移动继续缩放');touches('touchend',[],[a,b]);
+ assert(span()<50,'原生 TouchEvent 双指缩放');
+ const afterPinch=range.textContent;
+ a=touch(2,190);touches('touchstart',[a],[a]);a=touch(2,150);touches('touchmove',[a],[a]);touches('touchend',[],[a]);
+ assert(range.textContent!==afterPinch,'原生 TouchEvent 单指平移');
+ svg.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}));assert(span()===80,'键盘 Home 全览');
+ svg.dispatchEvent(new KeyboardEvent('keydown',{key:'+',bubbles:true,cancelable:true}));assert(span()<80,'键盘加号缩放');
+ chart.clear();chart.setRoute({...route,distanceMeters:1000});assert(range.textContent==='0.0–1.0 km','清理后换路线重置视图');
+ document.querySelector('#results').textContent=checks.join('\n')+'\nAll '+checks.length+' checks passed.';
+ }catch(error){document.querySelector('#results').textContent=checks.join('\n')+'\nFAIL '+error.message;}
+});
+</script></html>

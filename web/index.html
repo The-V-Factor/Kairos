@@ -17,7 +17,7 @@
         <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="help" class="icon-button" type="button" aria-label="使用说明"><span data-icon="help"></span></button></div>
       </header>
       <main>
-        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p></section>
+        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button></section>
         <section id="no-plan" class="no-plan" hidden><p class="eyebrow">A NEW RIDE</p><h1>下一趟，去哪里？</h1><p class="muted">先留一个名字，再安排沿途的补给。</p><button id="first-plan" class="secondary" type="button">创建计划</button></section>
         <div id="ride-content">
         <section class="ruler-section" aria-label="浏览沿途补给">
@@ -86,6 +86,55 @@
           <p class="fine-print">只保存在这个浏览器。删除计划会保留导出历史。</p>
         </form>
         <div id="history-detail" hidden><button id="library-back" class="library-back" type="button">‹ 返回计划库</button><p id="history-date" class="fine-print"></p><h3 id="history-name"></h3><p id="history-summary" class="muted"></p><ol id="history-stops" class="history-stops"></ol><p id="history-status" class="fine-print"></p><button id="reuse-history" class="secondary" type="button">用此版本新建计划</button></div>
+      </div>
+    </dialog>
+
+    <dialog id="route-dialog" class="sheet route-sheet" aria-labelledby="route-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <div class="sheet-header"><button id="route-nav" class="route-nav" type="button" aria-label="关闭路线库"><span data-icon="close"></span><span id="route-nav-label" hidden>路线库</span></button><h2 id="route-title">路线库</h2><button id="route-disconnect" type="button" hidden>断开</button><button id="route-close" class="icon-button" type="button" aria-label="关闭路线选择" hidden><span data-icon="close"></span></button><span id="route-header-space" class="header-spacer"></span></div>
+      <div class="sheet-body">
+        <p id="route-notice" class="notice" role="status" hidden></p>
+        <div id="route-sources">
+          <p class="muted">路线来源</p><h3>选一条想骑的路。</h3><p class="muted">从熟悉的路书平台开始。</p>
+          <button id="route-saved" class="route-result" type="button" hidden><small>当前计划的路线</small><strong id="route-saved-name"></strong><span>查看详情 ›</span></button>
+          <div id="route-provider-list" class="route-provider-list"></div>
+          <p class="fine-print muted route-source-hint">选择来源后连接账号，再搜索路线。</p>
+        </div>
+        <div id="route-connect" hidden>
+          <p id="route-login-caption" class="muted">中国站路书</p><h3>连接你的路书库</h3>
+          <div class="route-login-tabs" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
+          <form id="route-login-form" role="tabpanel" aria-labelledby="route-password-tab">
+            <label>手机号／邮箱<input id="route-username" type="text" placeholder="输入 iGPSPORT 账号" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+            <div><label for="route-password">密码</label><span class="route-password-field"><input id="route-password" type="password" placeholder="输入密码" autocomplete="current-password" required><button id="route-password-visibility" type="button" aria-label="显示密码" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></div>
+            <button id="route-login" class="primary" type="submit">登录并查找路线</button>
+            <p class="fine-print muted">账号密码直接发送至 iGPSPORT，不保存密码。连接令牌仅保存在此浏览器，可随时断开。</p>
+          </form>
+          <div id="route-qr-panel" role="tabpanel" aria-labelledby="route-qr-tab" hidden>
+            <div id="route-qr-image" class="route-qr-image" hidden></div>
+            <p id="route-qr-status" class="route-qr-status" role="status">正在生成二维码…</p>
+            <p class="muted">请使用 iGPSPORT App 扫码确认登录</p>
+            <button id="route-qr-refresh" class="route-qr-refresh" type="button">↻ 刷新二维码</button>
+            <p class="fine-print muted">连接成功后，令牌仅保存在此浏览器。</p>
+          </div>
+        </div>
+        <div id="route-browse" hidden>
+          <p id="route-browse-caption" class="route-provider muted">中国站路书</p>
+          <form id="route-search-form" class="route-search"><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
+          <p id="route-search-status" class="muted" role="status">搜一搜你想骑的地方。</p>
+          <div id="route-results"></div>
+          <div id="route-pagination" class="route-pagination" hidden><button id="route-prev" type="button">上一页</button><span id="route-page"></span><button id="route-next" type="button">下一页</button></div>
+        </div>
+        <div id="route-detail" hidden>
+          <button id="route-back" class="library-back" type="button">‹ 查找其他路线</button>
+          <h3 id="route-detail-name"></h3><p id="route-detail-author" class="muted"></p>
+          <svg id="route-outline" class="route-outline" viewBox="0 0 320 152" role="img" aria-label="路线走向示意，非导航地图"><polyline fill="none"/><circle r="4"/></svg>
+          <div id="route-metrics" class="route-metrics"></div>
+          <div id="elevation-view"><svg id="route-elevation" class="route-elevation" viewBox="0 0 320 112" role="img" tabindex="0" aria-label="路线海拔变化，横轴距离，纵轴海拔高度" aria-describedby="route-elevation-status"></svg><div id="elevation-controls" class="elevation-controls"><output id="elevation-range" aria-label="海拔图可见距离"></output><div><button type="button" data-elevation="out" aria-label="缩小海拔图"><span data-icon="minus"></span></button><button type="button" data-elevation="in" aria-label="放大海拔图"><span data-icon="zoom"></span></button><button type="button" data-elevation="fit">全览</button></div></div></div>
+          <p id="route-elevation-status" class="muted"></p>
+          <p class="fine-print muted">距离与爬升来自路书，图形仅示意。确认后将全程设为路线距离，已有补给保持原位；你仍可手动修改全程。手表按实际骑行累计里程提醒。</p>
+          <button id="route-use" class="primary" type="button">使用这条路线</button>
+          <button id="route-remove" class="delete-in-editor" type="button" hidden>移除路线，保留全程与补给</button>
+        </div>
       </div>
     </dialog>
 

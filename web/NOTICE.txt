@@ -26,3 +26,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+
+QR Code generator library, used for local iGPSPORT login QR encoding:
+Copyright (c) Project Nayuki. MIT License.
+https://www.nayuki.io/page/qr-code-generator-library
+Source: https://www.nayuki.io/res/qr-code-generator-library/qrcodegen.js
+Retrieved 2026-11-16. The full MIT notice is retained in vendor/qrcodegen.mjs.
+The implementation is unchanged; an ES module export was appended.
+Trailing whitespace in the distributed source was normalized.
+
+
+Interactive elevation chart uses d3-zoom 3.0.1 and d3-selection 3.0.0:
+https://d3js.org/d3-zoom
+https://github.com/d3/d3-zoom
+Bundled locally with its dependencies. The full ISC copyright and license
+notices for every bundled package are included in vendor/d3-zoom.LICENSE.txt.
+Build entry and exact dependency integrity lock are in tools/d3-zoom-entry.mjs
+and tools/d3-zoom-package-lock.json in the source repository.

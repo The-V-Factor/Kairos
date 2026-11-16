@@ -4,8 +4,9 @@ import { kinds, newID, parseDistance, validateDraft, saveStop } from './plan.mjs
 import { fuelArtwork, icon } from './artwork.mjs';
 import { DistanceRuler } from './ruler.mjs';
 import { themes, loadTheme, storeTheme } from './themes.mjs';
-import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today } from './library.mjs';
+import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today, setRoute } from './library.mjs';
 import { PlanCalendar, KilometerWheel, shortDate } from './plan-controls.mjs';
+import { setupRoutePicker } from './route-picker.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
@@ -160,6 +161,8 @@ function render(eventID) {
   $('plan-heading').hidden = !current;
   $('no-plan').hidden = !!current; $('ride-content').hidden = !current;
   $('total-label').textContent = plan ? distanceLabel(plan.totalDistanceMeters) : '';
+  $('route-label').textContent = current?.route?.title ?? '选择路线';
+  $('route').setAttribute('aria-label', current?.route ? `查看路线 ${current.route.title}` : '选择路线');
   renderRows(eventID); if (plan) ruler.update(plan); else ruler.haptics.stop(); prepare();
 }
 function apply(next, eventID) {
@@ -241,7 +244,7 @@ function openSheet(dialog) {
   dialog.showModal(); updateViewport();
 }
 for (const dialog of document.querySelectorAll('dialog')) {
-  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  dialog.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     Object.assign(document.body.style, { overflow: '', position: '', top: '', width: '' });
     window.scrollTo({ top: sheetScrollY, behavior: 'instant' });
@@ -471,7 +474,7 @@ function showHistory(snapshot) {
   managedEntry = snapshot; libraryView('history');
   $('history-date').textContent = `骑行日期 · ${formatDate(snapshot.rideDate)}`;
   $('history-name').textContent = snapshot.name;
-  $('history-summary').textContent = `全程 ${distanceLabel(snapshot.plan.totalDistanceMeters)}`;
+  $('history-summary').textContent = `全程 ${distanceLabel(snapshot.plan.totalDistanceMeters)}${snapshot.route ? ` · ${snapshot.route.title}` : ''}`;
   $('history-status').textContent = `${new Date(snapshot.exportedAt).toLocaleString('zh-CN')} · ${snapshot.method === 'download' ? '请求下载' : '交给系统分享'}。这不是导入或运动完成回执。`;
   $('history-stops').replaceChildren();
   for (const stop of snapshot.plan.stops) {
@@ -555,6 +558,7 @@ $('copy').addEventListener('click', async () => {
   catch { message('result', '未能复制，请截图兼容性信息。'); }
 });
 message('storage-message', loaded.message);
+setupRoutePicker({ storage, current: () => activeEntry(library), openSheet, useRoute: (id, route) => changeLibrary(setRoute(library, id, route)) });
 if (loaded.needsSave && writable) persist();
 render();
 // Restore the prepared file and enabled actions when returning through browser history.
