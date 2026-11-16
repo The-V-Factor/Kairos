@@ -1,17 +1,21 @@
 import { encodeWorkout, validatePlan, workoutSteps, distanceLabel, roundedMeters } from './workout.mjs';
 import { sharePrepared, shareSupport } from './share.mjs';
-import { kinds, newID, samplePlan, parseDistance, validateDraft, saveStop, loadDraft, storeDraft } from './plan.mjs';
+import { kinds, newID, parseDistance, validateDraft, saveStop } from './plan.mjs';
 import { fuelArtwork, icon } from './artwork.mjs';
 import { DistanceRuler } from './ruler.mjs';
 import { themes, loadTheme, storeTheme } from './themes.mjs';
+import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today } from './library.mjs';
+import { PlanCalendar, KilometerWheel, shortDate } from './plan-controls.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
-const loaded = loadDraft(storage);
+const loaded = loadLibrary(storage);
 let themeID = loadTheme(storage);
-let plan = loaded.plan ?? samplePlan();
+let library = loaded.library;
+let plan = activeEntry(library)?.plan ?? null;
 let writable = loaded.writable;
-let prepared = null, sharing = false, cursor = plan.totalDistanceMeters / 2, deleted = null, editing = null, lastShare = null;
+let prepared = null, sharing = false, cursor = (plan?.totalDistanceMeters ?? 0) / 2, deleted = null, editing = null, lastShare = null;
+let removedPlan = null, libraryTab = 'plans', libraryMode = 'list', managedEntry = null, storageNotice = loaded.message;
 let draft = null, reminderWasEdited = false, selectedID = null, swipedID = null;
 const removing = new Set();
 const rows = new Map();
@@ -69,7 +73,9 @@ function wiggle(node) {
   node.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-12deg)' }, { transform: 'rotate(9deg)' }, { transform: 'rotate(-5deg)' }, { transform: 'rotate(0deg)' }], { duration: 500, easing: 'ease-out' });
 }
 function persist() {
-  if (writable) message('storage-message', storeDraft(storage, plan));
+  if (writable) storageNotice = storeLibrary(storage, library);
+  message('storage-message', storageNotice);
+  message('library-notice', storageNotice);
 }
 function updateSelection() { for (const [id, row] of rows) row.classList.toggle('selected', id === selectedID); }
 function closeSwipes() {
@@ -120,9 +126,10 @@ function wireSwipe(row, stopID) {
   remove.addEventListener('click', () => removeStop(stopID));
 }
 function renderRows(eventID) {
-  const wanted = new Set(plan.stops.map(stop => stop.id));
+  const stops = plan?.stops ?? [];
+  const wanted = new Set(stops.map(stop => stop.id));
   for (const [id, row] of rows) if (!wanted.has(id)) { row.remove(); rows.delete(id); }
-  for (const [index, stop] of plan.stops.entries()) {
+  for (const [index, stop] of stops.entries()) {
     let row = rows.get(stop.id);
     if (!row) {
       row = document.createElement('div'); row.className = 'stop';
@@ -142,15 +149,22 @@ function renderRows(eventID) {
     if ($('stops').children[index] !== row) $('stops').insertBefore(row, $('stops').children[index] ?? null);
     if (stop.id === eventID) wiggle(row.querySelector('.fuel-art'));
   }
-  $('empty').hidden = plan.stops.length > 0;
+  $('empty').hidden = stops.length > 0;
   updateSelection();
 }
 function render(eventID) {
-  $('total-label').textContent = distanceLabel(plan.totalDistanceMeters);
-  renderRows(eventID); ruler.update(plan); prepare();
+  const current = activeEntry(library);
+  $('plan-name').textContent = current?.name ?? '';
+  $('library').setAttribute('aria-label', current ? `${current.name}，编辑骑行计划` : '计划');
+  $('ride-date').textContent = current ? `${current.rideDate.slice(0, 4) === String(new Date().getFullYear()) ? '' : `${current.rideDate.slice(0, 4)}年`}${shortDate(current.rideDate)}` : '';
+  $('plan-heading').hidden = !current;
+  $('no-plan').hidden = !!current; $('ride-content').hidden = !current;
+  $('total-label').textContent = plan ? distanceLabel(plan.totalDistanceMeters) : '';
+  renderRows(eventID); if (plan) ruler.update(plan); else ruler.haptics.stop(); prepare();
 }
 function apply(next, eventID) {
-  plan = next; message('result'); persist(); render(eventID);
+  library = updatePlan(library, next); plan = activeEntry(library).plan;
+  message('result'); persist(); render(eventID);
 }
 function diagnostics(support, bytes) {
   const items = [
@@ -175,7 +189,8 @@ function prepare() {
   prepared = null; $('share').disabled = true; $('download').disabled = true;
   $('steps').replaceChildren(); message('error');
   try {
-    const valid = validatePlan(plan), bytes = encodeWorkout(valid);
+    if (!plan) throw new Error('先创建一份骑行计划。');
+    const valid = validatePlan(plan), bytes = encodeWorkout(valid, `Kairos · ${activeEntry(library).name}`);
     prepared = new File([bytes], `Kairos-${plan.id.slice(0, 8)}.workout`, { type: 'application/octet-stream' });
     let from = 0;
     for (const step of workoutSteps(valid)) {
@@ -191,7 +206,7 @@ function prepare() {
     $('download').disabled = sharing || removing.size > 0;
     diagnostics(support, bytes.byteLength);
   } catch (error) {
-    message('error', plan.stops.length ? error.message : '先添加一个补给点，再交给手表。');
+    message('error', !plan || plan.stops.length ? error.message : '先添加一个补给点，再交给手表。');
     $('support').textContent = '补全计划后即可分享或下载训练文件。'; diagnostics({ ok: false }, 0);
   }
 }
@@ -201,13 +216,18 @@ async function removeStop(id) {
   if (!stop) return;
   const row = rows.get(id); removing.add(id); row.classList.add('removing'); row.inert = true; prepare();
   await new Promise(resolve => setTimeout(resolve, reduced.matches ? 80 : 480));
-  deleted = stop; removing.delete(id); closeSwipes();
+  deleted = stop; removedPlan = null; removing.delete(id); closeSwipes();
   if (selectedID === id) selectedID = null;
   apply(validateDraft({ ...plan, stops: plan.stops.filter(item => item.id !== id) }));
   $('undo-message').textContent = `已移除${displayName(stop)}补给点`; $('undo-bar').hidden = false;
 }
 $('undo').addEventListener('click', () => {
-  if (!deleted || sharing || removing.size) return;
+  if (sharing || removing.size) return;
+  if (removedPlan) {
+    try { changeLibrary(restorePlan(library, removedPlan)); } catch (error) { message('result', error.message); }
+    return;
+  }
+  if (!deleted || !plan) return;
   try {
     const id = deleted.id; apply(saveStop(plan, deleted), id); deleted = null; $('undo-bar').hidden = true;
   } catch (error) { message('result', `暂时无法撤销：${error.message}`); }
@@ -226,9 +246,15 @@ for (const dialog of document.querySelectorAll('dialog')) {
     Object.assign(document.body.style, { overflow: '', position: '', top: '', width: '' });
     window.scrollTo({ top: sheetScrollY, behavior: 'instant' });
   });
-  dialog.addEventListener('click', event => {
+  let outsidePress = false;
+  dialog.addEventListener('pointerdown', event => {
     const rect = dialog.getBoundingClientRect();
-    if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    outsidePress = event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom);
+  });
+  dialog.addEventListener('click', event => {
+    // Focusing a field may resize the sheet before pointerup. That is not a backdrop tap.
+    if (outsidePress && event.target === dialog) dialog.close();
+    outsidePress = false;
   });
   const grabber = dialog.querySelector('.sheet-grabber'); let start = null;
   grabber.addEventListener('pointerdown', event => { start = event.clientY; grabber.setPointerCapture(event.pointerId); });
@@ -240,6 +266,7 @@ function updateViewport() {
   if (!view) return;
   // Safari may pan offsetTop to reveal a focused field; subtracting it lets the sheet fall under the keyboard.
   const keyboard = Math.max(0, window.innerHeight - view.height);
+  if (keyboard > 80 && document.activeElement === $('library-plan-name')) expandPlanField(null);
   for (const dialog of document.querySelectorAll('dialog[open]')) {
     dialog.style.bottom = `${keyboard}px`; dialog.style.maxHeight = `${view.height * .88}px`;
     dialog.classList.toggle('keyboard-open', keyboard > 80);
@@ -249,7 +276,7 @@ window.visualViewport?.addEventListener('resize', updateViewport);
 window.visualViewport?.addEventListener('scroll', updateViewport);
 
 function openComposer(id = null) {
-  if (sharing || removing.size) return;
+  if (!plan || sharing || removing.size) return;
   closeSwipes(); editing = id;
   const existing = plan.stops.find(stop => stop.id === id);
   if (existing) { selectedID = id; updateSelection(); }
@@ -310,22 +337,6 @@ $('zoom-in').addEventListener('click', () => ruler.changeZoom(2));
 $('zoom-out').addEventListener('click', () => ruler.changeZoom(.5));
 $('fit').addEventListener('click', () => { selectedID = null; updateSelection(); ruler.fit(); });
 
-function validateTotal() {
-  try {
-    const next = validateDraft({ ...plan, totalDistanceMeters: parseDistance($('total').value, 'km') });
-    $('save-total').disabled = false; message('total-error'); return next;
-  } catch (error) { $('save-total').disabled = true; message('total-error', error.message); return null; }
-}
-$('edit-total').addEventListener('click', () => {
-  if (sharing || removing.size) return;
-  $('total').value = String(plan.totalDistanceMeters / 1000); validateTotal(); openSheet($('distance-dialog'));
-  $('total').focus(); $('total').setSelectionRange($('total').value.length, $('total').value.length);
-});
-$('total').addEventListener('input', validateTotal);
-$('distance-form').addEventListener('submit', event => {
-  event.preventDefault(); const next = validateTotal(); if (!next) return;
-  $('distance-dialog').close(); apply(next);
-});
 $('help').addEventListener('click', () => openSheet($('help-dialog')));
 $('theme').addEventListener('click', () => {
   if (sharing || removing.size) return;
@@ -335,8 +346,189 @@ $('theme').addEventListener('click', () => {
 $('replace-draft').hidden = writable;
 $('replace-draft').addEventListener('click', () => { writable = true; persist(); $('replace-draft').hidden = true; });
 
+function formatDate(value) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+function changeLibrary(next) {
+  library = next; plan = activeEntry(library)?.plan ?? null;
+  deleted = null; removedPlan = null; selectedID = null; lastShare = null;
+  $('undo-bar').hidden = true; closeSwipes(); message('result'); persist(); render();
+}
+const calendar = new PlanCalendar($('plan-calendar'), value => {
+  $('library-plan-date').value = value; $('plan-date-label').textContent = shortDate(value);
+  expandPlanField(null); validatePlanForm(); $('edit-plan-date').focus({ preventScroll: true });
+});
+const kilometerWheel = new KilometerWheel($('plan-wheel'), value => {
+  $('library-plan-distance').value = String(value); validatePlanForm();
+});
+function expandPlanField(field) {
+  kilometerWheel.stop();
+  for (const [kind, button, content] of [['date', 'edit-plan-date', 'plan-calendar'], ['distance', 'edit-plan-distance', 'plan-distance-editor']]) {
+    $(button).setAttribute('aria-expanded', String(field === kind)); $(content).hidden = field !== kind;
+  }
+  if (field === 'date') { calendar.set($('library-plan-date').value); calendar.focus(); }
+  if (field === 'distance') showDistanceWheel();
+}
+function showDistanceWheel() {
+  try {
+    const km = parseDistance($('library-plan-distance').value, 'km') / 1000;
+    if (km <= 0) throw new Error('计划全程需要大于 0。');
+    $('wheel-frame').hidden = false; $('direct-distance').hidden = false; $('direct-distance-field').hidden = true;
+    kilometerWheel.set(km);
+  } catch { $('wheel-frame').hidden = true; $('direct-distance').hidden = true; $('direct-distance-field').hidden = false; validatePlanForm(); }
+}
+for (const [id, field] of [['edit-plan-date', 'date'], ['edit-plan-distance', 'distance']]) $(id).addEventListener('click', () => expandPlanField($(id).getAttribute('aria-expanded') === 'true' ? null : field));
+$('direct-distance').addEventListener('click', () => {
+  kilometerWheel.stop(); $('wheel-frame').hidden = true; $('direct-distance').hidden = true; $('direct-distance-field').hidden = false;
+  const input = $('library-plan-distance'); input.focus(); input.setSelectionRange(input.value.length, input.value.length);
+});
+$('return-wheel').addEventListener('click', () => { $('library-plan-distance').blur(); showDistanceWheel(); });
+$('library-dialog').addEventListener('close', () => kilometerWheel.stop());
+function libraryView(mode) {
+  kilometerWheel.stop();
+  libraryMode = mode;
+  const editor = ['new', 'edit', 'copy'].includes(mode);
+  $('library-list-view').hidden = mode !== 'list';
+  $('plan-form').hidden = !editor;
+  $('history-detail').hidden = mode !== 'history';
+  $('current-plan-tab').textContent = mode === 'new' ? '新计划' : mode === 'copy' ? '新副本' : '当前计划';
+  $('current-plan-tab').disabled = !plan && !editor;
+  for (const [id, selected] of [['current-plan-tab', editor], ['library-tab', !editor]]) {
+    $(id).setAttribute('aria-selected', String(selected)); $(id).tabIndex = selected ? 0 : -1;
+  }
+  message('library-notice', storageNotice);
+}
+function renderLibraryList() {
+  libraryView('list');
+  const history = libraryTab === 'history';
+  for (const [id, selected] of [['plans-tab', !history], ['history-tab', history]]) {
+    $(id).setAttribute('aria-selected', String(selected)); $(id).tabIndex = selected ? 0 : -1;
+  }
+  $('library-items').setAttribute('aria-labelledby', history ? 'history-tab' : 'plans-tab');
+  $('library-hint').textContent = history ? '保留导出时的版本。这里只记录下载请求或系统分享，不表示手表已收到。' : '按骑行日期排列。选择一份继续编辑，改动会自动保存在这个浏览器。';
+  const entries = [...(history ? library.history : library.plans)].sort((a, b) => b.rideDate.localeCompare(a.rideDate) || (b.exportedAt ?? b.updatedAt).localeCompare(a.exportedAt ?? a.updatedAt));
+  $('library-items').replaceChildren();
+  if (!entries.length) {
+    const empty = document.createElement('p'); empty.className = 'muted library-empty';
+    empty.textContent = history ? '还没有导出记录。下载一份训练后，会在这里留下当时的版本。' : '还没有计划。从一趟新的骑行开始。';
+    $('library-items').append(empty);
+  }
+  let group;
+  for (const item of entries) {
+    if (item.rideDate !== group) {
+      group = item.rideDate;
+      const heading = document.createElement('h3'); heading.className = 'library-group'; heading.textContent = formatDate(group);
+      $('library-items').append(heading);
+    }
+    const card = document.createElement('div'); card.className = 'library-card';
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'library-open';
+    const title = document.createElement('strong'), summary = document.createElement('small');
+    title.textContent = item.name;
+    summary.textContent = `${distanceLabel(item.plan.totalDistanceMeters)}${history ? ` · ${item.method === 'download' ? '请求下载' : '交给系统分享'}` : ''}`;
+    open.append(title, summary);
+    open.setAttribute('aria-label', `${history ? '查看导出版本' : '打开计划'} ${item.name}，${item.rideDate}`);
+    open.addEventListener('click', () => {
+      if (history) showHistory(item);
+      else { changeLibrary(selectPlan(library, item.plan.id)); $('library-dialog').close(); }
+    });
+    card.append(open);
+    if (!history) {
+      if (item.plan.id === library.activePlanID) {
+        card.classList.add('current'); const badge = document.createElement('em'); badge.textContent = '正在编辑'; open.append(badge);
+      }
+      const manage = document.createElement('button'); manage.type = 'button'; manage.className = 'icon-button library-manage';
+      manage.innerHTML = icon('pencil'); manage.setAttribute('aria-label', `管理计划 ${item.name}`);
+      manage.addEventListener('click', () => editPlanView('edit', item)); card.append(manage);
+    }
+    $('library-items').append(card);
+  }
+}
+function editPlanView(mode, source = null) {
+  managedEntry = source;
+  libraryView(mode);
+  $('library-plan-name').value = mode === 'copy' ? `${source.name.slice(0, 55)} · 副本` : source?.name ?? '新的骑行';
+  $('library-plan-date').value = source?.rideDate ?? today();
+  $('plan-date-label').textContent = shortDate($('library-plan-date').value);
+  $('library-plan-distance').value = String((source?.plan.totalDistanceMeters ?? plan?.totalDistanceMeters ?? 75000) / 1000);
+  expandPlanField(null);
+  $('copy-plan').hidden = mode !== 'edit'; $('delete-plan').hidden = mode !== 'edit';
+  $('save-plan').textContent = mode === 'edit' ? '保存计划' : '创建计划';
+  validatePlanForm();
+}
+function planDetails() {
+  const name = $('library-plan-name').value.trim(), rideDate = validateDate($('library-plan-date').value);
+  if (!name || name.length > 60) throw new Error('请填写 1 至 60 字的计划名称。');
+  const totalDistanceMeters = parseDistance($('library-plan-distance').value, 'km');
+  if (totalDistanceMeters <= 0) throw new Error('计划全程需要大于 0。');
+  if (managedEntry) validateDraft({ ...managedEntry.plan, totalDistanceMeters });
+  return { name, rideDate, totalDistanceMeters };
+}
+function validatePlanForm() {
+  try { const details = planDetails(); $('plan-distance-label').textContent = distanceLabel(details.totalDistanceMeters); $('save-plan').disabled = false; message('plan-form-error'); }
+  catch (error) { $('save-plan').disabled = true; message('plan-form-error', error.message); }
+}
+function showHistory(snapshot) {
+  managedEntry = snapshot; libraryView('history');
+  $('history-date').textContent = `骑行日期 · ${formatDate(snapshot.rideDate)}`;
+  $('history-name').textContent = snapshot.name;
+  $('history-summary').textContent = `全程 ${distanceLabel(snapshot.plan.totalDistanceMeters)}`;
+  $('history-status').textContent = `${new Date(snapshot.exportedAt).toLocaleString('zh-CN')} · ${snapshot.method === 'download' ? '请求下载' : '交给系统分享'}。这不是导入或运动完成回执。`;
+  $('history-stops').replaceChildren();
+  for (const stop of snapshot.plan.stops) {
+    const item = document.createElement('li'), position = document.createElement('strong'), reminder = document.createElement('span');
+    position.textContent = distanceLabel(stop.distanceMeters); reminder.textContent = stop.reminder;
+    item.append(position, reminder); $('history-stops').append(item);
+  }
+}
+$('library').addEventListener('click', () => {
+  if (sharing || removing.size) return;
+  closeSwipes(); if (plan) editPlanView('edit', activeEntry(library)); else renderLibraryList(); openSheet($('library-dialog'));
+});
+$('history').addEventListener('click', () => {
+  if (sharing || removing.size) return;
+  closeSwipes(); libraryTab = 'history'; renderLibraryList(); openSheet($('library-dialog'));
+});
+$('first-plan').addEventListener('click', () => { editPlanView('new'); openSheet($('library-dialog')); });
+$('new-plan').addEventListener('click', () => editPlanView('new'));
+$('current-plan-tab').addEventListener('click', () => { if (plan && !['new', 'edit', 'copy'].includes(libraryMode)) editPlanView('edit', activeEntry(library)); });
+$('library-tab').addEventListener('click', renderLibraryList);
+for (const id of ['current-plan-tab', 'library-tab']) $(id).addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault(); const target = event.key === 'Home' ? $('current-plan-tab') : event.key === 'End' ? $('library-tab') : $(id === 'current-plan-tab' ? 'library-tab' : 'current-plan-tab');
+  if (!target.disabled) { target.click(); target.focus(); }
+});
+$('library-back').addEventListener('click', renderLibraryList);
+for (const [id, tab] of [['plans-tab', 'plans'], ['history-tab', 'history']]) {
+  $(id).addEventListener('click', () => { libraryTab = tab; renderLibraryList(); });
+  $(id).addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault(); libraryTab = event.key === 'Home' ? 'plans' : event.key === 'End' ? 'history' : libraryTab === 'plans' ? 'history' : 'plans';
+    renderLibraryList(); $(libraryTab === 'plans' ? 'plans-tab' : 'history-tab').focus();
+  });
+}
+$('plan-form').addEventListener('input', validatePlanForm);
+$('library-plan-name').addEventListener('click', () => expandPlanField(null));
+$('plan-form').addEventListener('submit', event => {
+  event.preventDefault();
+  try {
+    const details = planDetails();
+    const next = libraryMode === 'new' ? createPlan(library, details) : libraryMode === 'copy' ? duplicatePlan(library, managedEntry, details) : selectPlan(updateDetails(library, managedEntry.plan.id, details), managedEntry.plan.id);
+    changeLibrary(next);
+    if (storageNotice) { editPlanView('edit', activeEntry(library)); message('library-notice', storageNotice); }
+    else $('library-dialog').close();
+  } catch (error) { message('plan-form-error', error.message); }
+});
+$('copy-plan').addEventListener('click', () => editPlanView('copy', managedEntry));
+$('reuse-history').addEventListener('click', () => editPlanView('copy', managedEntry));
+$('delete-plan').addEventListener('click', () => {
+  const removed = structuredClone(managedEntry);
+  changeLibrary(deletePlan(library, removed.plan.id)); removedPlan = removed;
+  $('library-dialog').close(); $('undo-message').textContent = `已删除“${removed.name}”`; $('undo-bar').hidden = false;
+});
+
 async function shareWorkout() {
   if (!prepared || sharing || removing.size) return;
+  const snapshot = structuredClone(activeEntry(library));
   ruler.haptics.stop();
   sharing = true; $('app').inert = true;
   $('share').disabled = true; $('download').disabled = true;
@@ -344,6 +536,7 @@ async function shareWorkout() {
     // Keep the prepared File and invoke share before any await or network work.
     const outcome = await sharePrepared(prepared, navigator, isSecureContext);
     lastShare = outcome;
+    if (outcome.state === 'handed-off') { library = recordExport(library, snapshot, 'share'); persist(); }
     message('result', outcome.message);
   } finally { sharing = false; $('app').inert = false; prepare(); }
 }
@@ -354,6 +547,7 @@ $('download').addEventListener('click', () => {
   const url = URL.createObjectURL(prepared), link = document.createElement('a');
   link.href = url; link.download = prepared.name; document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+  library = recordExport(library, activeEntry(library), 'download'); persist();
   message('result', '已请求下载。打开训练文件，在“健身”中核对并添加到手表；Safari 可从下载列表打开。');
 });
 $('copy').addEventListener('click', async () => {
@@ -361,7 +555,7 @@ $('copy').addEventListener('click', async () => {
   catch { message('result', '未能复制，请截图兼容性信息。'); }
 });
 message('storage-message', loaded.message);
-if (!loaded.plan && writable) persist();
+if (loaded.needsSave && writable) persist();
 render();
 // Restore the prepared file and enabled actions when returning through browser history.
 window.addEventListener('pageshow', event => { if (event.persisted) prepare(); });

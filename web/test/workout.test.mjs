@@ -65,6 +65,15 @@ test('file is binary, deterministic for the same plan and includes UTF-8 reminde
   assert.equal(bytes[0] === '{'.charCodeAt(0), false);
 });
 
+test('a named library plan exports its readable title without changing interval distances', () => {
+  const title = 'Kairos · 周末河堤';
+  const bytes = encodeWorkout(plan, title);
+  assert.ok(new TextDecoder().decode(bytes).includes(title));
+  assert.ok(new TextDecoder().decode(bytes).includes('400.0m 吃胶'));
+  assert.deepEqual(encodeWorkout(plan), encodeWorkout(plan, 'Kairos 骑行补给'));
+  for (const invalid of ['', ' ', 'a'.repeat(81), null]) assert.throws(() => encodeWorkout(plan, invalid));
+});
+
 test('share sends the prepared file synchronously before yielding, without URL or text', async () => {
   const file = new File([encodeWorkout(plan)], 'Kairos.workout', { type: 'application/octet-stream' });
   let shared;

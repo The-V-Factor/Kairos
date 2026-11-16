@@ -81,8 +81,9 @@ function double(field, value) {
   return [...varint(field * 8 + 1), ...data];
 }
 
-export function encodeWorkout(input) {
+export function encodeWorkout(input, displayName = title) {
   const plan = validatePlan(input);
+  if (typeof displayName !== 'string' || !displayName.trim() || displayName.length > 80) throw new Error('训练名称无效。');
   const steps = workoutSteps(plan).flatMap(step => {
     const goal = step.distanceMeters === null
       ? integer(1, 4) // Open
@@ -91,7 +92,7 @@ export function encodeWorkout(input) {
     return message(1, [...integer(1, 1), ...message(2, workoutStep)]); // Work interval
   });
   const block = [...steps, ...integer(2, 1)]; // One iteration
-  const custom = [...integer(1, 13), ...integer(2, 3), ...text(3, title), ...message(5, block)];
+  const custom = [...integer(1, 13), ...integer(2, 3), ...text(3, displayName.trim()), ...message(5, block)];
   return Uint8Array.from([
     ...text(9, plan.id), ...message(11, custom), ...integer(1000, 1), ...integer(1002, 5),
   ]);

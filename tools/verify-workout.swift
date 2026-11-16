@@ -8,6 +8,7 @@ struct VerifyWorkout {
   struct Input: Decodable {
     let id: UUID
     let totalDistanceMeters: Double
+    let displayName: String?
     let stops: [Stop]
     struct Stop: Decodable {
       let distanceMeters: Double
@@ -34,7 +35,11 @@ struct VerifyWorkout {
         stops: input.stops.map {
           FuelStop(distance: PlanDistance.stored($0.distanceMeters), reminder: $0.reminder)
         })
-      let expected = try nativePlan.workoutPlan(locale: Locale(identifier: "en_US_POSIX"))
+      var expected = try nativePlan.workoutPlan(locale: Locale(identifier: "en_US_POSIX"))
+      if let displayName = input.displayName, case .custom(var workout) = expected.workout {
+        workout.displayName = displayName
+        expected.workout = .custom(workout)
+      }
       guard parsed == expected else {
         throw Failure(message: "Apple decoded a different workout: \(fixture.lastPathComponent)")
       }

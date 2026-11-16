@@ -12,14 +12,15 @@ const examples = [
   ['fractional', 850.5, [[0.1, '喝水'], [800.3, '吃胶']]],
   ['kilometers', 100000, [[25001, '吃胶'], [45000, '喝水'], [70000, '吃巧克力']]],
   ['long-text', 1000, [[200, '补给提醒：水和胶，'.repeat(15)], [1000, '终点补给 🧃']]],
+  ['named-plan', 75000, [[0, '出发先喝水'], [25000, '吃胶']], 'Kairos · 周末河堤 🚲'],
 ];
-for (const [index, [name, total, stops]] of examples.entries()) {
+for (const [index, [name, total, stops, displayName]] of examples.entries()) {
   const plan = validatePlan({
     id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
     totalDistanceMeters: total,
     stops: stops.map(([distanceMeters, reminder]) => ({ distanceMeters, reminder })),
   });
-  await writeFile(join(output, `${name}.json`), JSON.stringify(plan, null, 2));
-  await writeFile(join(output, `${name}.workout`), encodeWorkout(plan));
+  await writeFile(join(output, `${name}.json`), JSON.stringify({ ...plan, displayName }, null, 2));
+  await writeFile(join(output, `${name}.workout`), encodeWorkout(plan, displayName));
 }
 console.log(`Generated ${examples.length} cases in ${output}`);

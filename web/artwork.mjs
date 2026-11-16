@@ -13,6 +13,7 @@ const icons = {
   plus: '<path d="M12 4v16M4 12h16"/>',
   close: '<path d="m5 5 14 14M19 5 5 19"/>',
   pencil: '<path d="m5 16-1 4 4-1L20 7l-3-3Z"/>',
+  history: '<path d="M3 11a9 9 0 1 1 2.6 7.4M3 4v7h7M12 7v5l3 2"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',
   arrow: '<path d="M5 19 19 5M6 5h13v13"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .5-1.5 1-1.5 2M12 17h.01"/>',

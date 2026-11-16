@@ -1,6 +1,10 @@
 # Kairos 开发说明
 
-纯网页 `.workout` 文件与系统分享见 [网页实现及验证](web-file-sharing.md)，已完成 B「节奏」界面与本地草稿；真实设备导入仍待验证。发布步骤见 [Cloudflare Pages](cloudflare-pages.md)。下文仍描述已合并的 iPhone 版本。
+当前产品主线是纯 Web，无自有 Apple App 或开发者账号要求。已提供五套皮肤、本机多计划库与按骑行日期的导出历史；实现、运行和测试见 [网页说明](web-file-sharing.md)，发布见 [Cloudflare Pages](cloudflare-pages.md)。用户已确认骑行提醒闭环验收通过，不再以缺少旧检查表作为 Web 开发阻塞。
+
+后续顺序：[#14 路线与偏好输入](https://github.com/The-V-Factor/Kairos/issues/14) → [#15 可调整的自动计划](https://github.com/The-V-Factor/Kairos/issues/15)。[#16 华为兼容](https://github.com/The-V-Factor/Kairos/issues/16) 单独研究。仅使用浏览器存储，不引入云端同步或备份恢复；触感与 PWA 导入返回问题暂不继续投入。
+
+以下为保留的原生 iPhone 实验实现说明，不代表当前用户安装要求。
 
 原生 iPhone 骑行补给实验：手动填写骑行日期、计划总距离、各补给点的距出发里程和提示，通过 WorkoutKit 提交所选日期的训练，由 Apple Watch 系统“体能训练”记录骑行、呈现分段提示。没有独立手表 App、账号、网络服务或补给算法。
 
@@ -82,4 +86,4 @@ App 的 Xcode scheme 用于构建/运行；自动测试使用 `swift test`，不
 - [WorkoutKit：创建与同步训练](https://developer.apple.com/documentation/workoutkit)
 - [Apple 演示：自定义分段名称及分段切换提示](https://developer.apple.com/videos/play/wwdc2024/10084/?time=193)
 
-当前是实验程序，不声称提醒体验已通过真机验收。系统使用实际骑行累计距离，不是路线上的位置；绕路、定位误差可能改变提醒地点。手动跳段尊重用户选择。
+原生代码作为实验与互操作参考保留。系统使用实际骑行累计距离，不是路线上的位置；绕路、定位误差可能改变提醒地点。手动跳段尊重用户选择。
