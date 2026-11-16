@@ -1,6 +1,6 @@
 # Cloudflare Pages 发布
 
-当前网页版由浏览器本地编辑、保存草稿、生成 `.workout` 文件，再由用户从 Safari 下载列表打开。没有服务端接口、D1、Pages Functions 或独立 Worker，也不需要 Apple 开发者账号。已有 `kairos` Worker 不作为这次发布目标。
+当前网页版由浏览器本地编辑、保存多份计划与导出历史、生成 `.workout` 文件，再由用户从 Safari 下载列表打开。没有服务端接口、D1、Pages Functions 或独立 Worker，也不需要 Apple 开发者账号。已有 `kairos` Worker 不作为这次发布目标。
 
 ## 推荐：Git 集成
 
@@ -39,7 +39,7 @@ Git 集成和 Direct Upload 是不同的项目创建方式，不能直接互相�
 rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 ```
 
-打包白名单共 19 个文件：`index.html`、`style.css`、`themes.css`、`app.mjs`、`plan.mjs`、`themes.mjs`、`ruler.mjs`、`haptics.mjs`、`artwork.mjs`、`workout.mjs`、`share.mjs`、`file-address.mjs`、`_headers`、`NOTICE.txt`、`assets/app-icon.svg`，以及直接打开实验的 `open/index.html`、`open/test.mjs`、`open/worker.mjs`、`assets/direct-open.workout`。不包含 Node 测试、Swift 工具或本地签名配置。
+打包白名单共 21 个文件：`index.html`、`style.css`、`themes.css`、`app.mjs`、`plan.mjs`、`library.mjs`、`plan-controls.mjs`、`themes.mjs`、`ruler.mjs`、`haptics.mjs`、`artwork.mjs`、`workout.mjs`、`share.mjs`、`file-address.mjs`、`_headers`、`NOTICE.txt`、`assets/app-icon.svg`，以及直接打开实验的 `open/index.html`、`open/test.mjs`、`open/worker.mjs`、`assets/direct-open.workout`。不包含 Node 测试、Swift 工具或本地签名配置。
 
 `open/worker.mjs` 是浏览器 Service Worker，不是 Cloudflare Worker。它只处理 `/open/` 中的本机测试文件地址，不接管计划页，也不上传计划。固定示例的响应头明确设置 `Content-Disposition: inline`；需要从真实 HTTPS 页面在 iPhone 上验证，不以本地 HTTP 模拟器结果推定线上行为。
 
@@ -51,7 +51,7 @@ rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 - 记录手机、手表及系统版本，分别记录分段提示、声音／触感和终点后继续骑行。双指缩放、减少动态效果、大字号及实际手感继续在真机检查。
 - 如果网络或浏览器不支持直接分享，帮助中保留下载路径，单独记录兼容性结果。
 
-草稿保存在当前域名的 localStorage。换域名、清理浏览器数据或使用不同浏览器不会自动迁移；导入系统的计划也不会自动被网页撤回。
+计划库与导出历史保存在当前域名的 localStorage。换域名、清理浏览器数据或使用不同浏览器不会自动迁移；导入系统的计划也不会自动被网页撤回。首次升级自动迁移旧单草稿，保留原存储键；后续只读写新计划库，不双向同步旧版。回滚到旧页面时不会看到新库中的后续编辑，应避免在旧版本继续修改后又升级。
 
 ## 回滚与当前状态
 
@@ -59,4 +59,4 @@ rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 
 2026-11-11：用户已部署 [Kairos 网页](https://kairos-2rm.pages.dev/)，并确认手机可以打开网页、下载训练内容，同意本阶段验收收口。该反馈不等于已验证直接分享至“健身”、导入真实 Apple Watch 或骑行提醒。
 
-Agent 此前访问该域名时遇到 Cloudflare Access 认证入口，自动审批拒绝继续访问；未绕过认证，也未独立确认线上资源与本地版本一致、响应头或所用提交。具体部署方式、部署 ID、设备及系统版本未提供，不作推定。代码提交与合并记录见 #5 对应 PR。不要把本地模拟器输出的示例 `CF_PAGES_URL` 当成已发布地址。
+后续用户已完成独立 Kairos 域名的 Access Bypass 配置并确认公开访问生效，保留 All Workers 原有规则；无需为本次计划库改动再次修改 Access。用户也已确认骑行提醒闭环通过。上述结果来自用户反馈，不替代每次新部署的资源与版本核对。不要把本地模拟器输出的示例 `CF_PAGES_URL` 当成已发布地址。

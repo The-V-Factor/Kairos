@@ -22,15 +22,101 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .masthead-actions { display: flex; align-items: center; gap: 6px; }
 .theme-badge { display: flex; align-items: center; gap: 8px; border-radius: 28px; padding: 11px 14px; background: var(--surface); font-size: 13px; font-weight: 600; }
 .theme-badge .icon { width: 18px; height: 18px; }
+@media (max-width: 359px) {
+  .theme-badge { width: 44px; min-height: 44px; justify-content: center; padding: 11px; }
+  #theme-name { display: none; }
+}
 main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-area-inset-bottom)); }
+.plan-heading { margin: 12px 0 38px; }
+.plan-title { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; text-align: left; font: inherit; letter-spacing: inherit; }
+.plan-title > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.plan-title .icon { flex: 0 0 22px; width: 22px; height: 22px; color: var(--muted); }
+.plan-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.plan-meta > span { white-space: nowrap; }
+.plan-meta strong { color: var(--accent); font-weight: 650; font-variant-numeric: tabular-nums; }
+.no-plan { padding: 45px 0; }
+.no-plan .secondary { margin-top: 28px; }
+.library-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.library-tabs { display: flex; gap: 20px; }
+.library-tabs button { min-height: 44px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 14px; }
+.library-tabs button[aria-selected="true"] { color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.new-plan { display: flex; align-items: center; gap: 3px; color: var(--accent); font-size: 13px; min-height: 44px; white-space: nowrap; }
+.new-plan .icon { width: 18px; height: 18px; }
+.library-sheet .fine-print { font-size: 11px; line-height: 1.65; color: var(--muted); }
+.library-group { margin: 26px 0 9px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.library-card { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 16px; margin: 9px 0; background: var(--canvas); overflow: hidden; }
+.library-card.current { border-color: var(--accent); background: var(--selected-stop); }
+.library-open { min-width: 0; flex: 1; padding: 16px; text-align: left; }
+.library-open strong { display: block; font-size: 16px; overflow-wrap: anywhere; }
+.library-open small { display: block; color: var(--muted); line-height: 1.6; font-size: 11px; margin-top: 7px; }
+.library-open em { display: inline-block; font-size: 10px; font-style: normal; color: var(--accent); margin-top: 8px; }
+.library-manage { align-self: center; margin-right: 6px; }
+.library-card .library-manage .icon { width: 18px; height: 18px; }
+.library-sheet { --plan-row: 44px; --plan-header: 44px; --calendar-day: 34px; }
+.library-sheet .sheet-grabber { height: 10px; }
+.library-sheet .sheet-header { min-height: var(--plan-header); padding-block: 0; }
+.library-sheet .sheet-header h2 { color: var(--ink); }
+.library-sheet .sheet-header .icon-button, .library-sheet .sheet-header .new-plan { min-height: var(--plan-header); height: var(--plan-header); }
+.plan-sections { display: flex; gap: 28px; margin: 0 24px; border-bottom: 1px solid var(--line); position: sticky; top: var(--plan-header); z-index: 1; background: var(--surface); }
+.plan-sections button { min-height: 36px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 14px; }
+.plan-sections button[aria-selected="true"] { color: var(--accent); border-color: var(--accent); font-weight: 650; }
+.library-sheet .sheet-body { padding-block: 8px 12px; }
+.plan-field { border-bottom: 1px solid var(--line); }
+.plan-name-field { display: flex; align-items: baseline; gap: 24px; min-height: var(--plan-row); }
+.plan-name-field label { color: var(--muted); font-size: 13px; flex: 0 0 28px; }
+.plan-name-field input { padding: 11px 0; border: 0; font-size: 17px; font-weight: 550; }
+.plan-field-toggle { display: flex; align-items: center; gap: 24px; width: 100%; min-height: var(--plan-row); text-align: left; }
+.plan-field-toggle > span:first-child { color: var(--muted); font-size: 13px; flex: 0 0 28px; }
+.plan-field-toggle strong { font-size: 15px; font-weight: 500; flex: 1; font-variant-numeric: tabular-nums; }
+#plan-distance-label { color: var(--accent); }
+.plan-field-toggle .icon { width: 16px; height: 16px; color: var(--muted); transform: rotate(90deg); }
+.plan-field-toggle[aria-expanded="true"] .icon { transform: rotate(-90deg); }
+.plan-field-toggle[aria-expanded="true"] strong { visibility: hidden; }
+.plan-calendar { padding-bottom: 8px; }
+.calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.calendar-heading strong { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.calendar-heading button { width: 36px; min-height: 34px; font-size: 26px; }
+.calendar-heading .calendar-today { width: auto; color: var(--accent); font-size: 13px; margin-left: 8px; }
+.calendar-grid { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: center; font-variant-numeric: tabular-nums; }
+.calendar-grid th { height: 22px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.calendar-grid td { padding: 0; height: var(--calendar-day); }
+.calendar-grid button { width: var(--calendar-day); height: var(--calendar-day); border: 1px solid transparent; border-radius: 50%; font-size: 14px; }
+.calendar-grid button.outside { color: var(--muted); opacity: .5; }
+.calendar-grid button[aria-current="date"] { border-color: var(--input-line); }
+.calendar-grid button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; opacity: 1; }
+.calendar-grid button:focus-visible { outline-offset: 0; }
+.km-wheel-frame { position: relative; height: 156px; }
+.km-wheel-focus { position: absolute; inset: 56px 10% auto; height: 44px; border-block: 1px solid var(--input-line); pointer-events: none; }
+.km-wheel-scroll { height: 156px; overflow-y: auto; scrollbar-width: none; scroll-snap-type: y mandatory; overscroll-behavior: contain; touch-action: pan-y; user-select: none; -webkit-user-select: none; mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.km-wheel-scroll::-webkit-scrollbar { display: none; }
+.km-wheel-scroll.dragging { scroll-snap-type: none; cursor: grabbing; }
+.km-wheel-scroll:focus-visible { outline-offset: -2px; }
+.km-wheel-track { padding-block: 56px; }
+.km-wheel-option { height: 44px; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; color: var(--muted); font-size: 28px; font-weight: 550; font-variant-numeric: tabular-nums; cursor: grab; }
+.km-wheel-option.selected { color: var(--accent); font-weight: 700; }
+.direct-distance { display: block; min-height: 44px; margin: 4px auto 0; color: var(--accent); font-size: 14px; }
+#direct-distance-field { padding: 12px 0; }
+#direct-distance-field input { font-size: 30px; padding: 8px 0; }
+#return-wheel { min-height: 44px; padding-left: 8px; color: var(--accent); font-size: 13px; white-space: nowrap; }
+#wheel-hint { text-align: center; margin: 0 0 18px; }
+.library-save { margin-top: 16px; }
+.library-sheet:has(#plan-calendar:not([hidden]), #plan-distance-editor:not([hidden])) .plan-tools,
+.library-sheet:has(#plan-calendar:not([hidden]), #plan-distance-editor:not([hidden])) #plan-form > .fine-print,
+.library-sheet.keyboard-open .plan-tools, .library-sheet.keyboard-open #plan-form > .fine-print { display: none; }
+.plan-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.plan-tools button { min-height: 44px; font-size: 12px; color: var(--accent); }
+.plan-tools .delete-in-editor { margin: 0; padding: 0; width: auto; color: var(--danger); border: 0; }
+.library-sheet .secondary, .no-plan .secondary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid var(--input-line); border-radius: 14px; color: var(--accent); font-size: 14px; font-weight: 600; }
+.library-sheet .library-save { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.library-back { color: var(--accent); font-size: 13px; min-height: 44px; }
+.library-empty { margin: 36px 0; }
+.history-stops { padding-left: 24px; }
+.history-stops li { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.history-stops strong { display: block; color: var(--accent); font-variant-numeric: tabular-nums; }
+#history-name { overflow-wrap: anywhere; }
 .eyebrow { display: flex; align-items: center; gap: 12px; font-size: 10px; font-weight: 500; letter-spacing: 3px; }
 .eyebrow i { flex: 1; height: 1px; background: var(--line); }
-.plan-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 16px 0 26px; flex-wrap: wrap; }
 h1 { font-size: 34px; letter-spacing: -1.3px; font-weight: 750; margin: 0; line-height: 1.3; }
-#edit-total { display: flex; align-items: baseline; gap: 5px; min-height: 44px; white-space: nowrap; }
-#edit-total > span { font-size: 12px; color: var(--muted); }
-#edit-total strong { font-size: 18px; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
-#edit-total .icon { width: 14px; height: 14px; }
 .ruler-section { margin-bottom: 25px; }
 .ruler { height: 144px; position: relative; user-select: none; -webkit-user-select: none; }
 .ruler-scroll { position: absolute; inset: 32px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
@@ -137,8 +223,6 @@ input::placeholder { color: var(--muted); font-size: 17px; font-weight: 400; }
 .distance-input input { color: var(--accent); font-variant-numeric: tabular-nums; }
 .distance-input select { border: 0; border-radius: 10px; background: var(--control); color: var(--ink); padding: 10px; font-size: 16px; }
 .position-editor { margin-bottom: 20px; }
-.total-input .distance-input input { font-size: 40px; }
-.total-input .distance-input > span { font-size: 20px; color: var(--accent); }
 .muted { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .help-sheet { max-height: 88dvh; }
 .help-body { font-size: 13px; line-height: 1.8; }
@@ -169,6 +253,19 @@ dt { color: var(--muted); margin-top: 12px; }
 dd { margin-left: 0; overflow-wrap: anywhere; }
 #replace-draft { margin-top: 20px; }
 @keyframes sheet-arrive { from { transform: translateY(35%); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
-@media (max-width: 359px) { .masthead { padding-inline: 18px; } main, .dock-content { padding-inline: 18px; } h1 { font-size: 30px; } .plan-heading { gap: 6px; } #edit-total strong { font-size: 16px; } .ruler-controls { font-size: 10px; } .ruler-controls button { min-width: 34px; } .fuel-hero { gap: 16px; } .sheet-body { padding-inline: 18px; } .add-fuel { gap: 4px; padding-inline: 10px; } }
+@media (max-height: 780px) {
+  .library-sheet { --plan-row: 36px; --plan-header: 40px; --calendar-day: 28px; }
+  .plan-sections button { min-height: 34px; }
+  .plan-name-field input { padding-block: 8px; font-size: 16px; }
+  .calendar-heading button { min-height: 30px; }
+  .calendar-grid th { height: 18px; }
+  .plan-calendar { padding-bottom: 4px; }
+  .library-sheet .library-save { min-height: 42px; padding-block: 10px; margin-top: 12px; }
+}
+.library-sheet.keyboard-open { --plan-row: 32px; --plan-header: 36px; }
+.library-sheet.keyboard-open .sheet-grabber { display: none; }
+.library-sheet.keyboard-open .plan-sections button { min-height: 32px; }
+.library-sheet.keyboard-open .plan-name-field input { padding-block: 6px; }
+@media (max-width: 359px) { .masthead { padding-inline: 18px; } main, .dock-content { padding-inline: 18px; } h1 { font-size: 30px; } .plan-meta { font-size: 12px; } .plan-sections { margin-inline: 18px; } .calendar-grid button { width: 34px; height: 38px; } .ruler-controls { font-size: 10px; } .ruler-controls button { min-width: 34px; } .fuel-hero { gap: 16px; } .sheet-body { padding-inline: 18px; } .add-fuel { gap: 4px; padding-inline: 10px; } }
 @media (min-width: 700px) { .masthead { padding-top: 28px; } main { padding-top: 32px; } .sheet { margin-bottom: 20px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } .stop.removing .fuel-art { transform: none; } }
