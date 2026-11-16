@@ -19,6 +19,7 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
   const $ = id => document.getElementById(id), dialog = $('route-dialog');
   const elevationChart = new ElevationChart($('route-elevation'), $('elevation-controls'), $('elevation-range'));
   let provider = null, api = null, session = null, request = null, serial = 0, targetID = null, selected = null, page = 1, keyword = '', mode = 'sources', loginMethod = 'password';
+  let connectionOnly = null, connectedSession = null;
   const notice = text => { $('route-notice').textContent = text; $('route-notice').hidden = !text; };
   function cancel() {
     serial++; request?.abort(); request = null; dialog.setAttribute('aria-busy', 'false');
@@ -28,13 +29,13 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     mode = nextMode;
     if (mode !== 'detail') elevationChart.clear();
     for (const name of ['sources', 'connect', 'browse', 'detail']) $(`route-${name}`).hidden = name !== mode;
-    const sources = mode === 'sources', disconnect = !sources && !!session;
+    const sources = mode === 'sources', root = sources || !!connectionOnly, disconnect = !root && !!session;
     $('route-disconnect').hidden = !disconnect;
-    $('route-close').hidden = sources || disconnect;
-    $('route-header-space').hidden = !sources;
-    $('route-nav-label').hidden = sources;
-    $('route-nav').querySelector('[data-icon]').innerHTML = sources ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' : '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>';
-    $('route-nav').setAttribute('aria-label', sources ? '关闭路线库' : '返回路线库');
+    $('route-close').hidden = root || disconnect;
+    $('route-header-space').hidden = !root;
+    $('route-nav-label').hidden = root;
+    $('route-nav').querySelector('[data-icon]').innerHTML = root ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' : '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>';
+    $('route-nav').setAttribute('aria-label', connectionOnly ? '取消 iGPSPORT 连接' : sources ? '关闭路线库' : '返回路线库');
     $('route-title').textContent = sources ? '路线库' : mode === 'detail' ? '路线详情' : provider.name;
     dialog.scrollTop = 0;
   }
@@ -69,7 +70,9 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     cancel(); notice('');
     const previous = provider?.id === item.id ? session : null;
     provider = item; api = item.createClient(); session = loadSession(storage, item.sessionKey) ?? validSession(previous);
-    $('route-login-caption').textContent = item.caption; $('route-browse-caption').textContent = item.caption;
+    $('route-login-caption').textContent = connectionOnly ? 'iGPSPORT 账号' : item.caption; $('route-browse-caption').textContent = item.caption;
+    $('route-login-title').textContent = connectionOnly ? '连接后读取个人档案' : '连接你的路书库';
+    $('route-login').textContent = connectionOnly ? '登录并读取档案' : '登录并查找路线';
     resetSearch(); connectedView(); if (!session) selectLoginMethod('password');
   }
   function resetSearch() {
@@ -105,8 +108,10 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     return false;
   }
   function loggedIn(value) {
-    session = value; clearPassword(); resetSearch(); view('browse');
-    notice(storeSession(storage, session, provider.sessionKey));
+    session = value; clearPassword();
+    const warning = storeSession(storage, session, provider.sessionKey);
+    if (connectionOnly) { connectedSession = session; dialog.close(); return; }
+    resetSearch(); view('browse'); notice(warning);
   }
   function clearPassword() {
     $('route-login-form').reset(); $('route-password').type = 'password';
@@ -223,7 +228,7 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     });
   }
   $('route-qr-refresh').addEventListener('click', startQR);
-  $('route-nav').addEventListener('click', () => { if (mode === 'sources') dialog.close(); else { clearPassword(); sourcesView(); } });
+  $('route-nav').addEventListener('click', () => { if (mode === 'sources' || connectionOnly) dialog.close(); else { clearPassword(); sourcesView(); } });
   $('route-close').addEventListener('click', () => dialog.close());
   $('route-saved').addEventListener('click', () => {
     const route = current()?.route; if (!route) return;
@@ -251,5 +256,18 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
   dialog.addEventListener('close', () => {
     cancel(); elevationChart.clear(); selected = null; clearPassword(); $('route-qr-image').replaceChildren(); dialog.setAttribute('aria-busy', 'false');
     $('route-login').disabled = false; $('route-search').disabled = false;
+    if (connectionOnly) {
+      const resolve = connectionOnly, value = connectedSession;
+      connectionOnly = null; connectedSession = null;
+      requestAnimationFrame(() => resolve(value));
+    }
   });
+  return {
+    connect() {
+      return new Promise(resolve => {
+        connectionOnly = resolve; connectedSession = null;
+        enterProvider(routeProviders[0]); view('connect'); selectLoginMethod('password'); openSheet(dialog);
+      });
+    },
+  };
 }

@@ -1,5 +1,6 @@
 import { routeID, routeSummary, routeDetail } from './routes.mjs';
 import { ConnectionExpired, validSession, tokenExpiry } from './route-session.mjs';
+import { profileFromIGPSPORT } from './profile.mjs';
 
 export const apiOrigin = 'https://prod.zh.igpsport.com';
 export const sessionKey = 'kairos.web.igpsport.cn.v1';
@@ -69,5 +70,20 @@ export class IGPSPORT {
     if (!validSession(session, Date.now())) throw new ConnectionExpired();
     const data = await this.request(`/service/web/api/Routes/DetailsRoutesWeb?routeId=${routeID(id)}`, { token: session.token, signal });
     return routeDetail(id, data);
+  }
+  async profile(session, signal) {
+    if (!validSession(session, Date.now())) throw new ConnectionExpired();
+    const data = await this.request('/service/mobile/api/User/UserInfo', { token: session.token, signal });
+    const profile = profileFromIGPSPORT(data); let message = '';
+    if (profile.ftpWatts === null) {
+      try {
+        const interval = await this.request('/service/mobile/api/v2/User/UserIntervalInfo', { token: session.token, signal });
+        profile.ftpWatts = profileFromIGPSPORT({ ftp: interval.member?.ftp ?? interval.ftp }).ftpWatts;
+      } catch (error) {
+        if (error.name === 'AbortError' || error instanceof ConnectionExpired) throw error;
+        message = 'FTP 暂未能读取，可留空或手动填写。';
+      }
+    }
+    return { profile, message };
   }
 }

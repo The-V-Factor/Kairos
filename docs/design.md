@@ -4,6 +4,30 @@
 
 当前实现采用已确认的标题内联与「补给主角」底部轻面板：全程数字使用鲜明且高对比的皮肤强调色；选中补给物件放大，与提醒并排，下方用小图标和文字切换类型。候选稿与参考依据见上述文档。
 
+## 个人档案（2026-11-16，Issue #14）
+
+![已确认的个人档案与导入核对提案，示例数据](assets/design-references/web-profile-v1.png)
+
+这张是用户确认的档案表单生成稿，不是接口成功截图。独立入口采用用户确认的 C 方案，并将顶部三点换成人像：顶栏保留换肤、历史，最右为人像按钮，点击展开只有「个人档案」「使用说明」两项的轻菜单；计划编辑面板移除档案入口。档案属于当前浏览器，由各计划共用，不附着在某份计划内。没有计划时也可进入，保存或取消后回到首页。
+
+菜单采用浏览器原生 Popover，定位在人像按钮下方，支持点外部、Esc 关闭；键盘可用方向键、Home／End 选择项目。打开档案或帮助时先收起菜单；滚动或窗口尺寸改变时关闭，避免浮层与按钮脱离。原生行为依据 [Popover 使用说明](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)。
+
+![人像按钮下的独立菜单，实际本地页面](assets/screenshots/web-profile-menu.png)
+
+只填写性别、年龄（岁）、身高（cm）、体重（kg）、FTP（W）；默认全部为空，均可不填，FTP 不设猜测值。年龄为 0–150 的整数；身高、体重为正数、最多一位小数，FTP 为正整数。这些是输入约束，不是补给计算公式。点击已选性别可取消选中。保存到独立 `kairos.web.profile.v1`；不修改既有计划、补给点、导出历史或训练文件。存储不可用时显示临时使用提示；损坏或未知版本的原数据不自动覆盖。
+
+iGPSPORT 读取沿用路书连接。未连接时关闭档案面板后复用同一密码／扫码登录，成功或取消后返回原档案草稿；不另存密码。读取只用 GET，不写回 iGPSPORT。核对页显示当前值与读到的值，默认勾选不同的有效字段；相同或未提供的项不更新。确认仅填入草稿，仍需保存档案才生效，取消任一步都保留原值。关闭面板中止读取，晚到响应不能覆盖草稿。
+
+接口与映射依据：[iGPSPORT Go 客户端 UserInfo 模型](https://github.com/NenoSann/igpsport_sync/blob/52b0087a96c1c177d87cdf74167b493dcbad8bb2/type.go)、[个人资料读写模型](https://github.com/KirillSugonyakin/intervalssync/blob/7f2e6cc60aa95b6a12e97336f6588af6af0ee0b9/src/intervalssync/igpsport/interval_info.py)、[性别和公制映射说明](https://github.com/KirillSugonyakin/igpsport-intervals-relay/blob/main/docs/reference/igpsport-intervals-api-reference.md)。`/service/mobile/api/User/UserInfo` 的 `sex` 1/2 映射男/女，`height`、`weight` 为存储的 cm/kg，不根据显示偏好做猜测换算；生日仅换算当日年龄，不保留原生日。FTP 未提供时尝试 `/service/mobile/api/v2/User/UserIntervalInfo` 的 `member.ftp`；补读失败仍可核对其他字段。无效、零值或缺失的正数字段留空，未知性别不猜测。原始账号资料、联系方式、头像和其他训练指标不保存。
+
+当前不加入自动补给算法、历史骑行分析或云同步。浏览器合成接口回归与真实账号导入分别记录，不把模拟成功当成真实接口验收。
+
+| 本地填写页 | 本地导入核对页（合成资料） |
+| --- | --- |
+| ![个人档案填写页](assets/screenshots/web-profile-editor.png) | ![导入前逐项核对](assets/screenshots/web-profile-review.png) |
+
+本地验证：83 项 Node 测试通过；`web/test/profile-browser.html` 在独立端口 8832 使用模拟接口和合成资料，27 项检查覆盖独立菜单、没有计划仍可打开档案、帮助入口、初始空值、保存／取消、两个登录入口、逐项填入、请求取消和计划数据隔离。实际键盘验证方向键、Home／End、Esc，点外部可关闭菜单并恢复正常浏览；320 px 窄屏下五套皮肤菜单均不越界。真实账号仅在前一轮只读验证，五项均进入核对页后取消，未保存、未输出具体数值；不将账号数据写入测试夹具或截图。402×700 视口五套皮肤填写页均为 583 px、无纵向溢出，核对页为 566 px；原计划月历 518 px、公里滚轮 537 px 仍无溢出。上述为本地浏览器尺寸和接口验收记录；线上发布以提交关联的 Cloudflare Pages 检查为准，真机软键盘仍需单独验收。
+
 ## 路线库与提供商登录（2026-11-16，Issue #14）
 
 用户已确认的层级：标题区域的「选择路线」→ 通用路线库 → iGPSPORT 中国站 → 账号密码／扫码登录 → 同一个路书搜索列表 → 路线预览。路线来源目前只展示 iGPSPORT 一行，不放尚未接入的服务商占位卡片。提供商目录与各自的接口适配分开；搜索与路线预览使用统一数据，后续接入新的来源不改首页入口。

@@ -17,6 +17,7 @@ const icons = {
   chevron: '<path d="m9 5 7 7-7 7"/>',
   arrow: '<path d="M5 19 19 5M6 5h13v13"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .5-1.5 1-1.5 2M12 17h.01"/>',
+  person: '<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2H4Z"/>',
   watch: '<rect x="6" y="5" width="12" height="14" rx="4"/><path d="m9 5 1-3h4l1 3M9 19l1 3h4l1-3M19 10v4"/>',
   minus: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6"/>',
   zoom: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/>',

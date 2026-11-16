@@ -71,6 +71,24 @@ test('an empty China route search may omit items only when total is explicitly z
   for (let i = 0; i < 3; i++) await assert.rejects(api.search(session, 'test'), /列表格式/);
 });
 
+test('profile import reads only private GET endpoints, falls back to configured FTP, and returns only five fields', async () => {
+  const { api, calls } = mockAPI([reply({ sex: 1, height: 178, weight: 68.5, ftp: 0, phone: 'not-retained' }), reply({ member: { ftp: 235, lthr: 170 } })]);
+  const result = await api.profile(session);
+  assert.equal(result.profile.ftpWatts, 235); assert.equal(result.profile.weightKg, 68.5);
+  assert.equal(result.profile.sex, 'male'); assert.equal(Object.keys(result.profile).length, 5);
+  assert.ok(!JSON.stringify(result).includes('phone') && !JSON.stringify(result).includes('lthr'));
+  assert.deepEqual(calls.map(call => call.url.pathname), ['/service/mobile/api/User/UserInfo', '/service/mobile/api/v2/User/UserIntervalInfo']);
+  assert.ok(calls.every(call => call.method === 'GET' && call.headers.Authorization === `Bearer ${token}`));
+});
+test('missing or unavailable FTP stays blank without dropping other imported fields', async () => {
+  const { api, calls } = mockAPI([reply({ weight: 70, ftp: 250 }), reply({ height: 178 }), new Response('', { status: 403 })]);
+  assert.equal((await api.profile(session)).profile.ftpWatts, 250);
+  assert.equal(calls.length, 1);
+  const partial = await api.profile(session); assert.equal(partial.profile.heightCm, 178); assert.equal(partial.profile.ftpWatts, null); assert.ok(partial.message);
+  const expired = mockAPI([reply({ height: 178 }), new Response('', { status: 401 })]);
+  await assert.rejects(expired.api.profile(session), ConnectionExpired);
+});
+
 test('QR handshake uses a caller-generated device identity and only returns token after app confirmation', async () => {
   const { api, calls } = mockAPI([
     reply({ oauthKey: 'demo-key', platform: 'web', type: 'analyzeWebLogin' }),

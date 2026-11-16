@@ -20,6 +20,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .masthead { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 600px; margin: auto; padding: max(16px, env(safe-area-inset-top)) 24px 8px; }
 .wordmark { color: inherit; text-decoration: none; font-size: 13px; font-weight: 900; letter-spacing: 3px; }
 .masthead-actions { display: flex; align-items: center; gap: 6px; }
+.account-menu { position: fixed; inset: auto; width: 190px; max-width: calc(100vw - 16px); margin: 0; padding: 5px; overflow: visible; border: 1px solid var(--input-line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 12px 32px rgb(0 0 0 / .18); }
+.account-menu::before { content: ''; position: absolute; top: -5px; right: 17px; width: 8px; height: 8px; transform: rotate(45deg); background: var(--surface); border-top: 1px solid var(--input-line); border-left: 1px solid var(--input-line); }
+.account-menu::backdrop { background: transparent; }
+.account-menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 11px; font-size: 14px; text-align: left; }
+.account-menu button:hover, .account-menu button:focus-visible { background: var(--selected); }
+.account-menu button:focus-visible { outline-offset: -2px; }
+.account-menu .icon { width: 20px; height: 20px; }
 .theme-badge { display: flex; align-items: center; gap: 8px; border-radius: 28px; padding: 11px 14px; background: var(--surface); font-size: 13px; font-weight: 600; }
 .theme-badge .icon { width: 18px; height: 18px; }
 @media (max-width: 359px) {
@@ -231,6 +238,55 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .library-sheet.keyboard-open .plan-tools, .library-sheet.keyboard-open #plan-form > .fine-print { display: none; }
 .plan-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .plan-tools button { min-height: 44px; font-size: 12px; color: var(--accent); }
+.profile-sheet .sheet-header h2 { color: var(--ink); }
+.profile-sheet .sheet-body { padding: 4px 24px 18px; }
+.profile-intro { margin: 0 0 18px; text-align: center; }
+.profile-import { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 76px; padding: 12px 0; border-block: 1px solid var(--input-line); text-align: left; }
+.profile-import > .icon { flex: 0 0 24px; }
+.profile-import > span:nth-child(2) { flex: 1; }
+.profile-import strong, .profile-import small { display: block; }
+.profile-import strong { font-size: 15px; font-weight: 600; }
+.profile-import small { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.profile-import > span:last-child .icon { width: 16px; height: 16px; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.profile-field, .profile-sex { min-width: 0; margin: 0; padding: 16px 0; border: 0; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.profile-field:nth-child(even) { padding-left: 20px; }
+.profile-sex { padding-top: 16px; }
+.profile-sex legend { float: left; width: 100%; margin-bottom: 10px; padding: 0; }
+.profile-sex > div { display: flex; clear: both; padding-right: 16px; }
+.profile-sex button { flex: 1; min-height: 44px; border: 1px solid var(--input-line); color: var(--ink); font-size: 14px; }
+.profile-sex button:first-child { border-radius: 10px 0 0 10px; }
+.profile-sex button:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }
+.profile-sex button[aria-pressed="true"] { position: relative; z-index: 1; color: var(--accent); border-color: var(--accent); background: var(--selected); }
+.profile-field > span { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; }
+.profile-field input { min-width: 0; padding: 0; border: 0; font-size: 27px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; }
+.profile-field input::placeholder { font-size: 23px; color: var(--muted); }
+.profile-field small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.profile-ftp { grid-column: 1 / -1; }
+.profile-ftp > small { display: block; font-size: 11px; margin-top: 10px; line-height: 1.6; }
+.profile-footnote { margin: 18px 0; }
+.profile-sheet .primary { justify-content: center; min-height: 48px; padding: 12px 16px; border-radius: 18px; font-size: 15px; }
+.profile-source { display: flex; align-items: center; gap: 16px; margin: 0 0 20px; }
+.profile-source span { padding-left: 16px; border-left: 1px solid var(--line); }
+#profile-review h3 { font-size: 22px; margin: 0 0 8px; }
+#profile-review > .muted { margin-top: 0; }
+.profile-review-fields { margin-top: 18px; border-top: 1px solid var(--line); }
+.profile-review-row { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; cursor: pointer; }
+.profile-review-row input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.profile-review-row > span:nth-last-child(2) { color: var(--muted); }
+.profile-review-row strong { margin-left: auto; font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.profile-review-row small { color: var(--muted); font-size: 11px; }
+.profile-review-row.unchanged { cursor: default; }
+.profile-review-row.unchanged strong { margin: 0 auto; color: var(--ink); font-weight: 500; }
+.profile-review-row.unchanged small { padding: 3px 7px; border-radius: 10px; background: var(--control); }
+@media (max-height: 740px) {
+  .profile-intro { margin-bottom: 12px; }
+  .profile-import { min-height: 64px; }
+  .profile-field, .profile-sex { padding-block: 12px; }
+  .profile-footnote { margin-block: 12px; }
+  .profile-source { margin-bottom: 14px; }
+  .profile-review-row { min-height: 48px; }
+}
 .plan-tools .delete-in-editor { margin: 0; padding: 0; width: auto; color: var(--danger); border: 0; }
 .library-sheet .secondary, .no-plan .secondary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid var(--input-line); border-radius: 14px; color: var(--accent); font-size: 14px; font-weight: 600; }
 .library-sheet .library-save { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }

@@ -1,0 +1,92 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>个人档案浏览器回归</title>
+<style>body{background:#141614;color:#f7f8eb;font:14px system-ui}button{padding:12px}iframe{display:block;width:402px;height:700px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run" disabled>运行个人档案回归</button><pre id="results" role="status">仅在独立端口 8832 运行，使用合成资料与模拟接口，不读取真实账号。</pre><iframe title="测试页面"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'), output=document.querySelector('#results'), run=document.querySelector('#run');
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function until(check){const end=Date.now()+4000;while(!check()){if(Date.now()>end)throw Error('等待页面状态超时');await wait(20);}}
+if(location.port==='8832'){
+ const html=await(await fetch('../index.html')).text();
+ const stub=`
+ localStorage.removeItem('kairos.web.profile.v1');localStorage.removeItem('kairos.web.igpsport.cn.v1');
+ window.profileTest={mode:'ok',aborts:0,calls:[]};
+ const nativeFetch=window.fetch.bind(window);
+ window.fetch=async(url,options={})=>{
+  if(!String(url).startsWith('https://prod.zh.igpsport.com/'))return nativeFetch(url,options);
+  const path=new URL(url).pathname, test=window.profileTest;test.calls.push({path,method:options.method});
+  const reply=(data,status=200)=>new Response(JSON.stringify({code:0,data}),{status,headers:{'Content-Type':'application/json'}});
+  if(path.endsWith('/account/login'))return reply({access_token:'synthetic-profile-test-token'});
+  if(path.endsWith('/scan/createQr'))return reply({oauthKey:'synthetic-qr-key',platform:'web',type:'analyzeWebLogin'});
+  if(path.endsWith('/scan/queryQr'))return reply({qr_status:'verified',access_token:'synthetic-profile-test-token'});
+  if(path.endsWith('/UserInfo')){
+   if(test.mode==='expired'){test.mode='ok';return new Response('',{status:401});}
+   if(test.mode==='pending')return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>{test.aborts++;reject(new DOMException('Aborted','AbortError'));},{once:true}));
+   return reply({sex:1,birthDate:(new Date().getFullYear()-29)+'-01-01',height:178,weight:68.5,ftp:0,phone:'must-not-be-stored',nickName:'must-not-be-stored'});
+  }
+  if(path.endsWith('/UserIntervalInfo'))return reply({member:{ftp:235,mhr:190}});
+  if(path.includes('/RouteListForWeb'))return reply({total:0});
+  return new Response('',{status:404});
+ };`;
+ frame.srcdoc=html.replace('<head>','<head><base href="'+new URL('../',location.href)+'"><script>'+stub+'<'+'/script>');
+ await until(()=>frame.contentDocument.querySelector('.stop'));run.disabled=false;
+}
+run.addEventListener('click',async()=>{
+ run.disabled=true;const checks=[], doc=frame.contentDocument, win=frame.contentWindow, $=id=>doc.getElementById(id);
+ const assert=(value,message)=>{if(!value)throw Error(message);checks.push('PASS '+message);};
+ const stored=()=>JSON.parse(win.localStorage.getItem('kairos.web.profile.v1'));
+ const open=async()=>{$('account').click();$('profile-entry').click();await until(()=>$('profile-dialog').open);};
+ const closed=()=>!$('profile-dialog').open&&doc.body.style.position!=='fixed';
+ const back=async()=>{$('profile-nav').click();await until(closed);};
+ try{
+  const planBefore=win.localStorage.getItem('kairos.web.library.v1');
+  $('account').click();await until(()=>$('account-menu').matches(':popover-open'));
+  assert(doc.querySelectorAll('#account-menu [role="menuitem"]').length===2,'人像菜单仅含个人档案和使用说明');
+  assert(!doc.querySelector('#library-dialog #profile-entry'),'个人档案入口已移出计划面板');
+  $('profile-entry').click();await until(()=>$('profile-dialog').open);
+  assert(!$('account-menu').matches(':popover-open'),'进入档案前收起菜单');
+  assert([...doc.querySelectorAll('#profile-form input')].every(input=>input.value===''),'首次档案为空，不把示例数据当默认值');
+  assert($('profile-dialog').scrollHeight===$('profile-dialog').clientHeight,'402×700 填写页无需纵向滚动');
+  doc.querySelector('[data-profile-sex="male"]').click();
+  for(const [id,value] of Object.entries({'profile-age':'29','profile-height':'178','profile-weight':'70.0'}))$(id).value=value;
+  $('profile-form').requestSubmit();await until(closed);
+  assert(stored().ageYears===29&&stored().ftpWatts===null,'手动保存五项，FTP 可留空');
+  assert(!$('library-dialog').open,'保存后返回首页，不进入计划面板');
+  const savedBefore=JSON.stringify(stored());await open();$('profile-age').value='31';await back();
+  assert(JSON.stringify(stored())===savedBefore,'取消编辑不改原档案');
+  await open();assert($('profile-age').value==='29','重新打开读取已保存值');
+  $('profile-import').click();await until(()=>$('route-dialog').open);
+  assert($('route-login').textContent==='登录并读取档案'&&$('route-nav-label').hidden,'复用连接面板，使用档案语境');
+  $('route-username').value='synthetic@example.invalid';$('route-password').value='synthetic-password';$('route-login-form').requestSubmit();
+  await until(()=>$('profile-dialog').open&&!$('profile-review').hidden);
+  assert($('profile-dialog').scrollHeight===$('profile-dialog').clientHeight,'402×700 核对页无需纵向滚动');
+  assert(doc.querySelectorAll('#profile-review-fields input:checked').length===2,'导入只默认选中不同的有效字段');
+  assert(JSON.stringify(stored())===savedBefore,'读取及预览不会提前写入档案');
+  doc.querySelector('#profile-review-fields input[value="weightKg"]').click();$('profile-apply').click();
+  assert($('profile-weight').value==='70.0'&&$('profile-ftp').value==='235','仅填入勾选的 FTP，保留手动体重');
+  assert(JSON.stringify(stored())===savedBefore,'确认填入仍是草稿');await back();
+  assert(JSON.stringify(stored())===savedBefore,'填入后取消，原档案仍保留');
+  await open();$('profile-import').click();await until(()=>!$('profile-review').hidden);$('profile-apply').click();$('profile-form').requestSubmit();await until(closed);
+  assert(stored().weightKg===68.5&&stored().ftpWatts===235,'再次导入并保存应用两项更新');
+  assert(Object.keys(stored()).length===6&&!JSON.stringify(stored()).includes('birthDate')&&!JSON.stringify(stored()).includes('phone'),'只保存版本和五项，不存原始资料');
+  await open();win.profileTest.mode='expired';$('profile-import').click();await until(()=>$('profile-notice').textContent.includes('过期'));
+  assert(JSON.parse(win.localStorage.getItem('kairos.web.igpsport.cn.v1'))===null,'过期后清除失效连接');
+  $('profile-import').click();await until(()=>$('route-dialog').open);$('route-nav').click();await until(()=>$('profile-dialog').open);
+  assert($('profile-weight').value==='68.5','取消重新连接后回到原草稿');
+  $('profile-import').click();await until(()=>$('route-dialog').open);$('route-username').value='synthetic@example.invalid';$('route-password').value='synthetic-password';$('route-login-form').requestSubmit();await until(()=>$('profile-dialog').open&&!$('profile-review').hidden);
+  $('profile-nav').click();win.profileTest.mode='pending';$('profile-import').click();await until(()=>$('profile-dialog').getAttribute('aria-busy')==='true');await back();await until(()=>win.profileTest.aborts>0);
+  assert(win.profileTest.aborts===1,'关闭面板中止读取，不发生后台覆盖');
+  assert(win.localStorage.getItem('kairos.web.library.v1')===planBefore,'档案编辑不修改补给计划和导出历史');
+  await wait(40);$('route').click();await wait(40);doc.querySelector('.route-source').click();
+  assert(!$('route-browse').hidden,'路书连接仍正常，复用档案登录会话');$('route-dialog').close();
+  await wait(40);win.profileTest.mode='ok';win.localStorage.removeItem('kairos.web.igpsport.cn.v1');await open();$('profile-import').click();await until(()=>$('route-dialog').open);$('route-qr-tab').click();await until(()=>$('profile-dialog').open&&!$('profile-review').hidden);
+  assert(!$('route-dialog').open,'扫码连接也返回档案核对，不进入路书搜索');$('profile-nav').click();await back();
+  assert(win.profileTest.calls.filter(call=>call.path.endsWith('/UserInfo')||call.path.endsWith('/UserIntervalInfo')||call.path.includes('/RouteListForWeb')).every(call=>call.method==='GET'),'个人档案与路书只读取，不写回提供商');
+  await wait(40);$('account').click();$('help').click();await until(()=>$('help-dialog').open);
+  assert(!$('account-menu').matches(':popover-open'),'菜单里的使用说明正常打开，菜单同时收起');$('help-dialog').querySelector('[data-close]').click();await wait(40);
+  $('library').click();$('delete-plan').click();await until(()=>!$('no-plan').hidden);await wait(40);await open();
+  assert($('profile-dialog').open&&!$('no-plan').hidden,'没有骑行计划时仍可独立打开个人档案');await back();$('undo').click();
+  output.textContent=checks.join('\n')+'\nAll '+checks.length+' checks passed.';
+ }catch(error){output.textContent=checks.join('\n')+'\nFAIL '+error.message;}
+ finally{win.profileTest.mode='ok';run.disabled=false;}
+});
+</script></html>

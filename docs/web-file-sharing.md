@@ -73,7 +73,7 @@ rtk proxy node --test web/test/*.test.mjs
 rtk proxy node tools/package-web.mjs
 ```
 
-打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，当前包含 31 个发布文件，排除测试和工具源码。也可传入新目录，例如 Git 集成使用 `node tools/package-web.mjs dist`。预构建目录上传方式无需另执行构建；Git 集成的构建参数详见 Pages 文档。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
+打包工具输出一个新建的 `/private/tmp/kairos-file-share-<时间>/` 目录，当前包含 33 个发布文件，排除测试和工具源码。也可传入新目录，例如 Git 集成使用 `node tools/package-web.mjs dist`。预构建目录上传方式无需另执行构建；Git 集成的构建参数详见 Pages 文档。`_headers` 设置 CSP 和 `web-share=(self)` 等策略；保留该文件及 NOTICE。
 
 `127.0.0.1` 是访问设备自身：Mac 和模拟器可用本机预览，真实 iPhone 不能用这个地址访问 Mac。局域网普通 HTTP 不满足 Web Share 安全环境要求，真机用实际 HTTPS 地址；不要通过忽略证书警告作为验证步骤。
 

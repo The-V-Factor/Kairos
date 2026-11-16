@@ -14,8 +14,9 @@
     <div id="app">
       <header class="masthead">
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
-        <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="help" class="icon-button" type="button" aria-label="使用说明"><span data-icon="help"></span></button></div>
+        <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="account" class="icon-button" type="button" aria-label="个人菜单" title="个人菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" popovertarget="account-menu"><span data-icon="person"></span></button></div>
       </header>
+      <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>使用说明</button></div>
       <main>
         <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button></section>
         <section id="no-plan" class="no-plan" hidden><p class="eyebrow">A NEW RIDE</p><h1>下一趟，去哪里？</h1><p class="muted">先留一个名字，再安排沿途的补给。</p><button id="first-plan" class="secondary" type="button">创建计划</button></section>
@@ -103,7 +104,7 @@
           <p class="fine-print muted route-source-hint">路线用于本次计划，补给点保持原位。</p>
         </div>
         <div id="route-connect" hidden>
-          <p id="route-login-caption" class="muted">中国站路书</p><h3>连接你的路书库</h3>
+          <p id="route-login-caption" class="muted">中国站路书</p><h3 id="route-login-title">连接你的路书库</h3>
           <div class="route-login-tabs" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
           <form id="route-login-form" role="tabpanel" aria-labelledby="route-password-tab">
             <label>手机号／邮箱<input id="route-username" type="text" placeholder="输入 iGPSPORT 账号" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
@@ -143,6 +144,33 @@
           <p class="fine-print muted route-detail-note">采用路线距离，已有补给保持原位。</p>
           <button id="route-use" class="primary" type="button">使用这条路线</button>
           <button id="route-remove" class="delete-in-editor" type="button" aria-label="移除路线，保留全程与补给" hidden>移除路线</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="profile-dialog" class="sheet profile-sheet" aria-labelledby="profile-title">
+      <div class="sheet-grabber" aria-hidden="true"><i></i></div>
+      <div class="sheet-header"><button id="profile-nav" class="icon-button" type="button" aria-label="关闭个人档案"><span data-icon="close"></span></button><h2 id="profile-title">个人档案</h2><span class="header-spacer"></span></div>
+      <div class="sheet-body">
+        <p id="profile-notice" class="notice" role="status" hidden></p>
+        <form id="profile-form" novalidate>
+          <p class="profile-intro muted">只保存在此浏览器，可随时修改。</p>
+          <button id="profile-import" class="profile-import" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5m8-5v5M6 8h12v4a6 6 0 0 1-12 0V8Zm6 10v4"/></svg><span><strong>从 iGPSPORT 读取</strong><small id="profile-connection">连接后先核对，再填入</small></span><span data-icon="chevron"></span></button>
+          <div class="profile-grid">
+            <fieldset class="profile-sex"><legend>性别</legend><div><button type="button" data-profile-sex="male" aria-pressed="false">男</button><button type="button" data-profile-sex="female" aria-pressed="false">女</button></div></fieldset>
+            <label class="profile-field" for="profile-age">年龄<span><input id="profile-age" type="text" inputmode="numeric" autocomplete="off" placeholder="未填写" maxlength="3"><small>岁</small></span></label>
+            <label class="profile-field" for="profile-height">身高<span><input id="profile-height" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>cm</small></span></label>
+            <label class="profile-field" for="profile-weight">体重<span><input id="profile-weight" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>kg</small></span></label>
+            <label class="profile-field profile-ftp" for="profile-ftp">FTP<span><input id="profile-ftp" type="text" inputmode="numeric" autocomplete="off" placeholder="暂不清楚" maxlength="8"><small>W</small></span><small>可留空，不影响手动安排补给。</small></label>
+          </div>
+          <p class="fine-print muted profile-footnote">修改档案不会重算已保存的计划。</p>
+          <button class="primary" type="submit">保存档案</button>
+        </form>
+        <div id="profile-review" hidden>
+          <p class="profile-source muted">iGPSPORT <span>刚刚读取</span></p><h3>选择要更新的项目</h3><p class="muted">先核对，再填入档案。</p>
+          <div id="profile-review-fields" class="profile-review-fields"></div>
+          <p class="fine-print muted">未勾选的项目保持原值。</p><p class="profile-footnote fine-print muted">确认只填入草稿，保存档案后生效。</p>
+          <button id="profile-apply" class="primary" type="button">确认填入</button>
         </div>
       </div>
     </dialog>

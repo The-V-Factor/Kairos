@@ -7,6 +7,7 @@ import { themes, loadTheme, storeTheme } from './themes.mjs';
 import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today, setRoute } from './library.mjs';
 import { PlanCalendar, KilometerWheel, shortDate } from './plan-controls.mjs';
 import { setupRoutePicker } from './route-picker.mjs';
+import { setupProfileEditor } from './profile-editor.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
@@ -347,7 +348,32 @@ $('zoom-in').addEventListener('click', () => ruler.changeZoom(2));
 $('zoom-out').addEventListener('click', () => ruler.changeZoom(.5));
 $('fit').addEventListener('click', () => { selectedID = null; updateSelection(); ruler.fit(); });
 
-$('help').addEventListener('click', () => openSheet($('help-dialog')));
+const accountMenu = $('account-menu');
+accountMenu.addEventListener('beforetoggle', event => {
+  if (event.newState !== 'open') return;
+  const rect = $('account').getBoundingClientRect();
+  accountMenu.style.top = `${rect.bottom + 8}px`;
+  accountMenu.style.right = `${document.documentElement.clientWidth - rect.right}px`;
+});
+accountMenu.addEventListener('toggle', event => {
+  $('account').setAttribute('aria-expanded', String(event.newState === 'open'));
+  if (event.newState === 'open') accountMenu.querySelector('[role="menuitem"]').focus({ preventScroll: true });
+});
+accountMenu.addEventListener('keydown', event => {
+  if (event.key === 'Tab') { accountMenu.hidePopover(); return; }
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const items = [...accountMenu.querySelectorAll('[role="menuitem"]')], index = items.indexOf(document.activeElement);
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+  items[next].focus();
+});
+$('account').addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown') { event.preventDefault(); accountMenu.showPopover(); }
+});
+const closeAccountMenu = () => { if (accountMenu.matches(':popover-open')) accountMenu.hidePopover(); };
+window.addEventListener('scroll', closeAccountMenu, { passive: true });
+window.addEventListener('resize', closeAccountMenu);
+$('help').addEventListener('click', () => { accountMenu.hidePopover(); openSheet($('help-dialog')); });
 $('theme').addEventListener('click', () => {
   if (sharing || removing.size) return;
   openSheet($('theme-dialog'));
@@ -565,7 +591,8 @@ $('copy').addEventListener('click', async () => {
   catch { message('result', '未能复制，请截图兼容性信息。'); }
 });
 message('storage-message', loaded.message);
-setupRoutePicker({ storage, current: () => activeEntry(library), openSheet, useRoute: (id, route) => changeLibrary(setRoute(library, id, route)) });
+const routePicker = setupRoutePicker({ storage, current: () => activeEntry(library), openSheet, useRoute: (id, route) => changeLibrary(setRoute(library, id, route)) });
+setupProfileEditor({ storage, openSheet, connect: () => routePicker.connect() });
 if (loaded.needsSave && writable) persist();
 render();
 // Restore the prepared file and enabled actions when returning through browser history.

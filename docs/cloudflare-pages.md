@@ -39,7 +39,7 @@ Git 集成和 Direct Upload 是不同的项目创建方式，不能直接互相�
 rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 ```
 
-打包白名单共 31 个文件，包含页面、编辑器、计划库、路书连接与海拔交互模块、图标及直接打开实验。新增的本地 D3／QR 组件随站点交付，并保留 `NOTICE.txt` 与 `vendor/d3-zoom.LICENSE.txt`；完整清单以 `tools/package-web.mjs` 为准。不包含测试页面、Node 测试、Swift 工具、依赖构建 lock 或本地签名配置。
+打包白名单共 33 个文件，包含页面、编辑器、计划库、个人档案、路书连接与海拔交互模块、图标及直接打开实验。新增的本地 D3／QR 组件随站点交付，并保留 `NOTICE.txt` 与 `vendor/d3-zoom.LICENSE.txt`；完整清单以 `tools/package-web.mjs` 为准。不包含测试页面、Node 测试、Swift 工具、依赖构建 lock 或本地签名配置。
 
 `open/worker.mjs` 是浏览器 Service Worker，不是 Cloudflare Worker。它只处理 `/open/` 中的本机测试文件地址，不接管计划页，也不上传计划。固定示例的响应头明确设置 `Content-Disposition: inline`；需要从真实 HTTPS 页面在 iPhone 上验证，不以本地 HTTP 模拟器结果推定线上行为。
 
