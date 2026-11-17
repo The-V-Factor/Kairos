@@ -41,6 +41,7 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .plan-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .plan-meta > span { white-space: nowrap; }
 .plan-meta strong { color: var(--accent); font-weight: 650; font-variant-numeric: tabular-nums; }
+.home-route-summary { margin: 8px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .route-entry { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; margin-top: 12px; border-block: 1px solid var(--line); color: var(--ink); font-size: 13px; text-align: left; }
 .route-entry > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .route-entry .icon { flex: 0 0 16px; width: 16px; height: 16px; }

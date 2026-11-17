@@ -15,11 +15,12 @@ function pause(ms, signal) {
   });
 }
 
-export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
+export function setupRoutePicker({ storage, current, openSheet }) {
   const $ = id => document.getElementById(id), dialog = $('route-dialog');
   const elevationChart = new ElevationChart($('route-elevation'), $('elevation-controls'), $('elevation-range'));
-  let provider = null, api = null, session = null, request = null, serial = 0, targetID = null, selected = null, page = 1, keyword = '', mode = 'sources', loginMethod = 'password';
-  let connectionOnly = null, connectedSession = null;
+  let provider = null, api = null, session = null, request = null, serial = 0, selected = null, page = 1, keyword = '', mode = 'sources', loginMethod = 'password';
+  let connectionOnly = null, connectedSession = null, selectionOnly = null;
+  const savedRoute = () => selectionOnly ? selectionOnly.route : current()?.route;
   const notice = text => { $('route-notice').textContent = text; $('route-notice').hidden = !text; };
   function cancel() {
     serial++; request?.abort(); request = null; dialog.setAttribute('aria-busy', 'false');
@@ -42,7 +43,7 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
   function connectedView() { view(session ? 'browse' : 'connect'); }
   function sourcesView() {
     cancel(); notice(''); view('sources');
-    const saved = current()?.route;
+    const saved = savedRoute();
     $('route-current').hidden = !saved; $('route-saved-name').textContent = saved?.title ?? '';
     if (saved) {
       const outline = previewLines(saved.points, saved.distanceMeters).outline, thumbnail = $('route-saved-outline');
@@ -200,12 +201,6 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     if (!$('route-notice').hidden && !request && !session) return;
     if (!$('route-notice').hidden) $('route-search-status').textContent = '未完成搜索，请重试。';
   }
-  $('route').addEventListener('click', () => {
-    const entry = current(); if (!entry) return;
-    cancel(); targetID = entry.plan.id; notice('');
-    clearPassword(); sourcesView();
-    openSheet(dialog);
-  });
   $('route-login-form').addEventListener('submit', event => {
     event.preventDefault();
     const username = $('route-username').value, password = $('route-password').value;
@@ -231,7 +226,7 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
   $('route-nav').addEventListener('click', () => { if (mode === 'sources' || connectionOnly) dialog.close(); else { clearPassword(); sourcesView(); } });
   $('route-close').addEventListener('click', () => dialog.close());
   $('route-saved').addEventListener('click', () => {
-    const route = current()?.route; if (!route) return;
+    const route = savedRoute(); if (!route) return;
     const item = routeProviders.find(item => item.id === route.source); if (!item) return;
     enterProvider(item); showDetail(route, true);
   });
@@ -248,14 +243,18 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     cancel(); session = null; resetSearch(); clearPassword(); connectedView(); selectLoginMethod('password'); notice(storeSession(storage, null, provider.sessionKey));
   });
   function apply(route) {
-    try { useRoute(targetID, route); dialog.close(); }
-    catch (error) { notice(error.message); dialog.scrollTop = 0; }
+    if (!selectionOnly) return;
+    selectionOnly.result = route; dialog.close();
   }
   $('route-use').addEventListener('click', () => { if (selected) apply(selected); });
   $('route-remove').addEventListener('click', () => apply(null));
   dialog.addEventListener('close', () => {
     cancel(); elevationChart.clear(); selected = null; clearPassword(); $('route-qr-image').replaceChildren(); dialog.setAttribute('aria-busy', 'false');
     $('route-login').disabled = false; $('route-search').disabled = false;
+    if (selectionOnly) {
+      const { resolve, result } = selectionOnly; selectionOnly = null;
+      requestAnimationFrame(() => resolve(result));
+    }
     if (connectionOnly) {
       const resolve = connectionOnly, value = connectedSession;
       connectionOnly = null; connectedSession = null;
@@ -263,6 +262,12 @@ export function setupRoutePicker({ storage, current, useRoute, openSheet }) {
     }
   });
   return {
+    pick(route = null) {
+      return new Promise(resolve => {
+        selectionOnly = { route, resolve, result: undefined };
+        clearPassword(); sourcesView(); openSheet(dialog);
+      });
+    },
     connect() {
       return new Promise(resolve => {
         connectionOnly = resolve; connectedSession = null;

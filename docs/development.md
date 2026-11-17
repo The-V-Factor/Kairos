@@ -2,7 +2,7 @@
 
 当前产品主线是纯 Web，无自有 Apple App 或开发者账号要求。已提供五套皮肤、本机多计划库与按骑行日期的导出历史；实现、运行和测试见 [网页说明](web-file-sharing.md)，发布见 [Cloudflare Pages](cloudflare-pages.md)。用户已确认骑行提醒闭环验收通过，不再以缺少旧检查表作为 Web 开发阻塞。
 
-后续顺序：[#14 路线与偏好输入](https://github.com/The-V-Factor/Kairos/issues/14) → [#15 可调整的自动计划](https://github.com/The-V-Factor/Kairos/issues/15)。[#16 华为兼容](https://github.com/The-V-Factor/Kairos/issues/16) 单独研究。仅使用浏览器存储，不引入云端同步或备份恢复；触感与 PWA 导入返回问题暂不继续投入。
+[#14 路线与档案输入](https://github.com/The-V-Factor/Kairos/issues/14) 已验收；[#15 可调整的自动计划与计算器](https://github.com/The-V-Factor/Kairos/issues/15) 在当前分支实现，模型、默认假设与验证方法见[静态补给模型](fueling-model.md)。[#16 华为兼容](https://github.com/The-V-Factor/Kairos/issues/16) 单独研究。仅使用浏览器存储，不引入云端同步或备份恢复；触感与 PWA 导入返回问题暂不继续投入。
 
 以下为保留的原生 iPhone 实验实现说明，不代表当前用户安装要求。
 

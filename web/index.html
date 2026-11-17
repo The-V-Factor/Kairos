@@ -8,6 +8,7 @@
     <link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="./themes.css">
+    <link rel="stylesheet" href="./fueling.css">
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
@@ -16,9 +17,9 @@
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
         <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="account" class="icon-button" type="button" aria-label="个人菜单" title="个人菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" popovertarget="account-menu"><span data-icon="person"></span></button></div>
       </header>
-      <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>使用说明</button></div>
+      <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><a href="./calculator.html" role="menuitem"><span data-icon="calculator"></span>补给计算器</a><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>使用说明</button></div>
       <main>
-        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button></section>
+        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><p id="home-route-summary" class="home-route-summary" hidden></p></section>
         <section id="no-plan" class="no-plan" hidden><p class="eyebrow">A NEW RIDE</p><h1>下一趟，去哪里？</h1><p class="muted">先留一个名字，再安排沿途的补给。</p><button id="first-plan" class="secondary" type="button">创建计划</button></section>
         <div id="ride-content">
         <section class="ruler-section" aria-label="浏览沿途补给">
@@ -74,11 +75,21 @@
       <div class="plan-sections" role="tablist" aria-label="计划管理"><button id="current-plan-tab" type="button" role="tab" aria-selected="true" aria-controls="plan-form">当前计划</button><button id="library-tab" type="button" role="tab" aria-selected="false" aria-controls="library-list-view">计划库</button></div>
       <div class="sheet-body">
         <p id="library-notice" class="notice" role="status" hidden></p>
+        <div id="plan-methods" role="tabpanel" aria-labelledby="current-plan-tab" hidden>
+          <p id="plan-method-context" class="fine-print"></p><h3>这趟补给，怎么安排？</h3>
+          <button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button>
+          <div class="plan-method-options">
+            <button id="plan-manual" type="button"><span class="plan-method-icon" data-icon="pencil"></span><span><strong>手动填写</strong><small>自己安排全程与沿途补给</small></span><span data-icon="chevron"></span></button>
+            <button id="plan-auto" type="button"><span class="plan-method-icon" data-icon="calculator"></span><span><strong>自动生成</strong><small>结合路书与骑行强度，生成后可调整</small></span><span data-icon="chevron"></span></button>
+          </div>
+          <p class="fine-print">选择方式不会修改计划；自动结果确认后另存为新计划。</p>
+        </div>
         <div id="library-list-view">
           <div class="library-toolbar"><div class="library-tabs" role="tablist" aria-label="计划库内容"><button id="plans-tab" type="button" role="tab" aria-selected="true" aria-controls="library-items">全部计划</button><button id="history-tab" type="button" role="tab" aria-selected="false" aria-controls="library-items">导出历史</button></div></div>
           <p id="library-hint" class="fine-print"></p><div id="library-items" role="tabpanel" aria-labelledby="plans-tab"></div>
         </div>
         <form id="plan-form" novalidate hidden>
+          <button id="plan-method-back" class="fuel-text-button" type="button">‹ 选择安排方式</button>
           <div class="plan-field plan-name-field"><label for="library-plan-name">名称</label><input id="library-plan-name" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></div>
           <div class="plan-field"><input id="library-plan-date" type="hidden"><button id="edit-plan-date" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-calendar"><span>日期</span><strong id="plan-date-label"></strong><span data-icon="chevron"></span></button><div id="plan-calendar" class="plan-calendar" hidden></div></div>
           <div class="plan-field"><button id="edit-plan-distance" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-distance-editor"><span>全程</span><strong id="plan-distance-label"></strong><span data-icon="chevron"></span></button><div id="plan-distance-editor" hidden><div id="wheel-frame" class="km-wheel-frame"><div class="km-wheel-focus" aria-hidden="true"></div><div id="plan-wheel" class="km-wheel-scroll" role="spinbutton" tabindex="0" aria-label="计划全程，公里滚轮" aria-valuemin="1" aria-valuemax="1000000" aria-valuenow="75" aria-describedby="wheel-hint"></div></div><button id="direct-distance" class="direct-distance" type="button">直接输入</button><div id="direct-distance-field" class="distance-input" hidden><input id="library-plan-distance" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><span>km</span><button id="return-wheel" type="button">滚轮</button></div><p id="wheel-hint" class="fine-print">每格 1 km · 已有补给点保持原位</p></div></div>
@@ -90,6 +101,30 @@
       </div>
     </dialog>
 
+    <dialog id="generation-dialog" class="sheet fuel-sheet" aria-labelledby="fuel-title">
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="sheet-header"><button id="fuel-back" type="button" class="icon-button" aria-label="关闭生成补给"><span data-icon="close"></span></button><h2 id="fuel-title">生成补给</h2><span class="header-spacer"></span></div>
+      <div class="sheet-body">
+        <div class="fuel-source"><strong id="fuel-route-name"></strong><p id="fuel-route-summary" class="fuel-caption"></p><button id="fuel-choose-route" class="fuel-text-button" type="button" hidden>选择路线 ›</button></div>
+        <div id="fuel-settings">
+          <div class="fuel-profile"><span id="fuel-profile-summary"></span><button id="fuel-profile" type="button">档案 ↗</button></div>
+          <h3>这趟怎么骑？</h3>
+          <div class="fuel-efforts" aria-label="骑行强度"><button type="button" data-effort="0.6" aria-pressed="false">轻松<strong>60%</strong></button><button type="button" data-effort="0.7" aria-pressed="true">耐力<strong>70%</strong></button><button type="button" data-effort="0.8" aria-pressed="false">较强<strong>80%</strong></button></div>
+          <p id="fuel-power" class="fuel-caption"></p>
+          <div class="fuel-estimate" aria-live="polite"><span>预计移动用时</span><strong id="fuel-duration">—</strong></div>
+          <div class="fuel-setting"><label for="fuel-carbs">碳水目标</label><span><label class="fuel-auto-label"><input id="fuel-auto-carbs" type="checkbox" checked>自动</label><input id="fuel-carbs" aria-label="碳水目标，每小时克数" type="number" inputmode="decimal" min="0" max="90" step="1" disabled><small>g/h</small></span></div>
+          <div class="fuel-setting"><label for="fuel-gel">每包碳水</label><span><input id="fuel-gel" type="number" inputmode="decimal" min="5" max="100" step="1" value="25"><small>g</small></span></div>
+          <a id="fuel-calculator" class="fuel-calculator-link" href="./calculator.html?from=generator">在计算器中调整参数 ↗</a>
+          <p class="fuel-caption">按路线与默认车辆参数估算，不含停车休息。</p>
+        </div>
+        <div id="fuel-preview" hidden><svg id="fuel-chart" class="fuel-chart" role="img" tabindex="0" aria-label="路线海拔与补给"></svg><p id="fuel-preview-summary" class="fuel-caption"></p><ol id="fuel-preview-stops" class="fuel-preview-stops" aria-label="生成的补给点"></ol><p id="fuel-preview-empty" class="fuel-empty" hidden>本次短途未安排自动补给，可保存后手动添加。</p></div>
+        <p id="fuel-notice" class="notice" role="status" hidden></p>
+        <p id="fuel-warnings" class="fuel-caption" hidden></p>
+        <button id="fuel-preview-button" type="button" class="primary">预览补给点 →</button>
+        <button id="fuel-save" type="button" class="primary" hidden>保存为新计划</button>
+        <p id="fuel-save-note" class="fuel-caption fuel-save-note" hidden>原计划保留，保存后仍可调整。</p>
+      </div>
+    </dialog>
     <dialog id="route-dialog" class="sheet route-sheet" aria-labelledby="route-title">
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
       <div class="sheet-header"><button id="route-nav" class="route-nav" type="button" aria-label="关闭路线库"><span data-icon="close"></span><span id="route-nav-label" hidden>路线库</span></button><h2 id="route-title">路线库</h2><button id="route-disconnect" type="button" hidden>断开</button><button id="route-close" class="icon-button" type="button" aria-label="关闭路线选择" hidden><span data-icon="close"></span></button><span id="route-header-space" class="header-spacer"></span></div>
