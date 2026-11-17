@@ -5,6 +5,8 @@ import { loadTheme } from './themes.mjs';
 import { initialRecipe, calculateRecipe, readTransfer, writeTransfer, revision } from './generation.mjs';
 import { duration, drawRide, notice } from './fueling-view.mjs';
 import { distanceLabel } from './workout.mjs';
+import './focus.mjs';
+import { renderGelSelect } from './gel-editor.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
@@ -12,7 +14,7 @@ const session = { getItem: key => sessionStorage.getItem(key), setItem: (key, va
 const loaded = loadLibrary(storage);
 const transferred = new URL(location.href).searchParams.get('from') === 'generator' ? readTransfer(session) : null;
 const entry = transferred ? loaded.library.plans.find(item => revision(item) === transferred.sourceRevision) ?? null : loaded.needsSave ? null : activeEntry(loaded.library);
-let recipe = transferred ?? { ...initialRecipe(entry, {}), parameters: { ...defaults }, mode: entry?.route ? 'route' : 'simulation', ...structuredClone(examples.climb) };
+let recipe = transferred ?? { ...initialRecipe(entry, {}), parameters: { ...defaults, gelCarbsGrams: entry?.gel?.carbsGrams ?? defaults.gelCarbsGrams }, mode: entry?.route ? 'route' : 'simulation', ...structuredClone(examples.climb) };
 let result = null, chartMode = 'elevation', group = 'rider', frame = null;
 document.documentElement.dataset.theme = loadTheme(storage);
 $('calc-model-version').textContent = `模型 ${modelVersion} · 本机计算，不上传参数`;
@@ -28,7 +30,7 @@ const fields = [
   { key: 'bodyEfficiency', title: '人体效率', unit: '%', min: 10, max: 35, step: .1, factor: 100, group: 'equipment' },
   { key: 'maxSpeedKph', title: '下坡限速', unit: 'km/h', min: 5, max: 100, step: 1, group: 'equipment' },
   { key: 'carbsPerHour', title: '碳水目标', unit: 'g/h', min: 0, max: 90, step: 1, group: 'fuel' },
-  { key: 'gelCarbsGrams', title: '每包碳水', unit: 'g', min: 5, max: 100, step: 1, group: 'fuel' },
+  { key: 'gelCarbsGrams', title: '每支碳水', unit: 'g', min: 5, max: 100, step: .1, group: 'fuel' },
   { key: 'waterIntervalMinutes', title: '喝水间隔', unit: '分', min: 0, max: 180, step: 1, group: 'fuel' },
 ];
 for (const field of fields) {
@@ -51,9 +53,11 @@ for (const field of fields) {
 }
 function rangePosition(range) { range.style.setProperty('--range-position', `${(Number(range.value) - Number(range.min)) / (Number(range.max) - Number(range.min)) * 100}%`); }
 function fillParameters() {
+  readCalculatorGel = renderGelSelect($('calc-gel-select'), storage, recipe.gel, '试算：手动填写含量');
   for (const field of fields) {
     const value = recipe.parameters[field.key], number = $(`calc-${field.key}`);
     number.value = value == null ? '' : String(+(value * (field.factor ?? 1)).toFixed(5));
+    if (field.key === 'gelCarbsGrams') number.readOnly = !!recipe.gel;
     const range = document.querySelector(`[data-range="${field.key}"]`); if (range) { range.value = number.value; rangePosition(range); }
   }
   $('calc-auto-carbs').checked = recipe.parameters.carbsPerHour === null;
@@ -113,7 +117,7 @@ function calculate() {
     result = calculateRecipe(recipe, entry);
     const { ride, schedule } = result;
     $('calc-duration').textContent = duration(ride.elapsedSeconds); $('calc-speed').textContent = `${ride.averageKph.toFixed(1)} km/h`;
-    $('calc-energy').textContent = `约${Math.round(ride.calories)} kcal`; $('calc-gels').textContent = `${schedule.gelCount}包`;
+    $('calc-energy').textContent = `约${Math.round(ride.calories)} kcal`; $('calc-gels').textContent = `${schedule.gelCount}支`;
     $('calc-power').textContent = `目标功率 ${Math.round(ride.parameters.ftpWatts * ride.parameters.effort)} W（${ride.parameters.ftpWatts} W × ${Math.round(ride.parameters.effort * 100)}%）`;
     $('calc-route-totals').textContent = `合计 ${distanceLabel(ride.totalDistanceMeters)} · 爬升 ${Math.round(ride.ascentMeters)} m`;
     $('calc-route-summary').textContent = `${recipe.mode === 'route' ? '路书' : '模拟路线'} · ${ride.routeTitle} · ${distanceLabel(ride.totalDistanceMeters)} / ${Math.round(ride.ascentMeters)} m　编辑 ›`;
@@ -128,7 +132,7 @@ function calculate() {
       }
       body.append(row);
     }
-    $('calc-nutrition').textContent = `碳水目标 ${ride.carbsPerHour} g/h · 计划 ${schedule.gelCount} 包，共 ${schedule.plannedCarbsGrams} g，实际平均约 ${schedule.actualCarbsPerHour.toFixed(0)} g/h。${ride.segments.length > detailCount ? `共 ${ride.segments.length} 段，显示前 ${detailCount} 段；复制包含完整结果。` : ''}`;
+    $('calc-nutrition').textContent = `纯胶 · 目标 ${ride.carbsPerHour} g/h · ${schedule.gelCount} 支，共 ${schedule.plannedCarbsGrams}g碳水，计划平均约 ${schedule.actualCarbsPerHour.toFixed(0)} g/h。${ride.segments.length > detailCount ? `共 ${ride.segments.length} 段，显示前 ${detailCount} 段；复制包含完整结果。` : ''}`;
     notice($('calc-warning'), ride.warnings.join(' ')); notice($('calc-error'));
     $('calc-visuals').hidden = false; $('calc-preview').disabled = false; $('calc-copy').disabled = false; redraw();
   } catch (error) {
@@ -160,7 +164,11 @@ for (const button of document.querySelectorAll('[data-example]')) button.addEven
   markExample(button.dataset.example); renderRoute(); calculate();
 });
 $('calc-reset').addEventListener('click', () => {
+  const details = recipe.details, gel = recipe.gel;
   recipe = { ...initialRecipe(entry, {}), parameters: { ...defaults }, mode: 'simulation', ...structuredClone(examples.climb) };
+  if (details) recipe.details = details;
+  recipe.gel = gel ?? null;
+  if (gel) recipe.parameters.gelCarbsGrams = gel.carbsGrams;
   fillParameters(); markExample('climb'); renderRoute(); notice($('calc-context'), '已恢复示例参数：FTP 250 W、体重 70 kg。个人档案没有变化。'); calculate();
 });
 $('calc-reset-top').addEventListener('click', () => $('calc-reset').click());
@@ -177,6 +185,12 @@ $('calc-use-simulation').addEventListener('click', () => { recipe.mode = 'simula
 $('calc-add-segment').addEventListener('click', () => { readSegments(); recipe.segments.push({ distanceMeters: 10000, gradePercent: 0 }); recipe.title = '自定义分段'; markExample(null); renderRoute(); calculate(); });
 $('calc-route-summary').addEventListener('click', () => { selectGroup('route'); $('calc-use-simulation').focus({ preventScroll: true }); });
 $('calc-auto-carbs').addEventListener('change', () => { $('calc-carbsPerHour').disabled = $('calc-auto-carbs').checked; calculate(); });
+let readCalculatorGel = () => null;
+$('calc-gel-select').addEventListener('change', () => {
+  recipe.gel = readCalculatorGel($('calc-gel-select').value);
+  if (recipe.gel) recipe.parameters.gelCarbsGrams = recipe.gel.carbsGrams;
+  fillParameters(); calculate();
+});
 $('calc-copy').addEventListener('click', async () => {
   calculate(); if (!result) return;
   try {

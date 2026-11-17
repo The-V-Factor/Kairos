@@ -1,9 +1,9 @@
 import { roundedMeters } from './workout.mjs';
 
-export const modelVersion = 'steady-road-v1';
+export const modelVersion = 'steady-road-v2';
 export const defaults = Object.freeze({ ftpWatts: 250, weightKg: 70, effort: .7, bikeKg: 10,
   crr: .004, cda: .32, airDensity: 1.2, driveEfficiency: .975, bodyEfficiency: .22,
-  maxSpeedKph: 45, carbsPerHour: null, gelCarbsGrams: 25, waterIntervalMinutes: 20 });
+  maxSpeedKph: 45, carbsPerHour: null, gelCarbsGrams: 45, waterIntervalMinutes: 20 });
 export const examples = {
   flat: { title: '平路示例', segments: [{ distanceMeters: 30000, gradePercent: 0 }] },
   climb: { title: '三段爬坡示例', segments: [{ distanceMeters: 10000, gradePercent: 0 }, { distanceMeters: 10000, gradePercent: 5 }, { distanceMeters: 10000, gradePercent: 0 }] },
@@ -96,8 +96,9 @@ function solveSegment(segment, p) {
 export function recommendCarbs(hours, effort) {
   if (hours < .75) return 0;
   if (hours <= 1.25) return 25;
-  if (hours > 2.5) return 60;
-  return effort <= .65 ? 30 : effort <= .75 ? 50 : 60;
+  // Product starting points within Maurten's Long ride 30–60 g/h range,
+  // not a formula prescribed by Maurten for FTP or individual requirements.
+  return effort <= .65 ? 30 : effort <= .75 ? 45 : 60;
 }
 export function estimateRide(input, route) {
   const p = parameters(input);

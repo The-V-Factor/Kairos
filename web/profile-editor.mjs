@@ -3,7 +3,7 @@ import { IGPSPORT, sessionKey } from './igpsport.mjs';
 import { ConnectionExpired, loadSession, storeSession, validSession } from './route-session.mjs';
 import { icon } from './artwork.mjs';
 
-export function setupProfileEditor({ storage, openSheet, connect }) {
+export function setupProfileEditor({ storage, openSheet, connect, manageGels }) {
   const $ = id => document.getElementById(id), dialog = $('profile-dialog'), api = new IGPSPORT();
   const loaded = loadProfile(storage);
   let saved = loaded.profile, draft = emptyProfile(), incoming = null, base = null, request = null, serial = 0;
@@ -78,6 +78,10 @@ export function setupProfileEditor({ storage, openSheet, connect }) {
     }
     view(true); notice(result.message); updateApply();
   }
+  $('profile-gels').addEventListener('click', async () => {
+    await afterClose(dialog);
+    await manageGels(); openSheet(dialog);
+  });
   $('profile-import').addEventListener('click', async () => {
     try { read(); } catch (error) { notice(error.message); return; }
     let session = loadSession(storage, sessionKey);

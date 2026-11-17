@@ -1,5 +1,6 @@
 import { loadDraft, newID, samplePlan, validateDraft } from './plan.mjs';
 import { validatePlan, roundedMeters } from './workout.mjs';
+import { validateGel } from './gels.mjs';
 import { validateRoute } from './routes.mjs';
 
 export const libraryKey = 'kairos.web.library.v1';
@@ -21,7 +22,7 @@ function timestamp(value) {
   return value;
 }
 function entry(value) {
-  return { name: name(value.name), rideDate: validateDate(value.rideDate), updatedAt: timestamp(value.updatedAt), plan: validateDraft(value.plan), ...(value.route ? { route: validateRoute(value.route) } : {}) };
+  return { name: name(value.name), rideDate: validateDate(value.rideDate), updatedAt: timestamp(value.updatedAt), plan: validateDraft(value.plan), ...(value.route ? { route: validateRoute(value.route) } : {}), ...(value.gel ? { gel: validateGel(value.gel) } : {}) };
 }
 export function validateLibrary(value) {
   if (!value || value.version !== 1 || !Array.isArray(value.plans) || !Array.isArray(value.history)) throw new Error('本机计划库格式无法识别。');
@@ -32,7 +33,7 @@ export function validateLibrary(value) {
   const history = value.history.map(item => {
     if (typeof item.id !== 'string' || !item.id || historyIDs.has(item.id) || !['download', 'share'].includes(item.method)) throw new Error('导出历史格式无效。');
     historyIDs.add(item.id); validatePlan(item.plan);
-    return { id: item.id, name: name(item.name), rideDate: validateDate(item.rideDate), exportedAt: timestamp(item.exportedAt), method: item.method, plan: validateDraft(item.plan), ...(item.route ? { route: validateRoute(item.route) } : {}) };
+    return { id: item.id, name: name(item.name), rideDate: validateDate(item.rideDate), exportedAt: timestamp(item.exportedAt), method: item.method, plan: validateDraft(item.plan), ...(item.route ? { route: validateRoute(item.route) } : {}), ...(item.gel ? { gel: validateGel(item.gel) } : {}) };
   });
   return { version: 1, activePlanID, plans, history };
 }
@@ -84,7 +85,7 @@ export function setRoute(library, id, value, now = new Date().toISOString()) {
 }
 export function duplicatePlan(library, source, details, now = new Date().toISOString()) {
   const plan = { ...validateDraft(source.plan), id: newID(), totalDistanceMeters: details.totalDistanceMeters ?? source.plan.totalDistanceMeters, stops: source.plan.stops.map(stop => ({ ...stop, id: newID() })) };
-  return validateLibrary({ ...library, activePlanID: plan.id, plans: [...library.plans, { ...details, plan, updatedAt: now, ...(source.route ? { route: source.route } : {}) }] });
+  return validateLibrary({ ...library, activePlanID: plan.id, plans: [...library.plans, { ...details, plan, updatedAt: now, ...(source.route ? { route: source.route } : {}), ...(source.gel ? { gel: source.gel } : {}) }] });
 }
 export function deletePlan(library, id) {
   const plans = library.plans.filter(item => item.plan.id !== id);
@@ -94,8 +95,8 @@ export function restorePlan(library, removed) {
   return validateLibrary({ ...library, activePlanID: removed.plan.id, plans: [...library.plans, removed] });
 }
 export function recordExport(library, snapshot, method, now = new Date().toISOString()) {
-  const signature = item => JSON.stringify({ name: item.name, rideDate: item.rideDate, plan: item.plan, route: item.route });
+  const signature = item => JSON.stringify({ name: item.name, rideDate: item.rideDate, plan: item.plan, route: item.route, gel: item.gel });
   const previous = library.history.find(item => signature(item) === signature(snapshot));
-  const item = { id: previous?.id ?? newID(), name: snapshot.name, rideDate: snapshot.rideDate, exportedAt: now, method, plan: snapshot.plan, ...(snapshot.route ? { route: snapshot.route } : {}) };
+  const item = { id: previous?.id ?? newID(), name: snapshot.name, rideDate: snapshot.rideDate, exportedAt: now, method, plan: snapshot.plan, ...(snapshot.route ? { route: snapshot.route } : {}), ...(snapshot.gel ? { gel: snapshot.gel } : {}) };
   return validateLibrary({ ...library, history: [item, ...library.history.filter(old => old.id !== item.id)] });
 }

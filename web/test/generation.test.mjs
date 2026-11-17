@@ -84,3 +84,15 @@ test('generation keeps the chosen source when another plan is active', () => {
   assert.equal(activeEntry(next).rideDate, activeEntry(library).rideDate);
   assert.deepEqual(next.plans.slice(0, -1), other.plans);
 });
+
+test('entered name and date survive calculator transfer and generation without renaming the source', () => {
+  const { library, recipe } = setup(), before = structuredClone(library);
+  recipe.details = { name: '南昆山周末骑', rideDate: '2026-11-21' };
+  const memory = new Map(), storage = { getItem: key => memory.get(key), setItem: (key, value) => memory.set(key, value) };
+  writeTransfer(storage, recipe);
+  const next = generatedLibrary(library, readTransfer(storage));
+  assert.equal(activeEntry(next).name, recipe.details.name);
+  assert.equal(activeEntry(next).rideDate, recipe.details.rideDate);
+  assert.deepEqual(library, before);
+  assert.throws(() => generatedLibrary(library, { ...recipe, details: { ...recipe.details, name: ' ' } }));
+});

@@ -204,7 +204,9 @@
   .calculator-page .calc-control:has(input[type="range"]) .calc-input-line { flex: 1; min-width: 0; }
   .calculator-page .calc-results .fuel-chart { height: 80px; }
   .calculator-page .calc-route-summary { padding-block: 7px; min-height: 34px; }
-  .fuel-sheet h3 { margin-top: 9px; }
+  .fuel-sheet h3 { margin-block: 6px; }
+  .fuel-sheet .fuel-profile { padding-block: 6px; }
+  .fuel-sheet .fuel-calculator-link { min-height: 30px; padding-top: 7px; }
   .fuel-sheet .fuel-chart { height: 105px; }
   .fuel-sheet .fuel-preview-stops { max-height: 150px; }
   .fuel-sheet .fuel-estimate { padding: 8px 0; }
@@ -216,3 +218,29 @@
   .calc-value { transition: border-color .15s; }
   .calc-value:focus-within { border-color: var(--accent); }
 }
+
+.fuel-plan-name { display: flex; align-items: center; gap: 14px; min-height: 42px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; white-space: nowrap; }
+.fuel-plan-name input { min-width: 0; padding: 8px 0; border: 0; font-size: 16px; }
+
+.plan-gel-choice, .profile-gels { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.plan-gel-choice > label { flex: 0 0 auto; color: var(--muted); }
+.plan-gel-choice select, .fuel-gel-choice select, .calc-gel-label select { min-width: 0; flex: 1; padding: 8px 5px; color: var(--ink); background: var(--canvas); border: 1px solid var(--input-line); border-radius: 8px; font-size: 16px; }
+.plan-gel-choice button, .fuel-gel-choice button { color: var(--accent); min-height: 36px; flex-shrink: 0; }
+.fuel-gel-choice { gap: 8px; }
+.fuel-gel-choice > label { flex-shrink: 0; }
+.profile-gels { justify-content: space-between; margin-top: 6px; color: var(--ink); }
+.profile-gels > span:last-child { color: var(--accent); font-size: 11px; }
+.gels-sheet .sheet-body { padding: 6px 24px 20px; }
+.gels-list { max-height: 240px; overflow-y: auto; }
+.gel-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 54px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
+.gel-card strong { overflow-wrap: anywhere; }
+.gel-card span { flex-shrink: 0; font-size: 12px; color: var(--accent); }
+#gel-editor h3 { font-size: 16px; margin: 14px 0; }
+#gel-editor > label { display: block; color: var(--muted); font-size: 12px; margin-top: 14px; }
+#gel-editor input { font-size: 17px; margin-top: 4px; }
+.gel-editor-actions { display: flex; align-items: center; gap: 18px; margin-top: 18px; }
+.gel-editor-actions .secondary { flex: 1; margin: 0; }
+.calc-gel-label { display: flex; gap: 10px; align-items: center; font-size: 12px; margin: 10px 0; }
+@media (max-height: 740px) { .gels-sheet:has(#gel-editor:not([hidden])) .gels-list, .gels-sheet:has(#gel-editor:not([hidden])) #gels-empty { display: none; } }
+
+.gels-sheet .sheet-header h2 { color: var(--ink); }

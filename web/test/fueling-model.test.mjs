@@ -68,17 +68,17 @@ test('time-to-distance mapping is bounded and uses each segment speed instead of
   assert.ok(Math.abs(distanceAtTime(ride, 1800) - ride.averageKph / 3.6 * 1800) > 1000);
 });
 test('fuel schedule uses carbohydrate grams and time; identical energy does not dictate gel count', () => {
-  const ride = estimateRide({ ...defaults, carbsPerHour: 50 }, scenario()), schedule = scheduleFuel(ride);
+  const ride = estimateRide({ ...defaults, carbsPerHour: 50, gelCarbsGrams: 25 }, scenario()), schedule = scheduleFuel(ride);
   assert.equal(schedule.gelCount, 3);
   assert.equal(schedule.plannedCarbsGrams, 75);
-  const changedEfficiency = estimateRide({ ...defaults, carbsPerHour: 50, bodyEfficiency: .18 }, scenario());
+  const changedEfficiency = estimateRide({ ...defaults, carbsPerHour: 50, gelCarbsGrams: 25, bodyEfficiency: .18 }, scenario());
   assert.notEqual(changedEfficiency.calories, ride.calories);
   assert.deepEqual(scheduleFuel(changedEfficiency), schedule);
   assert.ok(scheduleFuel(estimateRide({ ...defaults, carbsPerHour: 25 }, scenario())).gelCount < schedule.gelCount);
   assert.deepEqual(schedule, scheduleFuel(ride));
 });
 test('colliding reminders merge after rounding and preserve gel quantity and water', () => {
-  const ride = estimateRide({ ...defaults, carbsPerHour: 50, waterIntervalMinutes: 15 }, scenario());
+  const ride = estimateRide({ ...defaults, carbsPerHour: 50, gelCarbsGrams: 25, waterIntervalMinutes: 15 }, scenario());
   const schedule = scheduleFuel(ride);
   assert.ok(schedule.stops.some(stop => stop.reminder.includes('吃胶') && stop.reminder.includes('喝水')));
   assert.equal(new Set(schedule.stops.map(stop => stop.distanceMeters)).size, schedule.stops.length);
@@ -90,11 +90,58 @@ test('short rides and disabled reminders do not invent a required supplement', (
   assert.equal(ride.carbsPerHour, 0);
   assert.equal(scheduleFuel(ride).stops.length, 0);
   assert.equal(recommendCarbs(2, .6), 30);
-  assert.equal(recommendCarbs(2, .7), 50);
+  assert.equal(recommendCarbs(2, .7), 45);
   assert.equal(recommendCarbs(2, .8), 60);
-  assert.equal(recommendCarbs(4, .7), 60);
+  assert.equal(recommendCarbs(4, .7), 45);
 });
 test('extreme reminders are bounded and never silently truncated', () => {
   const ride = estimateRide({ ...defaults, waterIntervalMinutes: .01 }, scenario());
   assert.throws(() => scheduleFuel(ride), /过多/);
+});
+
+test('long rides keep the 30–60g/h starting range without a duration-only jump', () => {
+  assert.equal(defaults.gelCarbsGrams, 45);
+  for (const hours of [2, 3, 8.25]) {
+    assert.equal(recommendCarbs(hours, .6), 30);
+    assert.equal(recommendCarbs(hours, .7), 45);
+    assert.equal(recommendCarbs(hours, .8), 60);
+  }
+});
+
+test('8-hour pure-gel schedules independently match carbohydrate arithmetic and fixed-distance mapping', () => {
+  for (const [carbsPerHour, expectedGels] of [[30,5],[45,8],[60,11]]) {
+    const elapsedSeconds=8*3600, totalDistanceMeters=200000;
+    const ride={parameters:{...defaults,waterIntervalMinutes:0},carbsPerHour,elapsedSeconds,totalDistanceMeters,
+      segments:[{startMeters:0,endMeters:totalDistanceMeters,startSeconds:0,endSeconds:elapsedSeconds,speedMps:totalDistanceMeters/elapsedSeconds}]};
+    const schedule=scheduleFuel(ride), interval=45/carbsPerHour*3600;
+    assert.equal(schedule.gelCount,expectedGels);
+    assert.equal(schedule.plannedCarbsGrams,expectedGels*45);
+    assert.ok(Math.abs(schedule.plannedCarbsGrams-carbsPerHour*8)<=22.5);
+    assert.equal(schedule.waterCount,0);
+    assert.equal(schedule.stops.length,expectedGels);
+    for (const [index,stop] of schedule.stops.entries()) {
+      near(stop.seconds,(index+.5)*interval,.00001);
+      near(stop.distanceMeters,Math.round(stop.seconds/elapsedSeconds*totalDistanceMeters/100)*100,.000001);
+      assert.ok(stop.seconds<elapsedSeconds&&stop.kind==='gel');
+    }
+  }
+});
+test('a reminder exactly at the finish is excluded and short routes retain the existing meter precision', () => {
+  const ride={parameters:{...defaults,waterIntervalMinutes:0,gelCarbsGrams:25},carbsPerHour:50,elapsedSeconds:900,totalDistanceMeters:1000,
+    segments:[{startMeters:0,endMeters:1000,startSeconds:0,endSeconds:900,speedMps:1000/900}]};
+  assert.equal(scheduleFuel(ride).gelCount,0);
+  const short=estimateRide(defaults,{mode:'simulation',segments:[{distanceMeters:1,gradePercent:0}]});
+  assert.equal(short.totalDistanceMeters,1); assert.ok(Number.isFinite(short.elapsedSeconds));
+});
+test('218km synthetic climb retains every pure-gel event through fixed-distance rounding and merging', () => {
+  const ride=estimateRide({...defaults,effort:.6},{mode:'simulation',segments:[
+    {distanceMeters:100000,gradePercent:0},{distanceMeters:40000,gradePercent:4},
+    {distanceMeters:40000,gradePercent:-4},{distanceMeters:38000,gradePercent:0}]});
+  const schedule=scheduleFuel(ride);
+  near(ride.elapsedSeconds/3600,8.2232425856,.00001);
+  assert.equal(ride.carbsPerHour,30);
+  assert.equal(schedule.gelCount,5);
+  assert.equal(schedule.plannedCarbsGrams,225);
+  assert.equal(schedule.stops.reduce((n,stop)=>n+stop.gels,0),5);
+  assert.ok(schedule.stops.every(stop=>stop.distanceMeters>=0&&stop.distanceMeters<=218000));
 });

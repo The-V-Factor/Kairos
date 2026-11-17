@@ -3,22 +3,29 @@ import { initialRecipe, calculateRecipe, readTransfer, writeTransfer } from './g
 import { duration, drawRide, renderStops, notice } from './fueling-view.mjs';
 import { distanceLabel } from './workout.mjs';
 import { icon } from './artwork.mjs';
+import { today } from './library.mjs';
+import { renderGelSelect } from './gel-editor.mjs';
 
-export function setupGenerator({ storage, current, openSheet, save, chooseRoute, returnToPlan, available = () => true }) {
+export function setupGenerator({ storage, current, openSheet, save, chooseRoute, manageGels, returnToPlan, available = () => true }) {
   const $ = id => document.getElementById(id), dialog = $('generation-dialog');
   const session = { getItem: key => sessionStorage.getItem(key), setItem: (key, value) => sessionStorage.setItem(key, value) };
   let recipe = null, result = null, preview = false, needsRoute = false, leaving = false, saved = false;
+  let readGel = () => null;
   const source = () => recipe?.sourceRevision === null ? null : current(recipe);
   const selectedRoute = () => Object.hasOwn(recipe, 'route') ? recipe.route : source()?.route;
   const number = input => input.value.trim() ? Number(input.value) : NaN;
   function settings() {
     recipe.parameters.carbsPerHour = $('fuel-auto-carbs').checked ? null : number($('fuel-carbs'));
-    recipe.parameters.gelCarbsGrams = number($('fuel-gel'));
+    recipe.gel = readGel($('fuel-gel').value);
+    if (recipe.gel) recipe.parameters.gelCarbsGrams = recipe.gel.carbsGrams;
+    recipe.details = { name: $('fuel-plan-name').value.trim(), rideDate: recipe.details?.rideDate ?? source()?.rideDate ?? today() };
   }
   function fill() {
     $('fuel-auto-carbs').checked = recipe.parameters.carbsPerHour === null;
     $('fuel-carbs').disabled = $('fuel-auto-carbs').checked;
-    $('fuel-carbs').value = recipe.parameters.carbsPerHour ?? ''; $('fuel-gel').value = recipe.parameters.gelCarbsGrams;
+    $('fuel-carbs').value = recipe.parameters.carbsPerHour ?? '';
+    readGel = renderGelSelect($('fuel-gel'), storage, recipe.gel);
+    $('fuel-plan-name').value = recipe.details?.name ?? `${(source()?.name ?? selectedRoute()?.title ?? recipe.title ?? '骑行').replace(/(?: · 自动补给)+$/, '').slice(0, 52)} · 自动补给`;
     $('fuel-route-name').textContent = recipe.mode === 'route' ? selectedRoute()?.title ?? '尚未选择路线' : recipe.title || '模拟路线';
     $('fuel-choose-route').hidden = false;
     $('fuel-choose-route').textContent = selectedRoute() ? '更换 ›' : '选择路线 ›';
@@ -29,7 +36,9 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
   function calculate() {
     try {
       if (needsRoute) throw new Error('请先选择路书；也可以进入计算器，明确设置模拟路线。');
-      settings(); result = calculateRecipe(recipe, source());
+      settings();
+      if (!recipe.gel) throw new Error('请选择自己的能量胶；还没配置时，点“管理”添加名称与每支碳水。');
+      result = calculateRecipe(recipe, source());
       $('fuel-duration').textContent = `约 ${duration(result.ride.elapsedSeconds)}`;
       $('fuel-route-summary').textContent = `${distanceLabel(result.ride.totalDistanceMeters)} · 爬升 ${Math.round(result.ride.ascentMeters)} m${recipe.mode === 'simulation' ? ' · 模拟路线' : ''}`;
       if ($('fuel-auto-carbs').checked) $('fuel-carbs').value = result.ride.carbsPerHour;
@@ -48,7 +57,7 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     $('fuel-back').innerHTML = preview ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>' : icon('close');
     if (preview && result) {
       const { ride, schedule } = result;
-      $('fuel-preview-summary').textContent = `约${duration(ride.elapsedSeconds)} · 目标 ${ride.carbsPerHour} g/h · ${schedule.gelCount} 包胶，共 ${schedule.plannedCarbsGrams} g`;
+      $('fuel-preview-summary').textContent = `${recipe.gel.name} · ${recipe.gel.carbsGrams}g/支 · 约${duration(ride.elapsedSeconds)} · 目标 ${ride.carbsPerHour} g/h · ${schedule.gelCount} 支（${schedule.plannedCarbsGrams}g碳水） · 计划平均 ${schedule.actualCarbsPerHour.toFixed(0)} g/h`;
       renderStops($('fuel-preview-stops'), schedule); $('fuel-preview-empty').hidden = schedule.stops.length > 0;
       requestAnimationFrame(() => { if (dialog.open && result) drawRide($('fuel-chart'), ride, schedule); });
     }
@@ -79,6 +88,12 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     $(buttonID).click();
   }
   $('fuel-profile').addEventListener('click', () => openOther('profile-entry', 'profile-dialog'));
+  $('fuel-gel-manage').addEventListener('click', async () => {
+    settings(); const previous = structuredClone(recipe), missing = needsRoute;
+    leaving = true;
+    await new Promise(resolve => { dialog.addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); dialog.close(); });
+    leaving = false; await manageGels(); open(previous, false, missing);
+  });
   $('fuel-choose-route').addEventListener('click', async () => {
     settings(); const previous = structuredClone(recipe), previousNeedsRoute = needsRoute, route = selectedRoute();
     leaving = true;
@@ -93,7 +108,8 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     settings(); recipe.parameters.effort = Number(button.dataset.effort); fill(); calculate();
   });
   $('fuel-auto-carbs').addEventListener('change', () => { $('fuel-carbs').disabled = $('fuel-auto-carbs').checked; calculate(); });
-  for (const id of ['fuel-carbs', 'fuel-gel']) $(id).addEventListener('input', calculate);
+  $('fuel-carbs').addEventListener('input', calculate);
+  $('fuel-gel').addEventListener('change', calculate);
   $('fuel-preview-button').addEventListener('click', () => { if (calculate()) view(true); });
   $('fuel-save').addEventListener('click', () => {
     try { if (!calculate()) return; save(recipe); saved = true; dialog.close(); }
