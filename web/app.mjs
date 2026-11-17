@@ -4,10 +4,13 @@ import { kinds, newID, parseDistance, validateDraft, saveStop } from './plan.mjs
 import { fuelArtwork, icon } from './artwork.mjs';
 import { DistanceRuler } from './ruler.mjs';
 import { themes, loadTheme, storeTheme } from './themes.mjs';
-import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today, setRoute } from './library.mjs';
+import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today, validateLibrary } from './library.mjs';
 import { PlanCalendar, KilometerWheel, shortDate } from './plan-controls.mjs';
 import { setupRoutePicker } from './route-picker.mjs';
+import { loadProfile } from './profile.mjs';
 import { setupProfileEditor } from './profile-editor.mjs';
+import { setupGenerator } from './generator.mjs';
+import { generatedLibrary, initialRecipe, revision } from './generation.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
@@ -17,7 +20,7 @@ let library = loaded.library;
 let plan = activeEntry(library)?.plan ?? null;
 let writable = loaded.writable;
 let prepared = null, sharing = false, cursor = (plan?.totalDistanceMeters ?? 0) / 2, deleted = null, editing = null, lastShare = null;
-let removedPlan = null, libraryTab = 'plans', libraryMode = 'list', managedEntry = null, storageNotice = loaded.message;
+let removedPlan = null, libraryTab = 'plans', libraryMode = 'list', managedEntry = null, routeDraft = null, storageNotice = loaded.message;
 let draft = null, reminderWasEdited = false, selectedID = null, swipedID = null;
 const removing = new Set();
 const rows = new Map();
@@ -162,8 +165,8 @@ function render(eventID) {
   $('plan-heading').hidden = !current;
   $('no-plan').hidden = !!current; $('ride-content').hidden = !current;
   $('total-label').textContent = plan ? distanceLabel(plan.totalDistanceMeters) : '';
-  $('route-label').textContent = current?.route?.title ?? '选择路线';
-  $('route').setAttribute('aria-label', current?.route ? `查看路线 ${current.route.title}` : '选择路线');
+  $('home-route-summary').textContent = current?.route?.title ?? '';
+  $('home-route-summary').hidden = !current?.route;
   renderRows(eventID); if (plan) ruler.update(plan); else ruler.haptics.stop(); prepare();
 }
 function apply(next, eventID) {
@@ -426,6 +429,8 @@ function libraryView(mode) {
   const editor = ['new', 'edit', 'copy'].includes(mode);
   $('library-list-view').hidden = mode !== 'list';
   $('plan-form').hidden = !editor;
+  $('plan-methods').hidden = true;
+  $('current-plan-tab').setAttribute('aria-controls', 'plan-form');
   $('history-detail').hidden = mode !== 'history';
   $('current-plan-tab').textContent = mode === 'new' ? '新计划' : mode === 'copy' ? '新副本' : '当前计划';
   $('current-plan-tab').disabled = !plan && !editor;
@@ -480,7 +485,7 @@ function renderLibraryList() {
   }
 }
 function editPlanView(mode, source = null) {
-  managedEntry = source;
+  managedEntry = source; routeDraft = source?.route ?? null;
   libraryView(mode);
   $('library-plan-name').value = mode === 'copy' ? `${source.name.slice(0, 55)} · 副本` : source?.name ?? '新的骑行';
   $('library-plan-date').value = source?.rideDate ?? today();
@@ -488,9 +493,18 @@ function editPlanView(mode, source = null) {
   $('library-plan-distance').value = String((source?.plan.totalDistanceMeters ?? plan?.totalDistanceMeters ?? 75000) / 1000);
   expandPlanField(null);
   $('copy-plan').hidden = mode !== 'edit'; $('delete-plan').hidden = mode !== 'edit';
+  $('plan-method-back').hidden = mode === 'copy';
   $('save-plan').textContent = mode === 'edit' ? '保存计划' : '创建计划';
   validatePlanForm();
 }
+function showMethodChoice() {
+  expandPlanField(null); $('plan-form').hidden = true; $('plan-methods').hidden = false;
+  $('current-plan-tab').setAttribute('aria-controls', 'plan-methods');
+  $('route-label').textContent = routeDraft?.title ?? '选择路线（手动可选）';
+  $('route').setAttribute('aria-label', routeDraft ? `查看或更换路线 ${routeDraft.title}` : '选择路线，手动填写时可选');
+  $('plan-method-context').textContent = libraryMode === 'new' ? '创建一份新计划' : managedEntry?.name ?? '骑行补给';
+}
+function showPlanChoice(mode, source = null) { editPlanView(mode, source); showMethodChoice(); }
 function planDetails() {
   const name = $('library-plan-name').value.trim(), rideDate = validateDate($('library-plan-date').value);
   if (!name || name.length > 60) throw new Error('请填写 1 至 60 字的计划名称。');
@@ -518,15 +532,23 @@ function showHistory(snapshot) {
 }
 $('library').addEventListener('click', () => {
   if (sharing || removing.size) return;
-  closeSwipes(); if (plan) editPlanView('edit', activeEntry(library)); else renderLibraryList(); openSheet($('library-dialog'));
+  closeSwipes(); if (plan) showPlanChoice('edit', activeEntry(library)); else renderLibraryList(); openSheet($('library-dialog'));
 });
 $('history').addEventListener('click', () => {
   if (sharing || removing.size) return;
   closeSwipes(); libraryTab = 'history'; renderLibraryList(); openSheet($('library-dialog'));
 });
-$('first-plan').addEventListener('click', () => { editPlanView('new'); openSheet($('library-dialog')); });
-$('new-plan').addEventListener('click', () => editPlanView('new'));
-$('current-plan-tab').addEventListener('click', () => { if (plan && !['new', 'edit', 'copy'].includes(libraryMode)) editPlanView('edit', activeEntry(library)); });
+$('first-plan').addEventListener('click', () => { showPlanChoice('new'); openSheet($('library-dialog')); });
+$('new-plan').addEventListener('click', () => showPlanChoice('new'));
+$('current-plan-tab').addEventListener('click', () => { if (plan && !['new', 'edit', 'copy'].includes(libraryMode)) showPlanChoice('edit', activeEntry(library)); });
+$('plan-manual').addEventListener('click', () => { $('plan-methods').hidden = true; $('plan-form').hidden = false; $('current-plan-tab').setAttribute('aria-controls', 'plan-form'); });
+$('plan-method-back').addEventListener('click', showMethodChoice);
+$('plan-auto').addEventListener('click', async () => {
+  await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
+  const recipe = initialRecipe(libraryMode === 'new' ? null : managedEntry, loadProfile(storage).profile);
+  recipe.route = routeDraft; recipe.mode = routeDraft ? 'route' : 'simulation';
+  generator.open(recipe, false, !routeDraft);
+});
 $('library-tab').addEventListener('click', renderLibraryList);
 for (const id of ['current-plan-tab', 'library-tab']) $(id).addEventListener('keydown', event => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -549,7 +571,7 @@ $('plan-form').addEventListener('submit', event => {
   try {
     const details = planDetails();
     const next = libraryMode === 'new' ? createPlan(library, details) : libraryMode === 'copy' ? duplicatePlan(library, managedEntry, details) : selectPlan(updateDetails(library, managedEntry.plan.id, details), managedEntry.plan.id);
-    changeLibrary(next);
+    changeLibrary(validateLibrary({ ...next, plans: next.plans.map(item => item.plan.id === next.activePlanID ? { ...item, route: routeDraft } : item) }));
     if (storageNotice) { editPlanView('edit', activeEntry(library)); message('library-notice', storageNotice); }
     else $('library-dialog').close();
   } catch (error) { message('plan-form-error', error.message); }
@@ -591,8 +613,30 @@ $('copy').addEventListener('click', async () => {
   catch { message('result', '未能复制，请截图兼容性信息。'); }
 });
 message('storage-message', loaded.message);
-const routePicker = setupRoutePicker({ storage, current: () => activeEntry(library), openSheet, useRoute: (id, route) => changeLibrary(setRoute(library, id, route)) });
+const routePicker = setupRoutePicker({ storage, current: () => activeEntry(library), openSheet });
+$('route').addEventListener('click', async () => {
+  await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
+  const selected = await routePicker.pick(routeDraft);
+  if (selected !== undefined) {
+    routeDraft = selected;
+    if (selected) $('library-plan-distance').value = String(roundedMeters(selected.distanceMeters) / 1000);
+    validatePlanForm();
+  }
+  showMethodChoice(); openSheet($('library-dialog'));
+});
 setupProfileEditor({ storage, openSheet, connect: () => routePicker.connect() });
+const generator = setupGenerator({ storage, current: recipe => recipe ? library.plans.find(item => revision(item) === recipe.sourceRevision) ?? null : activeEntry(library), openSheet, available: () => !sharing && !removing.size,
+  chooseRoute: route => routePicker.pick(route), returnToPlan: recipe => {
+    if (!['new', 'edit'].includes(libraryMode)) showPlanChoice(plan ? 'edit' : 'new', activeEntry(library)); else showMethodChoice();
+    if (Object.hasOwn(recipe, 'route')) { routeDraft = recipe.route; showMethodChoice(); }
+    openSheet($('library-dialog'));
+  }, save: recipe => {
+  const fresh = loadLibrary(storage);
+  if (!writable || !fresh.writable) throw new Error('本机计划库暂时无法保存，原内容未被覆盖。请先处理存储提示。');
+  const next = generatedLibrary(fresh.library, recipe), warning = storeLibrary(storage, next);
+  if (warning) throw new Error('浏览器未能保存新计划，请检查可用存储后重试。原计划保持不变。');
+  changeLibrary(next); message('result', '已保存为独立计划。原计划保留，沿途补给可继续调整。');
+} });
 if (loaded.needsSave && writable) persist();
 render();
 // Restore the prepared file and enabled actions when returning through browser history.

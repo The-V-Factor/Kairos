@@ -1,0 +1,96 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>#15 计算器与生成回归</title>
+<style>body{background:#141614;color:#f7f8eb;font:14px system-ui}button{padding:12px}iframe{display:block;width:402px;height:700px;border:1px solid #53594c}pre{white-space:pre-wrap}</style>
+<button id="run" disabled>运行计算器与生成回归</button><pre id="results" role="status">仅在本机独立端口 8845 运行，使用合成档案与路线。</pre><iframe title="合成测试页面"></iframe>
+<script type="module">
+import { loadLibrary, activeEntry, createPlan, updatePlan, setRoute, storeLibrary, libraryKey, updateDetails } from '../library.mjs';
+import { newID } from '../plan.mjs';
+import { routePoints } from '../routes.mjs';
+import { profileKey, storeProfile } from '../profile.mjs';
+import { encodeWorkout, validatePlan } from '../workout.mjs';
+import { readTransfer, calculateRecipe } from '../generation.mjs';
+const frame=document.querySelector('iframe'), output=document.querySelector('#results'), run=document.querySelector('#run');
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function until(check){const end=Date.now()+5000;while(!check()){if(Date.now()>end)throw Error('等待页面状态超时');await wait(20);}}
+const check=(condition,message)=>{if(!condition)throw Error(message);};
+const profile={sex:'female',ageYears:30,heightCm:170,weightKg:70,ftpWatts:250};
+const route={source:'igpsport-cn',id:'15',title:'合成爬坡路线',author:'Synthetic',region:'测试',distanceMeters:30000,ascentMeters:500,points:routePoints(Array.from({length:301},(_,i)=>({latitude:23,longitude:113+i*.001,elevationMeters:i<100?0:i<200?(i-100)*5:500})))};
+let original, profileBefore;
+function seed({withRoute=true,withProfile=true}={}){
+ let library=loadLibrary({getItem:()=>null},'2026-11-17').library;
+ library=createPlan(library,{name:'合成手动计划',rideDate:'2026-11-17',totalDistanceMeters:30000});
+ library=updatePlan(library,{...activeEntry(library).plan,stops:[{id:newID(),distanceMeters:10000,kind:'custom',name:'原有补给',reminder:'原有提示'}]});
+ if(withRoute)library=setRoute(library,library.activePlanID,route);
+ storeLibrary(localStorage,library);if(withProfile)storeProfile(localStorage,profile);else localStorage.removeItem(profileKey);
+ original=structuredClone(activeEntry(library));profileBefore=localStorage.getItem(profileKey);
+}
+async function load(path='../'){
+ await new Promise(resolve=>{frame.onload=resolve;frame.src=path;});await wait(70);
+ return frame.contentDocument;
+}
+const doc=()=>frame.contentDocument,$=id=>doc().getElementById(id);
+async function click(id){$(id).click();await wait(60);}
+async function generate(){await click('library');await click('plan-auto');await until(()=>$('generation-dialog').open);}
+async function fill(id,value){$(id).value=String(value);$(id).dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));await wait(70);}
+const saved=()=>JSON.parse(localStorage.getItem(libraryKey));
+if(location.port==='8845'&&['localhost','127.0.0.1'].includes(location.hostname))run.disabled=false;
+run.onclick=async()=>{
+ run.disabled=true;let passed=0;
+ const ok=message=>{passed++;output.textContent+=`\n✓ ${message}`;};output.textContent='运行中…';
+ try{
+ seed();await load();await until(()=>$('plan-name').textContent==='合成手动计划');
+ check(doc().querySelector('[role="menuitem"][href="./calculator.html"]'),'缺少计算器菜单');ok('人物菜单含独立计算器入口');
+ check(!$('generate')&&!$('plan-heading').querySelector('#route'),'首页仍有独立生成或路线操作');check($('home-route-summary').textContent===route.title,'首页缺少路线文字摘要');await click('library');check(!$('plan-methods').hidden&&$('plan-form').hidden,'没有先选择安排方式');ok('首页统一入口先选择手动或自动');
+ const untouched=localStorage.getItem(libraryKey);await click('plan-manual');check(!$('plan-form').hidden,'手动表单未打开');await fill('library-plan-name','未保存名称');await click('plan-method-back');await click('plan-manual');check($('library-plan-name').value==='未保存名称','返回方式选择丢失手动输入');check(localStorage.getItem(libraryKey)===untouched,'切换方式修改原计划');ok('手动填写、返回与切换方式保留草稿且不写计划');
+ await click('edit-plan-date');check($('library-dialog').scrollHeight<=$('library-dialog').clientHeight+2,'手动日历面板溢出');await click('edit-plan-date');await click('edit-plan-distance');check($('library-dialog').scrollHeight<=$('library-dialog').clientHeight+2,'手动距离滚轮面板溢出');await click('edit-plan-distance');ok('统一入口后的日历和距离滚轮在402×700内可见');
+ await click('plan-method-back');await click('plan-auto');await until(()=>$('generation-dialog').open);await click('fuel-back');await until(()=>$('library-dialog').open);check(!$('plan-methods').hidden,'退出自动生成没有返回统一入口');ok('退出自动生成返回安排方式选择');doc().querySelector('#library-dialog [data-close]').click();await wait(60);
+ await generate();const beforeRoute=localStorage.getItem(libraryKey);await click('fuel-choose-route');await until(()=>$('route-dialog').open);await click('route-saved');await click('route-remove');await until(()=>$('generation-dialog').open);check(localStorage.getItem(libraryKey)===beforeRoute,'生成中移除路线修改原计划');check($('fuel-preview-button').disabled,'移除暂存路线仍可生成');await click('fuel-back');await until(()=>$('library-dialog').open);doc().querySelector('#library-dialog [data-close]').click();await wait(60);ok('生成过程的路线选择独立暂存，取消不修改原计划');
+ seed();await load();await click('library');check($('route').closest('#plan-methods'),'路线未收进统一面板');const stagedBefore=localStorage.getItem(libraryKey);await click('route');await until(()=>$('route-dialog').open);await click('route-saved');await click('route-remove');await until(()=>$('library-dialog').open);check($('route-label').textContent.includes('选择路线'),'暂存移除未反映在面板');check(localStorage.getItem(libraryKey)===stagedBefore,'暂存路线提前写入');await click('plan-auto');await until(()=>$('generation-dialog').open);check($('fuel-preview-button').disabled,'自动生成未使用暂存路线');await click('fuel-back');await until(()=>$('library-dialog').open);await click('plan-manual');await click('save-plan');check(!activeEntry(saved()).route&&$('home-route-summary').hidden,'保存手动计划未移除路线');ok('统一面板暂存路线，自动共用选择，手动保存后才更新首页');
+ seed();await load();await click('library');await click('route');await until(()=>$('route-dialog').open);await click('route-nav');await until(()=>$('library-dialog').open);check($('route-label').textContent===route.title,'取消选择丢失路线');doc().querySelector('#library-dialog [data-close]').click();await wait(60);check(activeEntry(saved()).route.title===route.title,'取消面板修改路线');ok('取消选路线或编辑保留原计划');
+ await generate();check($('generation-dialog').open,'生成未打开');check(!$('fuel-preview-button').disabled,'有效数据不能预览');ok('档案与路书可直接估算，无需用户填写用时');
+ check($('generation-dialog').scrollHeight<=$('generation-dialog').clientHeight+2,'生成设置弹窗高度溢出');ok('402×700 生成设置不需要整页滚动');
+ const slower=$('fuel-duration').textContent;doc().querySelector('[data-effort="0.8"]').click();await wait(70);check($('fuel-duration').textContent!==slower,'强度没有改变用时');ok('选择强度实时改变估算');
+ check(JSON.stringify(saved().plans.find(p=>p.plan.id===original.plan.id))===JSON.stringify(original),'预览前修改原计划');ok('调整生成参数不修改原计划');
+ await click('fuel-profile');await until(()=>$('profile-dialog').open);await click('profile-nav');await until(()=>$('generation-dialog').open);ok('独立档案编辑后返回生成，不叠加模态锁');
+ await fill('fuel-gel',0);check($('fuel-preview-button').disabled,'无效每包碳水未拦截');await fill('fuel-gel',25);check(!$('fuel-preview-button').disabled,'修复参数后未恢复');ok('非法参数有提示，修复后恢复计算');
+ await click('fuel-preview-button');check(!$('fuel-preview').hidden&&$('fuel-chart').querySelector('.fuel-curve'),'预览图缺失');check($('fuel-preview-stops').children.length>0,'补给点为空');ok('预览具有带坐标海拔图和固定点位');
+ check($('generation-dialog').scrollHeight<=$('generation-dialog').clientHeight+2,'预览弹窗高度溢出');ok('402×700 预览按钮保持可见，点位列表独立滚动');
+ const countBefore=saved().plans.length;await click('fuel-save');check(!$('generation-dialog').open,'保存后未关闭');check(saved().plans.length===countBefore+1,'没有创建新计划');ok('确认后另存为独立计划');
+ check(JSON.stringify(saved().plans.find(p=>p.plan.id===original.plan.id))===JSON.stringify(original),'原计划被覆盖');check(localStorage.getItem(profileKey)===profileBefore,'档案被改写');ok('保存后原计划、原有点和档案保持不变');
+ const generated=activeEntry(saved());validatePlan(generated.plan);check(encodeWorkout(generated.plan).length>0,'无法编码训练');ok('真实训练编码接受生成的点位及总距离');
+ doc().querySelector('.stop-content').click();await wait(50);check($('composer').open,'新计划无法编辑');await click('save-stop');ok('生成后的点位仍使用现有编辑器');
+ await load('../calculator.html');await until(()=>$('calc-duration').textContent!=='—');check(!$('calc-preview').disabled,'计算器未启动');ok('独立计算器直接打开即可试算');
+ const libraryBefore=localStorage.getItem(libraryKey), beforeDuration=$('calc-duration').textContent;
+ await fill('calc-ftpWatts',300);check($('calc-duration').textContent!==beforeDuration,'FTP没有改变用时');ok('FTP 数字输入实时计算');
+ const range=doc().querySelector('[data-range="effort"]');range.value='65';range.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));await wait(70);check($('calc-effort').value==='65','滑杆未绑定数字');ok('强度滑杆与精确数字输入双向同步');
+ await fill('calc-ftpWatts','');check(!$('calc-error').hidden&&$('calc-preview').disabled,'空值未阻止预览');await fill('calc-ftpWatts',250);ok('清空参数后不展示旧结果，也不偷偷采用默认值');
+ doc().querySelector('[data-group="equipment"]').click();await wait(50);const gels=$('calc-gels').textContent,energy=$('calc-energy').textContent;
+ await fill('calc-bodyEfficiency',18);check($('calc-energy').textContent!==energy,'效率未影响能耗');check($('calc-gels').textContent===gels,'总热量被错误换算成胶');ok('人体效率影响能耗，不凭总热量决定吃胶数');
+ check(doc().querySelector('[data-panel="equipment"]').classList.contains('active')&&!doc().querySelector('[data-panel="rider"]').classList.contains('active'),'参数分组失效');ok('手机参数分组切换');
+ doc().querySelector('[data-group="route"]').click();await click('calc-use-simulation');const grade=doc().querySelector('[data-segment-grade="1"]');grade.value='8';grade.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));await wait(70);check($('calc-route-totals').textContent.includes('797'),'模拟坡度未更新');ok('模拟路线按分段坡度计算爬升');
+ await click('calc-add-segment');check($('calc-segments').children.length===4,'路段未增加');doc().querySelector('.calc-segment-row:last-child button').click();await wait(60);check($('calc-segments').children.length===3,'路段未删除');ok('分段增删只影响试算路线');
+ check(localStorage.getItem(libraryKey)===libraryBefore&&localStorage.getItem(profileKey)===profileBefore,'计算器修改了原数据');ok('计算器调参不回写计划库和档案');
+ const rgb=s=>s.match(/[\d.]+/g).slice(0,3).map(Number),lum=c=>c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((n,v,i)=>n+v*[.2126,.7152,.0722][i],0),ratio=(a,b)=>{const x=lum(rgb(a)),y=lum(rgb(b));return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+ for(const theme of ['rhythm','trail','journal','pocket','precision']){
+  doc().documentElement.dataset.theme=theme;const body=frame.contentWindow.getComputedStyle(doc().body),button=frame.contentWindow.getComputedStyle($('calc-preview')),muted=frame.contentWindow.getComputedStyle($('calc-context'));
+  check(ratio(body.color,body.backgroundColor)>=4.5&&ratio(button.color,button.backgroundColor)>=4.5&&ratio(muted.color,body.backgroundColor)>=4.5,`${theme}文字对比度不足`);
+  check(doc().documentElement.scrollWidth<=frame.contentWindow.innerWidth,'横向溢出');ok(`${theme}皮肤正文、次要文字、主按钮对比度和横向布局`);
+ }
+ doc().documentElement.dataset.theme='rhythm';
+ let copied='';Object.defineProperty(frame.contentWindow.navigator.clipboard,'writeText',{configurable:true,value:async text=>{copied=text;}});await click('calc-copy');check(JSON.parse(copied).result.ride.modelVersion,'复制缺少模型版本');ok('可复制完整参数和结果，用于复现回归');
+ const transfer= new Promise(resolve=>{frame.onload=resolve;});$('calc-preview').click();await transfer;await until(()=>$('generation-dialog')?.open&&!$('fuel-preview').hidden);
+ const recipe=readTransfer(sessionStorage),expected=calculateRecipe(recipe,activeEntry(saved()));
+ check($('fuel-preview-stops').children.length===expected.schedule.stops.length,'计算器与生成点数不同');ok('计算器回到生成预览，使用同一计算结果');
+ await click('fuel-save');const newPlan=activeEntry(saved()).plan;check(JSON.stringify(newPlan.stops.map(s=>s.distanceMeters))===JSON.stringify(expected.schedule.stops.map(s=>s.distanceMeters)),'保存点位不一致');ok('计算器、预览、存档点位完全一致');
+ seed();await load();await generate();await click('fuel-preview-button');const beforeStale=saved();storeLibrary(localStorage,updateDetails(beforeStale,beforeStale.activePlanID,{name:'另一个标签页修改',rideDate:'2026-11-18'}));await click('fuel-save');check($('generation-dialog').open&&$('fuel-notice').textContent.includes('更改'),'过期预览未拦截');check(saved().plans.length===beforeStale.plans.length,'过期预览仍新增');ok('另一个标签页修改原计划后，过期预览不能保存');
+ seed({withProfile:false});await load();await generate();check($('fuel-preview-button').disabled&&$('fuel-notice').textContent.includes('FTP'),'缺失档案未解释');ok('缺少档案不猜 FTP 和体重');
+ seed({withRoute:false});await load();await generate();await fill('fuel-gel',30);check($('fuel-preview-button').disabled&&$('fuel-notice').textContent.includes('路书'),'改参数绕过缺失路线');ok('无路书需明确选择模拟，不暗中当作平路');
+ await click('fuel-profile');await until(()=>$('profile-dialog').open);await click('profile-nav');await until(()=>$('generation-dialog').open);check($('fuel-preview-button').disabled,'返回档案绕过缺失路线');ok('从档案返回仍保留缺少路书的约束');
+ seed();await load();await generate();await click('fuel-preview-button');const beforeQuota=localStorage.getItem(libraryKey),nativeSet=frame.contentWindow.Storage.prototype.setItem;
+ frame.contentWindow.Storage.prototype.setItem=function(key,value){if(key===libraryKey)throw Error('synthetic quota');return nativeSet.call(this,key,value);};
+ await click('fuel-save');check($('generation-dialog').open&&localStorage.getItem(libraryKey)===beforeQuota,'存储失败仍声称成功');check($('fuel-notice').textContent.includes('保存'),'存储失败无提示');ok('存储失败留在预览，不覆盖数据或报告成功');
+ frame.contentWindow.Storage.prototype.setItem=nativeSet;
+ const empty={...saved(),plans:[],activePlanID:null};storeLibrary(localStorage,empty);await load();await click('first-plan');check(!$('plan-methods').hidden,'首次创建没有统一入口');await click('plan-auto');await until(()=>$('generation-dialog').open);check(!$('fuel-choose-route').hidden&&$('fuel-choose-route').getBoundingClientRect().width>0,'没有计划时选择路线按钮不可见');await click('fuel-choose-route');await until(()=>$('route-dialog').open);await click('route-nav');await until(()=>$('generation-dialog').open);check(saved().plans.length===0,'选择或取消方式提前创建计划');ok('没有计划时也先选方式，自动路线选择可见且取消不建空草稿');await click('fuel-back');await until(()=>$('library-dialog').open);await click('plan-manual');await click('save-plan');check(saved().plans.length===1,'手动创建失效');ok('统一入口的手动创建仍可保存新计划');
+ output.textContent+=`\n\n通过 ${passed} 项`;run.disabled=false;
+ }catch(error){output.textContent+=`\n\n失败（已通过 ${passed} 项）：${error.message}`;run.disabled=false;}
+};
+</script></html>

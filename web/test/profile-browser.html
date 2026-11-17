@@ -1,11 +1,11 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>个人档案浏览器回归</title>
 <style>body{background:#141614;color:#f7f8eb;font:14px system-ui}button{padding:12px}iframe{display:block;width:402px;height:700px;border:0}pre{white-space:pre-wrap}</style>
-<button id="run" disabled>运行个人档案回归</button><pre id="results" role="status">仅在独立端口 8832 运行，使用合成资料与模拟接口，不读取真实账号。</pre><iframe title="测试页面"></iframe>
+<button id="run" disabled>运行个人档案回归</button><pre id="results" role="status">仅在独立端口 8832／8845 运行，使用合成资料与模拟接口，不读取真实账号。</pre><iframe title="测试页面"></iframe>
 <script type="module">
 const frame=document.querySelector('iframe'), output=document.querySelector('#results'), run=document.querySelector('#run');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(check){const end=Date.now()+4000;while(!check()){if(Date.now()>end)throw Error('等待页面状态超时');await wait(20);}}
-if(location.port==='8832'){
+if(['8832','8845'].includes(location.port)){
  const html=await(await fetch('../index.html')).text();
  const stub=`
  localStorage.removeItem('kairos.web.profile.v1');localStorage.removeItem('kairos.web.igpsport.cn.v1');
@@ -40,7 +40,7 @@ run.addEventListener('click',async()=>{
  try{
   const planBefore=win.localStorage.getItem('kairos.web.library.v1');
   $('account').click();await until(()=>$('account-menu').matches(':popover-open'));
-  assert(doc.querySelectorAll('#account-menu [role="menuitem"]').length===2,'人像菜单仅含个人档案和使用说明');
+  assert(doc.querySelectorAll('#account-menu [role="menuitem"]').length===3&&doc.querySelector('#account-menu a[href="./calculator.html"]'),'人像菜单包含独立档案、计算器和使用说明');
   assert(!doc.querySelector('#library-dialog #profile-entry'),'个人档案入口已移出计划面板');
   $('profile-entry').click();await until(()=>$('profile-dialog').open);
   assert(!$('account-menu').matches(':popover-open'),'进入档案前收起菜单');
@@ -76,14 +76,14 @@ run.addEventListener('click',async()=>{
   $('profile-nav').click();win.profileTest.mode='pending';$('profile-import').click();await until(()=>$('profile-dialog').getAttribute('aria-busy')==='true');await back();await until(()=>win.profileTest.aborts>0);
   assert(win.profileTest.aborts===1,'关闭面板中止读取，不发生后台覆盖');
   assert(win.localStorage.getItem('kairos.web.library.v1')===planBefore,'档案编辑不修改补给计划和导出历史');
-  await wait(40);$('route').click();await wait(40);doc.querySelector('.route-source').click();
-  assert(!$('route-browse').hidden,'路书连接仍正常，复用档案登录会话');$('route-dialog').close();
+  await wait(40);$('library').click();$('route').click();await wait(80);doc.querySelector('.route-source').click();
+  assert(!$('route-browse').hidden,'路书连接仍正常，复用档案登录会话');$('route-dialog').close();await until(()=>$('library-dialog').open);$('library-dialog').close();
   await wait(40);win.profileTest.mode='ok';win.localStorage.removeItem('kairos.web.igpsport.cn.v1');await open();$('profile-import').click();await until(()=>$('route-dialog').open);$('route-qr-tab').click();await until(()=>$('profile-dialog').open&&!$('profile-review').hidden);
   assert(!$('route-dialog').open,'扫码连接也返回档案核对，不进入路书搜索');$('profile-nav').click();await back();
   assert(win.profileTest.calls.filter(call=>call.path.endsWith('/UserInfo')||call.path.endsWith('/UserIntervalInfo')||call.path.includes('/RouteListForWeb')).every(call=>call.method==='GET'),'个人档案与路书只读取，不写回提供商');
   await wait(40);$('account').click();$('help').click();await until(()=>$('help-dialog').open);
   assert(!$('account-menu').matches(':popover-open'),'菜单里的使用说明正常打开，菜单同时收起');$('help-dialog').querySelector('[data-close]').click();await wait(40);
-  $('library').click();$('delete-plan').click();await until(()=>!$('no-plan').hidden);await wait(40);await open();
+  $('library').click();$('plan-manual').click();$('delete-plan').click();await until(()=>!$('no-plan').hidden);await wait(40);await open();
   assert($('profile-dialog').open&&!$('no-plan').hidden,'没有骑行计划时仍可独立打开个人档案');await back();$('undo').click();
   output.textContent=checks.join('\n')+'\nAll '+checks.length+' checks passed.';
  }catch(error){output.textContent=checks.join('\n')+'\nFAIL '+error.message;}
