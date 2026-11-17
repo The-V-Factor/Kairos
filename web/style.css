@@ -13,6 +13,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; color: inherit; background: none; border: 0; padding: 0; touch-action: manipulation; }
 button:disabled { opacity: .4; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible, [role="slider"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+html[data-focus-input="pointer"] :focus-visible { outline: none; }
 [hidden] { display: none !important; }
 .icon { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
 .icon-button { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; }
@@ -197,7 +198,7 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .library-sheet .sheet-body { padding-block: 8px 12px; }
 .plan-field { border-bottom: 1px solid var(--line); }
 .plan-name-field { display: flex; align-items: baseline; gap: 24px; min-height: var(--plan-row); }
-.plan-name-field label { color: var(--muted); font-size: 13px; flex: 0 0 28px; }
+.plan-name-field label { color: var(--muted); font-size: 13px; flex: 0 0 auto; }
 .plan-name-field input { padding: 11px 0; border: 0; font-size: 17px; font-weight: 550; }
 .plan-field-toggle { display: flex; align-items: center; gap: 24px; width: 100%; min-height: var(--plan-row); text-align: left; }
 .plan-field-toggle > span:first-child { color: var(--muted); font-size: 13px; flex: 0 0 28px; }
@@ -281,10 +282,10 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .profile-review-row.unchanged strong { margin: 0 auto; color: var(--ink); font-weight: 500; }
 .profile-review-row.unchanged small { padding: 3px 7px; border-radius: 10px; background: var(--control); }
 @media (max-height: 740px) {
-  .profile-intro { margin-bottom: 12px; }
+  .profile-intro { margin-bottom: 8px; }
   .profile-import { min-height: 64px; }
-  .profile-field, .profile-sex { padding-block: 12px; }
-  .profile-footnote { margin-block: 12px; }
+  .profile-field, .profile-sex { padding-block: 8px; }
+  .profile-footnote { margin-block: 8px; }
   .profile-source { margin-bottom: 14px; }
   .profile-review-row { min-height: 48px; }
 }

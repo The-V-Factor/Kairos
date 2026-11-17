@@ -39,7 +39,7 @@ Git 集成和 Direct Upload 是不同的项目创建方式，不能直接互相�
 rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 ```
 
-打包白名单共 40 个文件，包含页面、编辑器、计划库、个人档案、路书连接与海拔交互模块、独立计算器、共用补给模型与生成预览、图标及直接打开实验。本地 D3／QR 组件随站点交付，并保留 `NOTICE.txt` 与 `vendor/d3-zoom.LICENSE.txt`；完整清单以 `tools/package-web.mjs` 为准。不包含测试页面、Node 测试、Swift 工具、依赖构建 lock 或本地签名配置。
+打包白名单共 43 个文件，包含页面、编辑器、计划库、个人档案、路书连接与海拔交互模块、独立计算器、个人能量胶配置、共用补给模型与生成预览、图标及直接打开实验。本地 D3／QR 组件随站点交付，并保留 `NOTICE.txt` 与 `vendor/d3-zoom.LICENSE.txt`；完整清单以 `tools/package-web.mjs` 为准。不包含测试页面、Node 测试、Swift 工具、依赖构建 lock 或本地签名配置。
 
 `open/worker.mjs` 是浏览器 Service Worker，不是 Cloudflare Worker。它只处理 `/open/` 中的本机测试文件地址，不接管计划页，也不上传计划。固定示例的响应头明确设置 `Content-Disposition: inline`；需要从真实 HTTPS 页面在 iPhone 上验证，不以本地 HTTP 模拟器结果推定线上行为。
 
@@ -60,3 +60,5 @@ rtk proxy node tools/package-web.mjs /private/tmp/kairos-pages-新的目录名
 2026-11-11：用户已部署 [Kairos 网页](https://kairos-2rm.pages.dev/)，并确认手机可以打开网页、下载训练内容，同意本阶段验收收口。该反馈不等于已验证直接分享至“健身”、导入真实 Apple Watch 或骑行提醒。
 
 后续用户已完成独立 Kairos 域名的 Access Bypass 配置并确认公开访问生效，保留 All Workers 原有规则；无需为本次计划库改动再次修改 Access。用户也已确认骑行提醒闭环通过。上述结果来自用户反馈，不替代每次新部署的资源与版本核对。不要把本地模拟器输出的示例 `CF_PAGES_URL` 当成已发布地址。
+
+个人能量胶配置独立保存在`kairos.web.gels.v1`，计划和导出历史可带`gel`名称与含量快照。回滚到不认识该字段的旧版本时，应避免继续编辑计划，旧版本写入可能忽略胶快照；配置原键及已导入手表的训练不被自动删除。
