@@ -31,13 +31,12 @@ const fields = [
   { key: 'maxSpeedKph', title: '下坡限速', unit: 'km/h', min: 5, max: 100, step: 1, group: 'equipment' },
   { key: 'carbsPerHour', title: '碳水目标', unit: 'g/h', min: 0, max: 90, step: 1, group: 'fuel' },
   { key: 'gelCarbsGrams', title: '每支碳水', unit: 'g', min: 5, max: 100, step: .1, group: 'fuel' },
-  { key: 'waterIntervalMinutes', title: '喝水间隔', unit: '分', min: 0, max: 180, step: 1, group: 'fuel' },
 ];
 for (const field of fields) {
   const wrap = document.createElement('div'); wrap.className = 'calc-control';
   const label = document.createElement('label'); label.htmlFor = `calc-${field.key}`; label.textContent = field.title;
   const line = document.createElement('div'); line.className = 'calc-input-line';
-  const box = document.createElement('span'); box.className = 'calc-value';
+  const box = document.createElement('span'); box.className = 'calc-value ui-value';
   const number = document.createElement('input'); number.id = label.htmlFor; number.type = 'number'; number.inputMode = 'decimal';
   number.dataset.input = field.key; number.min = field.min; number.max = field.max; number.step = field.step;
   const unit = document.createElement('small'); unit.textContent = field.unit; box.append(number, unit);
@@ -80,10 +79,10 @@ function renderRoute() {
   for (const [index, segment] of recipe.segments.entries()) {
     const row = document.createElement('div'); row.className = 'calc-segment-row';
     const position = document.createElement('span'); position.textContent = String(index + 1).padStart(2, '0');
-    const distance = document.createElement('input'); distance.type = 'number'; distance.min = .001; distance.step = .1;
+    const distance = document.createElement('input'); distance.type = 'number'; distance.className = 'ui-input ui-input--compact'; distance.min = .001; distance.step = .1;
     distance.value = segment.distanceMeters / 1000; distance.inputMode = 'decimal'; distance.dataset.segmentDistance = index;
     distance.setAttribute('aria-label', `路段 ${index + 1} 距离，公里`);
-    const grade = document.createElement('input'); grade.type = 'number'; grade.min = -100; grade.max = 100; grade.step = .1;
+    const grade = document.createElement('input'); grade.type = 'number'; grade.className = 'ui-input ui-input--compact'; grade.min = -100; grade.max = 100; grade.step = .1;
     grade.value = segment.gradePercent; grade.inputMode = 'decimal'; grade.dataset.segmentGrade = index;
     grade.setAttribute('aria-label', `路段 ${index + 1} 坡度，百分比`);
     for (const input of [distance, grade]) input.addEventListener('input', () => { recipe.title = '自定义分段'; markExample(null); queueCalculation(); });

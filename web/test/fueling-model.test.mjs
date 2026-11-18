@@ -77,13 +77,24 @@ test('fuel schedule uses carbohydrate grams and time; identical energy does not 
   assert.ok(scheduleFuel(estimateRide({ ...defaults, carbsPerHour: 25 }, scenario())).gelCount < schedule.gelCount);
   assert.deepEqual(schedule, scheduleFuel(ride));
 });
-test('colliding reminders merge after rounding and preserve gel quantity and water', () => {
+test('automatic schedules only contain gels, even with a legacy water interval', () => {
   const ride = estimateRide({ ...defaults, carbsPerHour: 50, gelCarbsGrams: 25, waterIntervalMinutes: 15 }, scenario());
   const schedule = scheduleFuel(ride);
-  assert.ok(schedule.stops.some(stop => stop.reminder.includes('吃胶') && stop.reminder.includes('喝水')));
+  assert.ok(schedule.stops.length > 0);
+  assert.ok(schedule.stops.every(stop => stop.gels > 0 && !stop.reminder.includes('喝水') && stop.kind !== 'water'));
+  assert.deepEqual(schedule, scheduleFuel(estimateRide({ ...defaults, carbsPerHour: 50, gelCarbsGrams: 25 }, scenario())));
   assert.equal(new Set(schedule.stops.map(stop => stop.distanceMeters)).size, schedule.stops.length);
   assert.equal(schedule.stops.reduce((sum, stop) => sum + stop.gels, 0), schedule.gelCount);
   assert.ok(schedule.stops.every(stop => stop.distanceMeters >= 0 && stop.distanceMeters <= ride.totalDistanceMeters));
+});
+test('same-distance gel reminders merge without losing packet quantity', () => {
+  const ride = { parameters: { ...defaults, gelCarbsGrams: 5 }, carbsPerHour: 90, elapsedSeconds: 11000, totalDistanceMeters: 1100,
+    segments: [{ startMeters: 0, endMeters: 1100, startSeconds: 0, endSeconds: 11000, speedMps: .1 }] };
+  const schedule = scheduleFuel(ride);
+  assert.equal(schedule.gelCount, 55);
+  assert.ok(schedule.stops.length < schedule.gelCount);
+  assert.equal(schedule.stops.reduce((sum, stop) => sum + stop.gels, 0), 55);
+  assert.ok(schedule.stops.some(stop => stop.gels > 1 && stop.kind === 'custom' && stop.reminder.includes('×')));
 });
 test('short rides and disabled reminders do not invent a required supplement', () => {
   const ride = estimateRide({ ...defaults, waterIntervalMinutes: 0 }, { mode: 'simulation', segments: [{ distanceMeters: 1000, gradePercent: 0 }] });
@@ -95,7 +106,7 @@ test('short rides and disabled reminders do not invent a required supplement', (
   assert.equal(recommendCarbs(4, .7), 45);
 });
 test('extreme reminders are bounded and never silently truncated', () => {
-  const ride = estimateRide({ ...defaults, waterIntervalMinutes: .01 }, scenario());
+  const ride = estimateRide({ ...defaults, carbsPerHour: 90, gelCarbsGrams: 5 }, { mode: 'simulation', segments: [{ distanceMeters: 1000000, gradePercent: 0 }] });
   assert.throws(() => scheduleFuel(ride), /过多/);
 });
 
@@ -117,7 +128,7 @@ test('8-hour pure-gel schedules independently match carbohydrate arithmetic and 
     assert.equal(schedule.gelCount,expectedGels);
     assert.equal(schedule.plannedCarbsGrams,expectedGels*45);
     assert.ok(Math.abs(schedule.plannedCarbsGrams-carbsPerHour*8)<=22.5);
-    assert.equal(schedule.waterCount,0);
+    assert.ok(schedule.stops.every(stop => !Object.hasOwn(stop, 'waters')));
     assert.equal(schedule.stops.length,expectedGels);
     for (const [index,stop] of schedule.stops.entries()) {
       near(stop.seconds,(index+.5)*interval,.00001);

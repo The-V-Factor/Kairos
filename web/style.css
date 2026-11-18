@@ -81,11 +81,8 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .route-login-tabs { display: flex; padding: 3px; border: 1px solid var(--input-line); border-radius: 14px; margin: 22px 0; }
 .route-login-tabs button { flex: 1; min-height: 36px; border-radius: 11px; font-size: 13px; color: var(--muted); }
 .route-login-tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); font-weight: 650; }
-.route-sheet #route-login-form input { border: 1px solid var(--input-line); border-radius: 12px; padding: 12px; margin-top: 7px; }
-.route-sheet #route-login-form input::placeholder { font-size: 14px; }
 .route-sheet #route-login-form > .primary { margin-top: 28px; }
-.route-password-field { display: flex; align-items: center; border: 1px solid var(--input-line); border-radius: 12px; margin-top: 7px; }
-.route-sheet #route-login-form .route-password-field input { border: 0; margin: 0; }
+.route-password-field { margin-top: 7px; }
 .route-password-field button { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
 .route-password-field .icon { width: 20px; height: 20px; }
 #route-qr-panel { text-align: center; }
@@ -106,10 +103,8 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .route-sheet .eyebrow { color: var(--accent); margin-top: 6px; }
 .route-provider { display: flex; align-items: baseline; gap: 12px; font-size: 13px; font-weight: 500; margin: 8px 0 12px; }
 .route-provider span { color: var(--muted); font-size: 11px; font-weight: 400; }
-.route-search { display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--input-line); border-radius: 14px; }
+.route-search { gap: 10px; }
 .route-search > .icon { flex: 0 0 18px; width: 18px; height: 18px; color: var(--muted); }
-.route-search input { border: 0; padding-block: 12px; }
-.route-search input::placeholder { font-size: 14px; }
 .route-search button { min-height: 44px; flex-shrink: 0; color: var(--accent); font-size: 14px; font-weight: 650; }
 .route-search-empty { padding: clamp(20px, 5dvh, 48px) 0 8px; text-align: center; }
 .route-empty-art { display: block; width: 156px; height: 98px; margin: 0 auto 16px; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -197,9 +192,8 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .plan-sections button[aria-selected="true"] { color: var(--accent); border-color: var(--accent); font-weight: 650; }
 .library-sheet .sheet-body { padding-block: 8px 12px; }
 .plan-field { border-bottom: 1px solid var(--line); }
-.plan-name-field { display: flex; align-items: baseline; gap: 24px; min-height: var(--plan-row); }
+.plan-name-field { min-height: var(--plan-row); }
 .plan-name-field label { color: var(--muted); font-size: 13px; flex: 0 0 auto; }
-.plan-name-field input { padding: 11px 0; border: 0; font-size: 17px; font-weight: 550; }
 .plan-field-toggle { display: flex; align-items: center; gap: 24px; width: 100%; min-height: var(--plan-row); text-align: left; }
 .plan-field-toggle > span:first-child { color: var(--muted); font-size: 13px; flex: 0 0 28px; }
 .plan-field-toggle strong { font-size: 15px; font-weight: 500; flex: 1; font-variant-numeric: tabular-nums; }
@@ -230,8 +224,6 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .km-wheel-option { height: 44px; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; color: var(--muted); font-size: 28px; font-weight: 550; font-variant-numeric: tabular-nums; cursor: grab; }
 .km-wheel-option.selected { color: var(--accent); font-weight: 700; }
 .direct-distance { display: block; min-height: 44px; margin: 4px auto 0; color: var(--accent); font-size: 14px; }
-#direct-distance-field { padding: 12px 0; }
-#direct-distance-field input { font-size: 30px; padding: 8px 0; }
 #return-wheel { min-height: 44px; padding-left: 8px; color: var(--accent); font-size: 13px; white-space: nowrap; }
 #wheel-hint { text-align: center; margin: 0 0 18px; }
 .library-save { margin-top: 16px; }
@@ -256,13 +248,7 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .profile-sex { padding-top: 16px; }
 .profile-sex legend { float: left; width: 100%; margin-bottom: 10px; padding: 0; }
 .profile-sex > div { display: flex; clear: both; padding-right: 16px; }
-.profile-sex button { flex: 1; min-height: 44px; border: 1px solid var(--input-line); color: var(--ink); font-size: 14px; }
-.profile-sex button:first-child { border-radius: 10px 0 0 10px; }
-.profile-sex button:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }
-.profile-sex button[aria-pressed="true"] { position: relative; z-index: 1; color: var(--accent); border-color: var(--accent); background: var(--selected); }
 .profile-field > span { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; }
-.profile-field input { min-width: 0; padding: 0; border: 0; font-size: 27px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; }
-.profile-field input::placeholder { font-size: 23px; color: var(--muted); }
 .profile-field small { font-size: 12px; font-weight: 400; color: var(--muted); }
 .profile-ftp { grid-column: 1 / -1; }
 .profile-ftp > small { display: block; font-size: 11px; margin-top: 10px; line-height: 1.6; }
@@ -395,8 +381,6 @@ label { display: block; font-size: 12px; color: var(--muted); }
 input { font-size: 20px; min-width: 0; width: 100%; background: none; color: var(--ink); border: 0; border-bottom: 1px solid var(--input-line); border-radius: 0; padding: 8px 0 12px; font-weight: 600; }
 input::placeholder { color: var(--muted); font-size: 17px; font-weight: 400; }
 .hero-fields label + label { margin-top: 14px; }
-#stop-reminder { font-size: 25px; }
-#stop-name { font-size: 20px; }
 .fuel-types { display: flex; gap: 8px; margin-top: 26px; }
 .fuel-types button { display: flex; flex: 1; flex-direction: column; justify-content: center; align-items: center; gap: 6px; min-height: 78px; border: 1px solid transparent; border-radius: 16px; font-size: 12px; }
 .fuel-types button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--selected); font-weight: 700; }
@@ -405,7 +389,6 @@ input::placeholder { color: var(--muted); font-size: 17px; font-weight: 400; }
 .delete-in-editor .icon { width: 18px; height: 18px; }
 .distance-input { display: flex; align-items: center; gap: 12px; }
 .distance-input input { color: var(--accent); font-variant-numeric: tabular-nums; }
-.distance-input select { border: 0; border-radius: 10px; background: var(--control); color: var(--ink); padding: 10px; font-size: 16px; }
 .position-editor { margin-bottom: 20px; }
 .muted { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .help-sheet { max-height: 88dvh; }
@@ -440,7 +423,6 @@ dd { margin-left: 0; overflow-wrap: anywhere; }
 @media (max-height: 780px) {
   .library-sheet { --plan-row: 36px; --plan-header: 40px; --calendar-day: 28px; }
   .plan-sections button { min-height: 34px; }
-  .plan-name-field input { padding-block: 8px; font-size: 16px; }
   .calendar-heading button { min-height: 30px; }
   .calendar-grid th { height: 18px; }
   .plan-calendar { padding-bottom: 4px; }
@@ -449,7 +431,6 @@ dd { margin-left: 0; overflow-wrap: anywhere; }
 .library-sheet.keyboard-open { --plan-row: 32px; --plan-header: 36px; }
 .library-sheet.keyboard-open .sheet-grabber { display: none; }
 .library-sheet.keyboard-open .plan-sections button { min-height: 32px; }
-.library-sheet.keyboard-open .plan-name-field input { padding-block: 6px; }
 @media (max-width: 359px) { .masthead { padding-inline: 18px; } main, .dock-content { padding-inline: 18px; } h1 { font-size: 30px; } .plan-meta { font-size: 12px; } .plan-sections { margin-inline: 18px; } .calendar-grid button { width: 34px; height: 38px; } .ruler-controls { font-size: 10px; } .ruler-controls button { min-width: 34px; } .fuel-hero { gap: 16px; } .sheet-body { padding-inline: 18px; } .add-fuel { gap: 4px; padding-inline: 10px; } }
 @media (min-width: 700px) { .masthead { padding-top: 28px; } main { padding-top: 32px; } .sheet { margin-bottom: 20px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } .stop.removing .fuel-art { transform: none; } }

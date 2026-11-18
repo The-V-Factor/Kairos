@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="./themes.css">
     <link rel="stylesheet" href="./fueling.css">
+    <link rel="stylesheet" href="./components.css">
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
@@ -54,8 +55,8 @@
       <form id="fuel-form" novalidate>
         <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="取消补给编辑"><span data-icon="close"></span></button><h2 id="composer-title"></h2><button id="save-stop" type="submit">添加</button></div>
         <div class="sheet-body">
-          <div id="edit-position" class="position-editor" hidden><label for="stop-distance">距出发里程</label><div class="distance-input"><input id="stop-distance" type="text" inputmode="decimal" autocomplete="off"><select id="stop-unit" aria-label="补给距离单位"><option value="km">km</option><option value="m">m</option></select></div></div>
-          <div class="fuel-hero"><div id="hero-art" class="hero-art"></div><div class="hero-fields"><label id="custom-name-field" hidden>补给名称<input id="stop-name" type="text" maxlength="80" placeholder="例如巧克力" autocomplete="off"></label><label>手表提示<input id="stop-reminder" type="text" maxlength="160" placeholder="填写到点提醒" autocomplete="off"></label></div></div>
+          <div id="edit-position" class="position-editor" hidden><label for="stop-distance">距出发里程</label><div class="distance-input ui-value"><input id="stop-distance" type="text" inputmode="decimal" autocomplete="off"><select class="ui-unit-select" id="stop-unit" aria-label="补给距离单位"><option value="km">km</option><option value="m">m</option></select></div></div>
+          <div class="fuel-hero"><div id="hero-art" class="hero-art"></div><div class="hero-fields"><label id="custom-name-field" hidden>补给名称<input id="stop-name" class="ui-input" type="text" maxlength="80" placeholder="例如巧克力" autocomplete="off"></label><label>手表提示<input id="stop-reminder" class="ui-input" type="text" maxlength="160" placeholder="填写到点提醒" autocomplete="off"></label></div></div>
           <div class="fuel-types" role="group" aria-label="补给类型"><button type="button" data-kind="water"><span class="type-art"></span><span>水</span></button><button type="button" data-kind="gel"><span class="type-art"></span><span>胶</span></button><button type="button" data-kind="custom"><span class="type-art"></span><span>自定义</span></button></div>
           <p id="fuel-error" class="notice" role="status" hidden></p>
           <button id="delete-stop" class="delete-in-editor" type="button" hidden><span data-icon="trash"></span>删除这个补给点</button>
@@ -75,10 +76,10 @@
       <div class="plan-sections" role="tablist" aria-label="计划管理"><button id="current-plan-tab" type="button" role="tab" aria-selected="true" aria-controls="plan-form">当前计划</button><button id="library-tab" type="button" role="tab" aria-selected="false" aria-controls="library-list-view">计划库</button></div>
       <div class="sheet-body">
         <p id="library-notice" class="notice" role="status" hidden></p>
-        <div id="plan-name-field" hidden class="plan-field plan-name-field"><label for="library-plan-name">计划名称</label><input id="library-plan-name" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></div>
+        <div id="plan-name-field" hidden class="plan-field plan-name-field ui-field"><label for="library-plan-name">计划名称</label><input id="library-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></div>
         <div id="plan-methods" role="tabpanel" aria-labelledby="current-plan-tab" hidden>
           <p id="plan-method-context" class="fine-print"></p><h3>这趟补给，怎么安排？</h3>
-          <div class="plan-gel-choice"><label for="plan-gel">能量胶</label><select id="plan-gel" aria-label="本计划的能量胶"></select><button id="plan-gel-manage" type="button">管理</button></div>
+          <div class="plan-gel-choice ui-field"><div class="ui-field-heading"><label for="plan-gel">本次能量胶</label><button id="plan-gel-manage" class="ui-text-action" type="button">管理我的胶</button></div><select id="plan-gel" aria-label="本计划的能量胶"></select></div>
           <button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button>
           <div class="plan-method-options">
             <button id="plan-manual" type="button"><span class="plan-method-icon" data-icon="pencil"></span><span><strong>手动填写</strong><small>自己安排全程与沿途补给</small></span><span data-icon="chevron"></span></button>
@@ -93,8 +94,8 @@
         <form id="plan-form" novalidate hidden>
           <button id="plan-method-back" class="fuel-text-button" type="button">‹ 选择安排方式</button>
           <div class="plan-field"><input id="library-plan-date" type="hidden"><button id="edit-plan-date" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-calendar"><span>日期</span><strong id="plan-date-label"></strong><span data-icon="chevron"></span></button><div id="plan-calendar" class="plan-calendar" hidden></div></div>
-          <div class="plan-field"><button id="edit-plan-distance" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-distance-editor"><span>全程</span><strong id="plan-distance-label"></strong><span data-icon="chevron"></span></button><div id="plan-distance-editor" hidden><div id="wheel-frame" class="km-wheel-frame"><div class="km-wheel-focus" aria-hidden="true"></div><div id="plan-wheel" class="km-wheel-scroll" role="spinbutton" tabindex="0" aria-label="计划全程，公里滚轮" aria-valuemin="1" aria-valuemax="1000000" aria-valuenow="75" aria-describedby="wheel-hint"></div></div><button id="direct-distance" class="direct-distance" type="button">直接输入</button><div id="direct-distance-field" class="distance-input" hidden><input id="library-plan-distance" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><span>km</span><button id="return-wheel" type="button">滚轮</button></div><p id="wheel-hint" class="fine-print">每格 1 km · 已有补给点保持原位</p></div></div>
-          <p id="plan-form-error" class="notice" role="status" hidden></p><button id="save-plan" class="secondary library-save" type="submit">保存计划</button>
+          <div class="plan-field"><button id="edit-plan-distance" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-distance-editor"><span>全程</span><strong id="plan-distance-label"></strong><span data-icon="chevron"></span></button><div id="plan-distance-editor" hidden><div id="wheel-frame" class="km-wheel-frame"><div class="km-wheel-focus" aria-hidden="true"></div><div id="plan-wheel" class="km-wheel-scroll" role="spinbutton" tabindex="0" aria-label="计划全程，公里滚轮" aria-valuemin="1" aria-valuemax="1000000" aria-valuenow="75" aria-describedby="wheel-hint"></div></div><button id="direct-distance" class="direct-distance" type="button">直接输入</button><div id="direct-distance-field" class="distance-input ui-value" hidden><input id="library-plan-distance" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><small>km</small><button id="return-wheel" type="button">滚轮</button></div><p id="wheel-hint" class="fine-print">每格 1 km · 已有补给点保持原位</p></div></div>
+          <p id="plan-form-error" class="notice" role="status" hidden></p><button id="save-plan" class="secondary library-save ui-action" type="submit">保存计划</button>
           <div class="plan-tools"><button id="copy-plan" type="button" hidden>复制为新计划</button><button id="delete-plan" class="delete-in-editor" type="button" hidden>删除这份计划</button></div>
           <p class="fine-print">只保存在这个浏览器。删除计划会保留导出历史。</p>
         </form>
@@ -109,20 +110,18 @@
         <div class="fuel-source"><strong id="fuel-route-name"></strong><p id="fuel-route-summary" class="fuel-caption"></p><button id="fuel-choose-route" class="fuel-text-button" type="button" hidden>选择路线 ›</button></div>
         <div id="fuel-settings">
           <div class="fuel-profile"><span id="fuel-profile-summary"></span><button id="fuel-profile" type="button">档案 ↗</button></div>
-          <h3>这趟怎么骑？</h3>
-          <div class="fuel-efforts" aria-label="骑行强度"><button type="button" data-effort="0.6" aria-pressed="false">轻松<strong>60%</strong></button><button type="button" data-effort="0.7" aria-pressed="true">耐力<strong>70%</strong></button><button type="button" data-effort="0.8" aria-pressed="false">较强<strong>80%</strong></button></div>
-          <p id="fuel-power" class="fuel-caption"></p>
-          <div class="fuel-estimate" aria-live="polite"><span>预计移动用时</span><strong id="fuel-duration">—</strong></div>
-          <div class="fuel-setting"><label for="fuel-carbs">总碳水目标</label><span><label class="fuel-auto-label"><input id="fuel-auto-carbs" type="checkbox" checked>自动</label><input id="fuel-carbs" aria-label="碳水目标，每小时克数" type="number" inputmode="decimal" min="0" max="90" step="1" disabled><small>g/h</small></span></div>
-          <div class="fuel-setting fuel-gel-choice"><label for="fuel-gel">能量胶</label><select id="fuel-gel" aria-label="生成计划使用的能量胶"></select><button id="fuel-gel-manage" type="button">管理</button></div>
+          <div class="fuel-section-heading"><h3>骑行强度</h3><p id="fuel-power" class="fuel-caption"></p></div>
+          <div class="fuel-efforts ui-segments" aria-label="骑行强度"><button type="button" data-effort="0.6" aria-pressed="false">轻松<strong>60%</strong></button><button type="button" data-effort="0.7" aria-pressed="true">耐力<strong>70%</strong></button><button type="button" data-effort="0.8" aria-pressed="false">较强<strong>80%</strong></button></div>
+          <div class="fuel-estimate" aria-live="polite"><span>预计移动用时 · 不含休息</span><strong id="fuel-duration">—</strong></div>
+          <div class="fuel-setting ui-field"><div class="ui-field-heading"><label for="fuel-carbs">每小时碳水</label><label class="ui-check"><input id="fuel-auto-carbs" type="checkbox" checked>自动推荐</label></div><span class="ui-value"><input id="fuel-carbs" aria-label="碳水目标，每小时克数" type="number" inputmode="decimal" min="0" max="90" step="1" disabled><small>g/h</small></span></div>
+          <div class="fuel-gel-choice ui-field"><div class="ui-field-heading"><label for="fuel-gel">本次能量胶</label><button id="fuel-gel-manage" class="ui-text-action" type="button">管理我的胶</button></div><select id="fuel-gel" aria-label="生成计划使用的能量胶"></select></div>
           <a id="fuel-calculator" class="fuel-calculator-link" href="./calculator.html?from=generator">在计算器中调整参数 ↗</a>
-          <p class="fuel-caption">纯胶方案 · 按所选胶的碳水含量计算；用时不含休息。</p>
         </div>
-        <div id="fuel-preview" hidden><label class="fuel-plan-name" for="fuel-plan-name">计划名称<input id="fuel-plan-name" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></label><svg id="fuel-chart" class="fuel-chart" role="img" tabindex="0" aria-label="路线海拔与补给"></svg><p id="fuel-preview-summary" class="fuel-caption"></p><ol id="fuel-preview-stops" class="fuel-preview-stops" aria-label="生成的补给点"></ol><p id="fuel-preview-empty" class="fuel-empty" hidden>本次短途未安排自动补给，可保存后手动添加。</p></div>
+        <div id="fuel-preview" hidden><label class="fuel-plan-name ui-field" for="fuel-plan-name">计划名称<input id="fuel-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></label><svg id="fuel-chart" class="fuel-chart" role="img" tabindex="0" aria-label="路线海拔与补给"></svg><p id="fuel-preview-summary" class="fuel-caption"></p><ol id="fuel-preview-stops" class="fuel-preview-stops" aria-label="生成的补给点"></ol><p id="fuel-preview-empty" class="fuel-empty" hidden>本次短途未安排自动补给，可保存后手动添加。</p></div>
         <p id="fuel-notice" class="notice" role="status" hidden></p>
         <p id="fuel-warnings" class="fuel-caption" hidden></p>
-        <button id="fuel-preview-button" type="button" class="primary">预览补给点 →</button>
-        <button id="fuel-save" type="button" class="primary" hidden>保存为新计划</button>
+        <button id="fuel-preview-button" type="button" class="primary ui-action">预览补给点 →</button>
+        <button id="fuel-save" type="button" class="primary ui-action" hidden>保存为新计划</button>
         <p id="fuel-save-note" class="fuel-caption fuel-save-note" hidden>原计划保留，保存后仍可调整。</p>
       </div>
     </dialog>
@@ -141,11 +140,11 @@
         </div>
         <div id="route-connect" hidden>
           <p id="route-login-caption" class="muted">中国站路书</p><h3 id="route-login-title">连接你的路书库</h3>
-          <div class="route-login-tabs" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
+          <div class="route-login-tabs ui-segments" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
           <form id="route-login-form" role="tabpanel" aria-labelledby="route-password-tab">
-            <label>手机号／邮箱<input id="route-username" type="text" placeholder="输入 iGPSPORT 账号" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-            <div><label for="route-password">密码</label><span class="route-password-field"><input id="route-password" type="password" placeholder="输入密码" autocomplete="current-password" required><button id="route-password-visibility" type="button" aria-label="显示密码" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></div>
-            <button id="route-login" class="primary" type="submit">登录并查找路线</button>
+            <label>手机号／邮箱<input id="route-username" class="ui-input" type="text" placeholder="输入 iGPSPORT 账号" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+            <div><label for="route-password">密码</label><span class="route-password-field ui-value"><input id="route-password" type="password" placeholder="输入密码" autocomplete="current-password" required><button id="route-password-visibility" type="button" aria-label="显示密码" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></div>
+            <button id="route-login" class="primary ui-action" type="submit">登录并查找路线</button>
             <p class="fine-print muted">账号密码直接发送至 iGPSPORT，不保存密码。连接令牌仅保存在此浏览器，可随时断开。</p>
           </form>
           <div id="route-qr-panel" role="tabpanel" aria-labelledby="route-qr-tab" hidden>
@@ -158,7 +157,7 @@
         </div>
         <div id="route-browse" hidden>
           <p id="route-browse-caption" class="route-provider muted">中国站路书</p>
-          <form id="route-search-form" class="route-search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
+          <form id="route-search-form" class="route-search ui-value"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
           <p id="route-search-status" class="muted" role="status" hidden></p>
           <div id="route-search-empty" class="route-search-empty">
             <svg class="route-empty-art" viewBox="0 0 180 114" aria-hidden="true"><path class="map-fold" d="m18 30 45-17 48 15 49-17v72l-49 17-48-15-45 17V30Zm45-17v72m48-57v72"/><path class="map-trail" d="M36 82c21-27 26 0 48-22s23 16 49-21"/><circle class="map-pin" cx="134" cy="36" r="4"/><g class="map-search"><circle cx="130" cy="66" r="21"/><path d="m146 82 20 20"/></g></svg>
@@ -178,7 +177,7 @@
           <div id="elevation-view"><h4>海拔高度 <span>m</span></h4><svg id="route-elevation" class="route-elevation" viewBox="0 0 320 112" role="img" tabindex="0" aria-label="路线海拔变化，横轴距离，纵轴海拔高度；双指缩放，拖动浏览，加减号缩放，Home 全览"></svg><div id="elevation-controls" class="elevation-controls"><output id="elevation-range" aria-label="海拔图可见距离"></output><div><button type="button" data-elevation="out" aria-label="缩小海拔图"><span data-icon="minus"></span></button><button type="button" data-elevation="in" aria-label="放大海拔图"><span data-icon="zoom"></span></button><button type="button" data-elevation="fit">全览</button></div></div></div>
           <p id="route-elevation-status" class="muted" hidden></p>
           <p class="fine-print muted route-detail-note">采用路线距离，已有补给保持原位。</p>
-          <button id="route-use" class="primary" type="button">使用这条路线</button>
+          <button id="route-use" class="primary ui-action" type="button">使用这条路线</button>
           <button id="route-remove" class="delete-in-editor" type="button" aria-label="移除路线，保留全程与补给" hidden>移除路线</button>
         </div>
       </div>
@@ -192,9 +191,9 @@
         <p id="gels-notice" class="notice" role="status" hidden></p>
         <div id="gels-list" class="gels-list"></div><p id="gels-empty" class="muted">添加常用的胶，计划里直接选。</p>
         <form id="gel-editor" novalidate hidden><h3 id="gel-editor-title">添加能量胶</h3>
-          <label for="gel-name">名称<input id="gel-name" type="text" maxlength="60" autocomplete="off" placeholder="品牌／口味，例如柠檬胶"></label>
-          <label for="gel-carbs">每支碳水<div class="distance-input"><input id="gel-carbs" type="number" min="5" max="100" step="0.1" inputmode="decimal" placeholder="例如30、40、45"><span>g</span></div></label>
-          <div class="gel-editor-actions"><button id="gel-edit-cancel" type="button">取消</button><button id="gel-save" class="secondary" type="submit">保存这款胶</button></div>
+          <label class="ui-field" for="gel-name">名称<input class="ui-input" id="gel-name" type="text" maxlength="60" autocomplete="off" placeholder="品牌／口味，例如柠檬胶"></label>
+          <label class="ui-field" for="gel-carbs">每支碳水<span class="ui-value"><input id="gel-carbs" type="number" min="5" max="100" step="0.1" inputmode="decimal" placeholder="例如 45"><small>g / 支</small></span></label>
+          <div class="gel-editor-actions"><button id="gel-edit-cancel" type="button">取消</button><button id="gel-save" class="primary ui-action" type="submit">保存这款胶</button></div>
           <button id="gel-delete" class="delete-in-editor" type="button" hidden>删除这款胶</button>
         </form>
       </div>
@@ -209,21 +208,21 @@
           <p class="profile-intro muted">只保存在此浏览器，可随时修改。</p>
           <button id="profile-import" class="profile-import" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5m8-5v5M6 8h12v4a6 6 0 0 1-12 0V8Zm6 10v4"/></svg><span><strong>从 iGPSPORT 读取</strong><small id="profile-connection">连接后先核对，再填入</small></span><span data-icon="chevron"></span></button>
           <div class="profile-grid">
-            <fieldset class="profile-sex"><legend>性别</legend><div><button type="button" data-profile-sex="male" aria-pressed="false">男</button><button type="button" data-profile-sex="female" aria-pressed="false">女</button></div></fieldset>
-            <label class="profile-field" for="profile-age">年龄<span><input id="profile-age" type="text" inputmode="numeric" autocomplete="off" placeholder="未填写" maxlength="3"><small>岁</small></span></label>
-            <label class="profile-field" for="profile-height">身高<span><input id="profile-height" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>cm</small></span></label>
-            <label class="profile-field" for="profile-weight">体重<span><input id="profile-weight" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>kg</small></span></label>
-            <label class="profile-field profile-ftp" for="profile-ftp">FTP<span><input id="profile-ftp" type="text" inputmode="numeric" autocomplete="off" placeholder="暂不清楚" maxlength="8"><small>W</small></span><small>可留空，不影响手动安排补给。</small></label>
+            <fieldset class="profile-sex"><legend>性别</legend><div class="ui-segments"><button type="button" data-profile-sex="male" aria-pressed="false">男</button><button type="button" data-profile-sex="female" aria-pressed="false">女</button></div></fieldset>
+            <label class="profile-field" for="profile-age">年龄<span class="ui-value"><input id="profile-age" type="text" inputmode="numeric" autocomplete="off" placeholder="未填写" maxlength="3"><small>岁</small></span></label>
+            <label class="profile-field" for="profile-height">身高<span class="ui-value"><input id="profile-height" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>cm</small></span></label>
+            <label class="profile-field" for="profile-weight">体重<span class="ui-value"><input id="profile-weight" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>kg</small></span></label>
+            <label class="profile-field profile-ftp" for="profile-ftp">FTP<span class="ui-value"><input id="profile-ftp" type="text" inputmode="numeric" autocomplete="off" placeholder="暂不清楚" maxlength="8"><small>W</small></span><small>可留空，不影响手动安排补给。</small></label>
           </div>
           <button id="profile-gels" class="profile-gels" type="button"><span>我的能量胶</span><span>配置名称与每支碳水 ›</span></button>
           <p class="fine-print muted profile-footnote">修改档案不会重算已保存的计划。</p>
-          <button class="primary" type="submit">保存档案</button>
+          <button class="primary ui-action" type="submit">保存档案</button>
         </form>
         <div id="profile-review" hidden>
           <p class="profile-source muted">iGPSPORT <span>刚刚读取</span></p><h3>选择要更新的项目</h3><p class="muted">先核对，再填入档案。</p>
           <div id="profile-review-fields" class="profile-review-fields"></div>
           <p class="fine-print muted">未勾选的项目保持原值。</p><p class="profile-footnote fine-print muted">确认只填入草稿，保存档案后生效。</p>
-          <button id="profile-apply" class="primary" type="button">确认填入</button>
+          <button id="profile-apply" class="primary ui-action" type="button">确认填入</button>
         </div>
       </div>
     </dialog>

@@ -21,19 +21,14 @@
 .fuel-curve { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 .fuel-marker-line { stroke: var(--muted); stroke-width: .7; stroke-dasharray: 2 3; opacity: .6; }
 .fuel-gel-dot { fill: var(--gel); }
-.fuel-water-dot { fill: var(--water); }
 .fuel-crosshair { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; }
 .fuel-tooltip-box { fill: var(--surface); stroke: var(--input-line); }
 .fuel-chart .fuel-tooltip-label { fill: var(--ink); font-size: 10px; }
 .fuel-legend { display: flex; justify-content: center; gap: 18px; color: var(--muted); font-size: 11px; margin: 4px 0 12px; }
 .fuel-legend span::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--accent); }
 .fuel-legend .fuel-gel-key::before { background: var(--gel); }
-.fuel-legend .fuel-water-key::before { background: var(--water); }
 .fuel-live { display: block; color: var(--muted); font-size: 11px; margin-bottom: 8px; }
 .fuel-live::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; background: var(--accent); }
-.fuel-segment-control { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--input-line); border-radius: 10px; }
-.fuel-segment-control button { flex: 1; min-height: 36px; font-size: 12px; border-radius: 7px; }
-.fuel-segment-control [aria-pressed="true"] { background: var(--selected); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .fuel-preview-stops { list-style: none; margin: 8px 0; padding: 0; max-height: 190px; overflow: auto; }
 .fuel-preview-stops li { display: grid; grid-template-columns: 20px 90px 1fr auto; gap: 10px; align-items: center; min-height: 43px; border-top: 1px solid var(--line); font-size: 13px; }
 .fuel-preview-stops strong { font-variant-numeric: tabular-nums; }
@@ -50,22 +45,14 @@
 .fuel-profile { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .fuel-profile button { min-height: 30px; color: var(--accent); }
 .fuel-sheet h3 { margin: 14px 0 10px; font-size: 17px; }
-.fuel-efforts { display: flex; gap: 8px; }
-.fuel-efforts button { flex: 1; display: grid; gap: 3px; min-height: 54px; padding: 8px; border-radius: 12px; border: 1px solid var(--input-line); font-size: 13px; }
-.fuel-efforts button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--selected); }
 .fuel-estimate { border-block: 1px solid var(--line); padding: 12px 0; text-align: center; }
 .fuel-estimate span { display: block; font-size: 11px; color: var(--muted); }
 .fuel-estimate strong { display: block; font-size: 28px; color: var(--accent); margin-top: 5px; font-variant-numeric: tabular-nums; }
-.fuel-setting { display: flex; align-items: center; justify-content: space-between; min-height: 42px; border-bottom: 1px solid var(--line); font-size: 13px; }
-.fuel-setting input { width: 78px; min-height: 34px; padding: 4px 6px; border: 1px solid var(--input-line); background: var(--canvas); border-radius: 7px; color: var(--ink); font-size: 14px; text-align: right; }
-.fuel-setting > span:last-child { display: flex; align-items: center; gap: 5px; }
 .fuel-sheet .primary { justify-content: center; min-height: 46px; padding: 12px; font-size: 14px; border-radius: 16px; }
 .fuel-sheet .notice { margin: 6px 0; font-size: 12px; }
 .fuel-sheet .fuel-chart { height: 130px; }
 .fuel-sheet .fuel-save-note { text-align: center; margin-bottom: 0; }
 .fuel-calculator-link { display: block; color: var(--accent); font-size: 12px; min-height: 38px; padding-top: 11px; text-decoration: none; }
-.fuel-setting .fuel-auto-label { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
-.fuel-setting .fuel-auto-label input { width: 16px; height: 16px; min-height: 16px; padding: 0; accent-color: var(--accent); }
 .fuel-empty { color: var(--muted); font-size: 13px; padding: 16px 0; }
 .fuel-save-status { margin-block: 8px; }
 .calculator-page { background: var(--canvas); color: var(--ink); }
@@ -84,10 +71,8 @@
 .calc-stats strong { display: block; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .calc-stats > div:first-child strong { color: var(--accent); font-size: clamp(24px, 2.5vw, 34px); }
 .calc-stats span { display: block; color: var(--muted); font-size: 11px; margin-top: 8px; }
-.calc-chart-tabs, .calc-group-tabs { display: flex; gap: 4px; margin: 14px 0; padding: 3px; border: 1px solid var(--line); border-radius: 9px; }
+.calc-chart-tabs, .calc-group-tabs { display: flex; gap: 4px; margin: 14px 0; }
 .calc-chart-tabs { width: max-content; max-width: 100%; }
-.calc-chart-tabs button, .calc-group-tabs button { min-height: 34px; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
-.calc-chart-tabs [aria-selected="true"], .calc-group-tabs [aria-selected="true"] { background: var(--accent); color: var(--on-accent); font-weight: 650; }
 .calc-group-tabs { display: none; }
 .calc-results .fuel-chart { height: 230px; }
 .calc-detail-view { border-top: 1px solid var(--line); padding-top: 12px; }
@@ -114,10 +99,6 @@
 .calc-input-line input[type="range"]::-moz-range-track { height: 3px; border-radius: 3px; background: var(--input-line); }
 .calc-input-line input[type="range"]::-moz-range-progress { height: 3px; background: var(--accent); }
 .calc-input-line input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 1px solid var(--canvas); }
-.calc-value { display: flex; align-items: center; justify-content: flex-end; min-width: 80px; height: 34px; border: 1px solid var(--input-line); border-radius: 7px; padding-right: 6px; background: var(--canvas); }
-.calc-value input { background: transparent; color: var(--ink); border: 0; padding: 5px; width: 60px; min-width: 0; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
-.calc-value input::-webkit-inner-spin-button { -webkit-appearance: none; }
-.calc-value small { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .calc-number-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 .calc-number-grid .calc-value { justify-content: space-between; }
 .calc-number-grid .calc-value { width: 100%; flex: 1; }
@@ -125,7 +106,6 @@
 .calc-segment-heading, .calc-segment-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) 28px; align-items: center; gap: 6px; font-size: 12px; }
 .calc-segment-heading { color: var(--muted); font-size: 10px; margin-top: 12px; }
 .calc-segment-row { margin-top: 5px; }
-.calc-segment-row input { width: 100%; min-height: 34px; min-width: 0; padding: 5px; color: var(--ink); background: var(--canvas); border: 1px solid var(--input-line); border-radius: 6px; font-size: 13px; }
 .calc-segment-row button { min-height: 34px; font-size: 18px; color: var(--muted); }
 .calc-auto { display: flex; align-items: center; gap: 8px; margin-top: 12px; min-height: 36px; font-size: 12px; }
 .calc-auto input { width: 18px; height: 18px; accent-color: var(--accent); }
@@ -214,20 +194,9 @@
   .fuel-sheet .fuel-caption { font-size: 10px; margin-block: 5px; }
   .fuel-sheet .fuel-source { padding-block: 5px; }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .calc-value { transition: border-color .15s; }
-  .calc-value:focus-within { border-color: var(--accent); }
-}
 
-.fuel-plan-name { display: flex; align-items: center; gap: 14px; min-height: 42px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; white-space: nowrap; }
-.fuel-plan-name input { min-width: 0; padding: 8px 0; border: 0; font-size: 16px; }
 
-.plan-gel-choice, .profile-gels { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; border-bottom: 1px solid var(--line); font-size: 12px; }
-.plan-gel-choice > label { flex: 0 0 auto; color: var(--muted); }
-.plan-gel-choice select, .fuel-gel-choice select, .calc-gel-label select { min-width: 0; flex: 1; padding: 8px 5px; color: var(--ink); background: var(--canvas); border: 1px solid var(--input-line); border-radius: 8px; font-size: 16px; }
-.plan-gel-choice button, .fuel-gel-choice button { color: var(--accent); min-height: 36px; flex-shrink: 0; }
-.fuel-gel-choice { gap: 8px; }
-.fuel-gel-choice > label { flex-shrink: 0; }
+.profile-gels { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; border-bottom: 1px solid var(--line); font-size: 12px; }
 .profile-gels { justify-content: space-between; margin-top: 6px; color: var(--ink); }
 .profile-gels > span:last-child { color: var(--accent); font-size: 11px; }
 .gels-sheet .sheet-body { padding: 6px 24px 20px; }
@@ -236,11 +205,8 @@
 .gel-card strong { overflow-wrap: anywhere; }
 .gel-card span { flex-shrink: 0; font-size: 12px; color: var(--accent); }
 #gel-editor h3 { font-size: 16px; margin: 14px 0; }
-#gel-editor > label { display: block; color: var(--muted); font-size: 12px; margin-top: 14px; }
-#gel-editor input { font-size: 17px; margin-top: 4px; }
 .gel-editor-actions { display: flex; align-items: center; gap: 18px; margin-top: 18px; }
-.gel-editor-actions .secondary { flex: 1; margin: 0; }
-.calc-gel-label { display: flex; gap: 10px; align-items: center; font-size: 12px; margin: 10px 0; }
+.gel-editor-actions .primary { flex: 1; margin: 0; }
 @media (max-height: 740px) { .gels-sheet:has(#gel-editor:not([hidden])) .gels-list, .gels-sheet:has(#gel-editor:not([hidden])) #gels-empty { display: none; } }
 
 .gels-sheet .sheet-header h2 { color: var(--ink); }

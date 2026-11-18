@@ -63,7 +63,6 @@ export function drawRide(svg, ride, schedule, mode = 'elevation') {
       add('rect', { x: px - 4, y: bottom - 15, width: 8, height: 12, rx: 1, class: 'fuel-gel-dot' });
       add('rect', { x: px - 2, y: bottom - 18, width: 4, height: 2, class: 'fuel-gel-dot' });
     }
-    if (stop.waters) add('path', { d: `M${px},${bottom - 17}q-9,10 0,13q9,-3 0,-13Z`, class: 'fuel-water-dot' });
   }
   const tooltip = add('g', { visibility: 'hidden' });
   const guide = add('line', { y1: top, y2: bottom, class: 'fuel-crosshair' }, undefined, tooltip);
