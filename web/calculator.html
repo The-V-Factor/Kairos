@@ -11,7 +11,7 @@
   <header class="calc-header"><a href="./" class="wordmark">KAIROS</a><h1>补给计算器</h1><button id="calc-reset-top" type="button" aria-label="重置示例参数">↺</button><a href="./" class="calc-back">返回计划 ↗</a></header>
   <main class="calc-layout">
     <section class="calc-results" aria-label="计算结果">
-      <div class="calc-summary" aria-live="polite" aria-atomic="true"><span class="fuel-live">即时计算</span><div class="calc-stats"><div><strong id="calc-duration">—</strong><span>预计移动用时</span></div><div><strong id="calc-speed">—</strong><span>预计均速</span></div><div><strong id="calc-energy">—</strong><span>踩踏能耗估算</span></div><div><strong id="calc-gels">—</strong><span>胶提醒</span></div></div></div>
+      <div class="calc-summary" aria-live="polite" aria-atomic="true"><div class="calc-stats"><div><strong id="calc-duration">—</strong><span>预计移动用时</span></div><div><strong id="calc-speed">—</strong><span>预计均速</span></div><div><strong id="calc-energy">—</strong><span>踩踏能耗估算</span></div><div><strong id="calc-gels">—</strong><span>胶提醒</span></div></div></div>
       <p id="calc-error" class="notice" role="status" hidden></p>
       <div id="calc-visuals"><div class="calc-chart-tabs ui-segments ui-segments--content" role="tablist" aria-label="结果视图"><button type="button" role="tab" data-chart="elevation" aria-selected="true">海拔与补给</button><button type="button" role="tab" data-chart="speed" aria-selected="false" tabindex="-1">预计速度</button><button type="button" role="tab" data-chart="details" aria-selected="false" tabindex="-1">计算明细</button></div>
         <div id="calc-plot" role="tabpanel"><div id="calc-terrain"></div><svg id="calc-chart" class="fuel-chart" role="img" tabindex="0" aria-label="预计速度" hidden></svg></div>
@@ -27,11 +27,11 @@
       <div id="calc-parameter-groups">
         <section class="calc-group active" data-panel="rider" role="tabpanel"><div class="calc-group-heading"><h2>骑行者与强度</h2><button id="calc-profile" type="button">从档案带入 ›</button></div><div id="calc-rider-fields"></div><p class="fuel-caption" id="calc-power"></p><button type="button" id="calc-route-summary" class="calc-route-summary"></button></section>
         <section class="calc-group" data-panel="route" role="tabpanel"><h2>路线</h2><div class="fuel-segment-control ui-segments"><button id="calc-use-route" type="button" aria-pressed="false">当前路书</button><button id="calc-use-simulation" type="button" aria-pressed="true">模拟路线</button></div><p id="calc-route-name" class="fuel-caption"></p><div id="calc-simulation"><div class="calc-segment-heading"><span>路段</span><span>距离 km</span><span>坡度 %</span><span></span></div><div id="calc-segments"></div><button id="calc-add-segment" type="button" class="fuel-text-button">＋ 添加路段</button></div><p id="calc-route-totals" class="fuel-caption"></p></section>
-        <section class="calc-group" data-panel="equipment" role="tabpanel"><h2>车辆与环境</h2><div id="calc-equipment-fields" class="calc-number-grid"></div><p class="fuel-caption">无风 · 分段匀速；限速时减少踩踏或滑行。</p></section>
-        <section class="calc-group" data-panel="fuel" role="tabpanel"><h2>补给</h2><label class="ui-field calc-gel-label" for="calc-gel-select">我的能量胶<select id="calc-gel-select"></select></label><label class="calc-auto ui-check"><input id="calc-auto-carbs" type="checkbox" checked> 自动选择碳水目标</label><div id="calc-fuel-fields" class="calc-number-grid"></div><p class="fuel-caption">每支填写碳水克数，不是包装净重。选择自己的胶会带入并锁定其含量；也可手填含量试算。保存生成计划前需选择自己的胶。</p></section>
+        <section class="calc-group" data-panel="equipment" role="tabpanel"><h2>车辆与环境</h2><div id="calc-equipment-fields" class="calc-number-grid"></div></section>
+        <section class="calc-group" data-panel="fuel" role="tabpanel"><h2>补给</h2><label class="ui-field calc-gel-label" for="calc-gel-select">我的能量胶<select id="calc-gel-select"></select></label><label class="calc-auto ui-check"><input id="calc-auto-carbs" type="checkbox" checked> 自动选择碳水目标</label><div id="calc-fuel-fields" class="calc-number-grid"></div><p class="fuel-caption">手填含量可试算，保存计划需选择自己的胶。</p></section>
       </div>
     </section>
-    <footer class="calc-actions"><button id="calc-copy" type="button" class="fuel-outline-button">复制参数与结果</button><button id="calc-preview" type="button" class="primary ui-action">用这些参数预览补给 →</button><p id="calc-action-status" class="fuel-caption" role="status"></p></footer>
+    <footer class="calc-actions"><button id="calc-copy" type="button" class="fuel-outline-button">复制参数与结果</button><button id="calc-preview" type="button" class="primary ui-action">预览补给</button><p id="calc-action-status" class="fuel-caption" role="status"></p></footer>
   </main>
   <script type="module" src="./calculator.mjs"></script>
 </body></html>

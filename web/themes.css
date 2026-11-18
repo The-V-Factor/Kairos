@@ -56,7 +56,6 @@
 .theme-choice-title { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; margin-top: 8px; }
 .theme-check { color: #205ccc; visibility: hidden; }
 .theme-choice[aria-checked="true"] .theme-check { visibility: visible; }
-.theme-caption { display: block; color: #526058; font-size: 10px; line-height: 1.5; margin-top: 4px; }
 .theme-sheet .fine-print { color: #526058; line-height: 1.6; margin-bottom: 0; }
 .theme-preview { display: block; padding: 12px; border-radius: 10px; height: 240px; background: var(--canvas); color: var(--ink); overflow: hidden; }
 .mini-brand { display: flex; justify-content: space-between; font-size: 7px; letter-spacing: 2px; font-weight: 800; }

@@ -22,14 +22,14 @@
       <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><a href="./calculator.html" role="menuitem"><span data-icon="calculator"></span>补给计算器</a><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>设置与说明</button></div>
       <main>
         <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><p id="home-route-summary" class="home-route-summary" hidden></p></section>
-        <section id="no-plan" class="no-plan" hidden><p class="eyebrow">A NEW RIDE</p><h1>下一趟，去哪里？</h1><p class="muted">先留一个名字，再安排沿途的补给。</p><button id="first-plan" class="secondary" type="button">创建计划</button></section>
+        <section id="no-plan" class="no-plan" hidden><h1>我的骑行计划</h1><button id="first-plan" class="secondary" type="button">创建计划</button></section>
         <div id="ride-content">
         <section class="ruler-section" aria-label="浏览沿途补给">
           <div class="ruler-add-row"><button id="add" class="add-fuel" type="button"><span data-icon="plus"></span>补给</button></div>
           <div id="ruler"></div>
         </section>
         <div id="stops" class="itinerary" aria-label="沿途补给点"></div>
-        <div id="empty" class="empty" hidden><h2>从第一站开始。</h2><p>拨动距离尺，点“＋补给”安排沿途的一站。</p></div>
+        <div id="empty" class="empty" hidden><p>在距离尺上选一个位置，添加第一个补给点。</p></div>
         <p class="finish-note"><span aria-hidden="true">∞</span>骑至计划终点后，可继续骑行。</p>
         </div>
         <p id="storage-message" class="notice" role="status" hidden></p>
@@ -51,7 +51,7 @@
         <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="取消补给编辑"><span data-icon="close"></span></button><h2 id="composer-title"></h2><button id="save-stop" type="submit">添加</button></div>
         <div class="sheet-body">
           <div id="edit-position" class="position-editor" hidden><label for="stop-distance">距出发里程</label><div class="distance-input ui-value"><input id="stop-distance" type="text" inputmode="decimal" autocomplete="off"><select class="ui-unit-select" id="stop-unit" aria-label="补给距离单位"><option value="km">km</option><option value="m">m</option></select></div></div>
-          <div class="fuel-hero"><div id="hero-art" class="hero-art"></div><div class="hero-fields"><label id="custom-name-field" hidden>补给名称<input id="stop-name" class="ui-input" type="text" maxlength="80" placeholder="例如巧克力" autocomplete="off"></label><label>手表提示<input id="stop-reminder" class="ui-input" type="text" maxlength="160" placeholder="填写到点提醒" autocomplete="off"></label></div></div>
+          <div class="fuel-hero"><div id="hero-art" class="hero-art"></div><div class="hero-fields"><label id="custom-name-field" hidden>补给名称<input id="stop-name" class="ui-input" type="text" maxlength="80" placeholder="例如巧克力" autocomplete="off"></label><label>手表提示<input id="stop-reminder" class="ui-input" type="text" maxlength="160" autocomplete="off"></label></div></div>
           <div class="fuel-types" role="group" aria-label="补给类型"><button type="button" data-kind="water"><span class="type-art"></span><span>水</span></button><button type="button" data-kind="gel"><span class="type-art"></span><span>胶</span></button><button type="button" data-kind="custom"><span class="type-art"></span><span>自定义</span></button></div>
           <p id="fuel-error" class="notice" role="status" hidden></p>
           <button id="delete-stop" class="delete-in-editor" type="button" hidden><span data-icon="trash"></span>删除这个补给点</button>
@@ -61,8 +61,8 @@
 
     <dialog id="theme-dialog" class="sheet theme-sheet" aria-labelledby="theme-title">
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
-      <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭皮肤选择"><span data-icon="close"></span></button><h2 id="theme-title">选一种骑行气质</h2><span class="header-spacer"></span></div>
-      <div class="sheet-body"><div id="theme-options" class="theme-options" role="radiogroup" aria-label="皮肤"></div><p id="theme-status" role="status" class="fine-print">只更换外观，沿途补给仍留在原位。</p></div>
+      <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭皮肤选择"><span data-icon="close"></span></button><h2 id="theme-title">皮肤</h2><span class="header-spacer"></span></div>
+      <div class="sheet-body"><div id="theme-options" class="theme-options" role="radiogroup" aria-label="皮肤"></div><p id="theme-status" role="status" class="notice" hidden></p></div>
     </dialog>
 
     <dialog id="library-dialog" class="sheet library-sheet" aria-labelledby="library-title">
@@ -71,16 +71,14 @@
       <div class="plan-sections" role="tablist" aria-label="计划管理"><button id="current-plan-tab" type="button" role="tab" aria-selected="true" aria-controls="plan-form">当前计划</button><button id="library-tab" type="button" role="tab" aria-selected="false" aria-controls="library-list-view">计划库</button></div>
       <div class="sheet-body">
         <p id="library-notice" class="notice" role="status" hidden></p>
-        <div id="plan-name-field" hidden class="plan-field plan-name-field ui-field"><label for="library-plan-name">计划名称</label><input id="library-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></div>
+        <div id="plan-name-field" hidden class="plan-field plan-name-field ui-field"><label for="library-plan-name">计划名称</label><input id="library-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off"></div>
         <div id="plan-methods" role="tabpanel" aria-labelledby="current-plan-tab" hidden>
-          <p id="plan-method-context" class="fine-print"></p><h3>这趟补给，怎么安排？</h3>
           <div class="plan-gel-choice ui-field"><div class="ui-field-heading"><label for="plan-gel">本次能量胶</label><button id="plan-gel-manage" class="ui-text-action" type="button">管理我的胶</button></div><select id="plan-gel" aria-label="本计划的能量胶"></select></div>
           <button id="route" class="route-entry" type="button" aria-haspopup="dialog"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/></svg><span id="route-label">选择路线</span><span data-icon="chevron"></span></button>
-          <div class="plan-method-options">
-            <button id="plan-manual" type="button"><span class="plan-method-icon" data-icon="pencil"></span><span><strong>手动填写</strong><small>自己安排全程与沿途补给</small></span><span data-icon="chevron"></span></button>
-            <button id="plan-auto" type="button"><span class="plan-method-icon" data-icon="calculator"></span><span><strong>自动生成</strong><small>结合路书与骑行强度，生成后可调整</small></span><span data-icon="chevron"></span></button>
+          <div class="plan-method-options" role="group" aria-label="补给方式">
+            <button id="plan-manual" type="button"><span class="plan-method-icon" data-icon="pencil"></span><strong>手动填写</strong></button>
+            <button id="plan-auto" type="button"><span class="plan-method-icon" data-icon="calculator"></span><strong>自动生成</strong></button>
           </div>
-          <p class="fine-print">选择方式不会修改计划；自动结果确认后另存为新计划。</p>
         </div>
         <div id="library-list-view">
           <div class="library-toolbar"><div class="library-tabs" role="tablist" aria-label="计划库内容"><button id="plans-tab" type="button" role="tab" aria-selected="true" aria-controls="library-items">全部计划</button><button id="history-tab" type="button" role="tab" aria-selected="false" aria-controls="library-items">导出历史</button></div></div>
@@ -92,7 +90,7 @@
           <div class="plan-field"><button id="edit-plan-distance" class="plan-field-toggle" type="button" aria-expanded="false" aria-controls="plan-distance-editor"><span>全程</span><strong id="plan-distance-label"></strong><span data-icon="chevron"></span></button><div id="plan-distance-editor" hidden><div id="wheel-frame" class="km-wheel-frame"><div class="km-wheel-focus" aria-hidden="true"></div><div id="plan-wheel" class="km-wheel-scroll" role="spinbutton" tabindex="0" aria-label="计划全程，公里滚轮" aria-valuemin="1" aria-valuemax="1000000" aria-valuenow="75" aria-describedby="wheel-hint"></div></div><button id="direct-distance" class="direct-distance" type="button">直接输入</button><div id="direct-distance-field" class="distance-input ui-value" hidden><input id="library-plan-distance" type="text" inputmode="decimal" autocomplete="off" aria-label="计划全程，公里"><small>km</small><button id="return-wheel" type="button">滚轮</button></div><p id="wheel-hint" class="fine-print">每格 1 km · 已有补给点保持原位</p></div></div>
           <p id="plan-form-error" class="notice" role="status" hidden></p><button id="save-plan" class="secondary library-save ui-action" type="submit">保存计划</button>
           <div class="plan-tools"><button id="copy-plan" type="button" hidden>复制为新计划</button><button id="delete-plan" class="delete-in-editor" type="button" hidden>删除这份计划</button></div>
-          <p class="fine-print">只保存在这个浏览器。删除计划会保留导出历史。</p>
+          <p id="delete-plan-note" class="fine-print" hidden>删除计划后，导出历史仍会保留。</p>
         </form>
         <div id="history-detail" hidden><button id="library-back" class="library-back" type="button">‹ 返回计划库</button><p id="history-date" class="fine-print"></p><h3 id="history-name"></h3><p id="history-summary" class="muted"></p><ol id="history-stops" class="history-stops"></ol><p id="history-status" class="fine-print"></p><button id="reuse-history" class="secondary" type="button">用此版本新建计划</button></div>
       </div>
@@ -112,12 +110,11 @@
           <div class="fuel-gel-choice ui-field"><div class="ui-field-heading"><label for="fuel-gel">本次能量胶</label><button id="fuel-gel-manage" class="ui-text-action" type="button">管理我的胶</button></div><select id="fuel-gel" aria-label="生成计划使用的能量胶"></select></div>
           <a id="fuel-calculator" class="fuel-calculator-link" href="./calculator.html?from=generator">在计算器中调整参数 ↗</a>
         </div>
-        <div id="fuel-preview" hidden><label class="fuel-plan-name ui-field" for="fuel-plan-name">计划名称<input id="fuel-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off" placeholder="这一趟叫什么"></label><div id="fuel-chart"></div><p id="fuel-preview-summary" class="fuel-caption"></p><ol id="fuel-preview-stops" class="fuel-preview-stops" aria-label="生成的补给点"></ol><p id="fuel-preview-empty" class="fuel-empty" hidden>本次短途未安排自动补给，可保存后手动添加。</p></div>
+        <div id="fuel-preview" hidden><label class="fuel-plan-name ui-field" for="fuel-plan-name">计划名称<input id="fuel-plan-name" class="ui-input" type="text" maxlength="60" autocomplete="off"></label><div id="fuel-chart"></div><p id="fuel-preview-summary" class="fuel-caption"></p><ol id="fuel-preview-stops" class="fuel-preview-stops" aria-label="生成的补给点"></ol><p id="fuel-preview-empty" class="fuel-empty" hidden>本次短途未安排自动补给，可保存后手动添加。</p></div>
         <p id="fuel-notice" class="notice" role="status" hidden></p>
         <p id="fuel-warnings" class="fuel-caption" hidden></p>
         <button id="fuel-preview-button" type="button" class="primary ui-action">预览补给点 →</button>
         <button id="fuel-save" type="button" class="primary ui-action" hidden>保存为新计划</button>
-        <p id="fuel-save-note" class="fuel-caption fuel-save-note" hidden>原计划保留，保存后仍可调整。</p>
       </div>
     </dialog>
     <dialog id="route-dialog" class="sheet route-sheet" aria-labelledby="route-title">
@@ -131,21 +128,19 @@
           </section>
           <h3 class="route-section-title route-find-title">查找新路线</h3>
           <div id="route-provider-list" class="route-provider-list"></div>
-          <p class="fine-print muted route-source-hint">路线用于本次计划，补给点保持原位。</p>
         </div>
         <div id="route-connect" hidden>
-          <p id="route-login-caption" class="muted">中国站路书</p><h3 id="route-login-title">连接你的路书库</h3>
+          <h3 id="route-login-title">连接你的路书库</h3>
           <div class="route-login-tabs ui-segments" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
           <form id="route-login-form" role="tabpanel" aria-labelledby="route-password-tab">
-            <label>手机号／邮箱<input id="route-username" class="ui-input" type="text" placeholder="输入 iGPSPORT 账号" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-            <div><label for="route-password">密码</label><span class="route-password-field ui-value"><input id="route-password" type="password" placeholder="输入密码" autocomplete="current-password" required><button id="route-password-visibility" type="button" aria-label="显示密码" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></div>
+            <label>手机号／邮箱<input id="route-username" class="ui-input" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+            <div><label for="route-password">密码</label><span class="route-password-field ui-value"><input id="route-password" type="password" autocomplete="current-password" required><button id="route-password-visibility" type="button" aria-label="显示密码" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></div>
             <button id="route-login" class="primary ui-action" type="submit">登录并查找路线</button>
-            <p class="fine-print muted">账号密码直接发送至 iGPSPORT，不保存密码。连接令牌仅保存在此浏览器，可随时断开。</p>
+            <p class="fine-print muted">密码直达 iGPSPORT。此浏览器仅保存连接令牌。</p>
           </form>
           <div id="route-qr-panel" role="tabpanel" aria-labelledby="route-qr-tab" hidden>
             <div id="route-qr-image" class="route-qr-image" hidden></div>
             <p id="route-qr-status" class="route-qr-status" role="status">正在生成二维码…</p>
-            <p class="muted">请使用 iGPSPORT App 扫码确认登录</p>
             <button id="route-qr-refresh" class="route-qr-refresh" type="button">↻ 刷新二维码</button>
             <p class="fine-print muted">连接成功后，令牌仅保存在此浏览器。</p>
           </div>
@@ -156,9 +151,8 @@
           <p id="route-search-status" class="muted" role="status" hidden></p>
           <div id="route-search-empty" class="route-search-empty">
             <svg class="route-empty-art" viewBox="0 0 180 114" aria-hidden="true"><path class="map-fold" d="m18 30 45-17 48 15 49-17v72l-49 17-48-15-45 17V30Zm45-17v72m48-57v72"/><path class="map-trail" d="M36 82c21-27 26 0 48-22s23 16 49-21"/><circle class="map-pin" cx="134" cy="36" r="4"/><g class="map-search"><circle cx="130" cy="66" r="21"/><path d="m146 82 20 20"/></g></svg>
-            <h3 id="route-empty-title">下一趟，想骑哪儿？</h3><p id="route-empty-copy" class="muted">输入目的地，找一条适合这趟骑行的路。</p>
-            <p id="route-empty-hint" class="muted" hidden>可以缩短名称，或改搜附近地点。</p>
-            <div class="route-examples"><p>试试这些地点</p><div><button type="button" data-route-example="广州">广州</button><button type="button" data-route-example="南沙">南沙</button><button type="button" data-route-example="南昆山">南昆山</button></div></div>
+            <h3 id="route-empty-title">试试这些地点</h3>
+            <div class="route-examples"><div><button type="button" data-route-example="广州">广州</button><button type="button" data-route-example="南沙">南沙</button><button type="button" data-route-example="南昆山">南昆山</button></div></div>
             <button id="route-search-clear" type="button" hidden>清空搜索</button>
           </div>
           <div id="route-results"></div>
@@ -182,13 +176,13 @@
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
       <div class="sheet-header"><button type="button" class="icon-button" data-close aria-label="关闭能量胶配置"><span data-icon="close"></span></button><h2 id="gels-title">我的能量胶</h2><button id="gel-add" type="button">添加 ＋</button></div>
       <div class="sheet-body">
-        <p class="fine-print">看包装上的碳水含量，不是整支净重。只保存在此浏览器。</p>
         <p id="gels-notice" class="notice" role="status" hidden></p>
-        <div id="gels-list" class="gels-list"></div><p id="gels-empty" class="muted">添加常用的胶，计划里直接选。</p>
+        <div id="gels-list" class="gels-list"></div><p id="gels-empty" class="muted">还没有能量胶</p>
         <form id="gel-editor" novalidate hidden><h3 id="gel-editor-title">添加能量胶</h3>
           <label class="ui-field" for="gel-name">名称<input class="ui-input" id="gel-name" type="text" maxlength="60" autocomplete="off" placeholder="品牌／口味，例如柠檬胶"></label>
           <label class="ui-field" for="gel-carbs">每支碳水<span class="ui-value"><input id="gel-carbs" type="number" min="5" max="100" step="0.1" inputmode="decimal" placeholder="例如 45"><small>g / 支</small></span></label>
-          <div class="gel-editor-actions"><button id="gel-edit-cancel" type="button">取消</button><button id="gel-save" class="primary ui-action" type="submit">保存这款胶</button></div>
+          <p class="fine-print">填写包装营养表中的每支碳水克数。</p>
+            <div class="gel-editor-actions"><button id="gel-edit-cancel" type="button">取消</button><button id="gel-save" class="primary ui-action" type="submit">保存这款胶</button></div>
           <button id="gel-delete" class="delete-in-editor" type="button" hidden>删除这款胶</button>
         </form>
       </div>
@@ -200,23 +194,23 @@
       <div class="sheet-body">
         <p id="profile-notice" class="notice" role="status" hidden></p>
         <form id="profile-form" novalidate>
-          <p class="profile-intro muted">只保存在此浏览器，可随时修改。</p>
-          <button id="profile-import" class="profile-import" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5m8-5v5M6 8h12v4a6 6 0 0 1-12 0V8Zm6 10v4"/></svg><span><strong>从 iGPSPORT 读取</strong><small id="profile-connection">连接后先核对，再填入</small></span><span data-icon="chevron"></span></button>
+          <p class="profile-intro muted">档案仅保存在此浏览器。</p>
+          <button id="profile-import" class="profile-import" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5m8-5v5M6 8h12v4a6 6 0 0 1-12 0V8Zm6 10v4"/></svg><span><strong>从 iGPSPORT 读取</strong><small id="profile-connection">未连接</small></span><span data-icon="chevron"></span></button>
           <div class="profile-grid">
             <fieldset class="profile-sex"><legend>性别</legend><div class="ui-segments"><button type="button" data-profile-sex="male" aria-pressed="false">男</button><button type="button" data-profile-sex="female" aria-pressed="false">女</button></div></fieldset>
             <label class="profile-field" for="profile-age">年龄<span class="ui-value"><input id="profile-age" type="text" inputmode="numeric" autocomplete="off" placeholder="未填写" maxlength="3"><small>岁</small></span></label>
             <label class="profile-field" for="profile-height">身高<span class="ui-value"><input id="profile-height" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>cm</small></span></label>
             <label class="profile-field" for="profile-weight">体重<span class="ui-value"><input id="profile-weight" type="text" inputmode="decimal" autocomplete="off" placeholder="未填写" maxlength="12"><small>kg</small></span></label>
-            <label class="profile-field profile-ftp" for="profile-ftp">FTP<span class="ui-value"><input id="profile-ftp" type="text" inputmode="numeric" autocomplete="off" placeholder="暂不清楚" maxlength="8"><small>W</small></span><small>可留空，不影响手动安排补给。</small></label>
+            <label class="profile-field profile-ftp" for="profile-ftp">FTP（选填）<span class="ui-value"><input id="profile-ftp" type="text" inputmode="numeric" autocomplete="off" placeholder="暂不清楚" maxlength="8"><small>W</small></span></label>
           </div>
-          <button id="profile-gels" class="profile-gels" type="button"><span>我的能量胶</span><span>配置名称与每支碳水 ›</span></button>
+          <button id="profile-gels" class="profile-gels" type="button"><span>我的能量胶</span><span data-icon="chevron" aria-hidden="true"></span></button>
           <p class="fine-print muted profile-footnote">修改档案不会重算已保存的计划。</p>
           <button class="primary ui-action" type="submit">保存档案</button>
         </form>
         <div id="profile-review" hidden>
-          <p class="profile-source muted">iGPSPORT <span>刚刚读取</span></p><h3>选择要更新的项目</h3><p class="muted">先核对，再填入档案。</p>
+          <h3>从 iGPSPORT 导入</h3>
           <div id="profile-review-fields" class="profile-review-fields"></div>
-          <p class="fine-print muted">未勾选的项目保持原值。</p><p class="profile-footnote fine-print muted">确认只填入草稿，保存档案后生效。</p>
+          <p class="profile-footnote fine-print muted">勾选要填入的项目，保存档案后生效。</p>
           <button id="profile-apply" class="primary ui-action" type="button">确认填入</button>
         </div>
       </div>
@@ -226,10 +220,8 @@
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>
       <div class="sheet-header"><button class="icon-button" type="button" data-close aria-label="关闭设置与说明"><span data-icon="close"></span></button><h2 id="help-title">设置与说明</h2><span class="header-spacer"></span></div>
       <div class="sheet-body help-body">
-        <h3>出发，只需三步。</h3>
-        <ol class="how-to"><li><div><strong>安排补给</strong><p>选路线自动生成，或手动添加补给点。</p></div></li><li><div><strong>下载到健身</strong><p>打开下载的训练文件，在“健身”中添加到手表。</p></div></li><li><div><strong>手表开始骑行</strong><p>在“体能训练”中选择这份计划并开始。</p></div></li></ol>
+        <ol class="how-to"><li>选路线生成计划，或手动添加补给。</li><li>打开下载的训练文件，在“健身”中添加到手表。</li><li>在手表的“体能训练”中启动这份计划。</li></ol>
         <p class="help-essential">计划保存在此浏览器。修改后请重新导入。<br>提醒按实际骑行里程触发。</p>
-        <h4 class="preferences-heading">偏好设置</h4>
         <label class="haptics-option"><span>刻度尺触感</span><input id="haptics-toggle" class="haptics-switch" type="checkbox" role="switch" aria-describedby="haptics-status"></label>
         <p id="haptics-status" class="fine-print" role="status" hidden></p>
         <button id="share" type="button" disabled>↗ 通过系统分享导入</button>

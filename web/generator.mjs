@@ -35,10 +35,11 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     readGel = renderGelSelect($('fuel-gel'), storage, recipe.gel);
     $('fuel-plan-name').value = recipe.details?.name ?? `${(source()?.name ?? selectedRoute()?.title ?? recipe.title ?? '骑行').replace(/(?: · 自动补给)+$/, '').slice(0, 52)} · 自动补给`;
     $('fuel-route-name').textContent = recipe.mode === 'route' ? selectedRoute()?.title ?? '尚未选择路线' : recipe.title || '模拟路线';
+    $('fuel-route-summary').textContent = '';
     $('fuel-choose-route').hidden = false;
     $('fuel-choose-route').textContent = selectedRoute() ? '更换 ›' : '选择路线 ›';
     $('fuel-profile-summary').textContent = `FTP ${recipe.parameters.ftpWatts ?? '未填写'}${recipe.parameters.ftpWatts == null ? '' : ' W'} · 体重 ${recipe.parameters.weightKg ?? '未填写'}${recipe.parameters.weightKg == null ? '' : ' kg'}`;
-    $('fuel-power').textContent = recipe.parameters.ftpWatts == null ? '先填写 FTP 和体重，再估算移动用时。' : `目标功率 ${Math.round(recipe.parameters.ftpWatts * recipe.parameters.effort)} W`;
+    $('fuel-power').textContent = recipe.parameters.ftpWatts == null ? '' : `目标功率 ${Math.round(recipe.parameters.ftpWatts * recipe.parameters.effort)} W`;
     for (const button of dialog.querySelectorAll('[data-effort]')) button.setAttribute('aria-pressed', String(Number(button.dataset.effort) === recipe.parameters.effort));
   }
   function calculate() {
@@ -61,7 +62,7 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     preview = value; dialog.classList.toggle('showing-preview', preview);
     dialog.querySelector('.fuel-source').hidden = preview;
     previewRuler.setActive(preview); $('fuel-settings').hidden = preview; $('fuel-preview').hidden = !preview;
-    $('fuel-preview-button').hidden = preview; $('fuel-save').hidden = !preview; $('fuel-save-note').hidden = !preview;
+    $('fuel-preview-button').hidden = preview; $('fuel-save').hidden = !preview;
     $('fuel-title').textContent = preview ? '补给预览' : '生成补给';
     $('fuel-back').setAttribute('aria-label', preview ? '返回生成设置' : '关闭生成补给');
     $('fuel-back').innerHTML = preview ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>' : icon('close');
@@ -79,9 +80,7 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     const loaded = loadProfile(storage);
     recipe = transferred ?? initialRecipe(current(), loaded.profile); needsRoute = missingRoute || !transferred && !current()?.route;
     fill(); view(false); openSheet(dialog);
-    if (needsRoute) {
-      $('fuel-route-name').textContent = '先选一条想骑的路'; $('fuel-route-summary').textContent = '根据路书坡度和你的骑行强度，估算沿途补给。';
-    }
+    if (needsRoute) $('fuel-route-name').textContent = '尚未选择路线';
     if (calculate() && showPreview) view(true);
     if (loaded.message) notice($('fuel-notice'), loaded.message);
   }

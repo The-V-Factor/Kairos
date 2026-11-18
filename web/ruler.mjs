@@ -16,7 +16,7 @@ export class DistanceRuler {
   constructor(root, onBrowse = () => {}, onSelect = () => {}) {
     this.root = root;
     root.classList.add('terrain-ruler');
-    root.innerHTML = `<div class="ruler-viewport"><div class="ruler-scroll" role="slider" tabindex="0" aria-label="距离尺" aria-valuemin="0"><div class="ruler-track"></div></div><svg class="ruler-ticks" aria-hidden="true"></svg><output class="ruler-readout" aria-label="当前里程"><strong></strong><small></small></output><div class="ruler-markers" role="group" aria-label="沿途补给"></div></div><div class="ruler-controls"><span>累计距离 · 双指缩放</span><div><button type="button" data-ruler="out" aria-label="缩小距离尺">${icon('minus')}</button><button type="button" data-ruler="in" aria-label="放大距离尺">${icon('zoom')}</button><button type="button" data-ruler="fit">全览</button></div></div>`;
+    root.innerHTML = `<div class="ruler-viewport"><div class="ruler-scroll" role="slider" tabindex="0" aria-label="距离尺" aria-valuemin="0"><div class="ruler-track"></div></div><svg class="ruler-ticks" aria-hidden="true"></svg><output class="ruler-readout" aria-label="当前里程"><strong></strong><small></small></output><div class="ruler-markers" role="group" aria-label="沿途补给"></div></div><div class="ruler-controls"><span>距出发里程</span><div><button type="button" data-ruler="out" aria-label="缩小距离尺">${icon('minus')}</button><button type="button" data-ruler="in" aria-label="放大距离尺">${icon('zoom')}</button><button type="button" data-ruler="fit">全览</button></div></div>`;
     this.viewport = root.querySelector('.ruler-viewport');
     this.profile = null; this.domain = null; this.points = []; this.markerNodes = new Map(); this.active = true;
     for (const [action, id] of [['out', 'zoom-out'], ['in', 'zoom-in'], ['fit', 'fit']]) {
