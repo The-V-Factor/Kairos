@@ -3,14 +3,19 @@ import { loadLibrary, activeEntry } from './library.mjs';
 import { loadProfile } from './profile.mjs';
 import { loadTheme } from './themes.mjs';
 import { initialRecipe, calculateRecipe, readTransfer, writeTransfer, revision } from './generation.mjs';
-import { duration, drawRide, notice } from './fueling-view.mjs';
+import { duration, drawRide, notice, previewRulerPlan } from './fueling-view.mjs';
 import { distanceLabel } from './workout.mjs';
 import './focus.mjs';
 import { renderGelSelect } from './gel-editor.mjs';
+import { DistanceRuler, setRulerHaptics } from './ruler.mjs';
+import { rideTerrain } from './terrain.mjs';
+import { loadHaptics } from './haptics.mjs';
 
 const $ = id => document.getElementById(id);
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const session = { getItem: key => sessionStorage.getItem(key), setItem: (key, value) => sessionStorage.setItem(key, value) };
+setRulerHaptics(loadHaptics(storage));
+const terrainRuler = new DistanceRuler($('calc-terrain'));
 const loaded = loadLibrary(storage);
 const transferred = new URL(location.href).searchParams.get('from') === 'generator' ? readTransfer(session) : null;
 const entry = transferred ? loaded.library.plans.find(item => revision(item) === transferred.sourceRevision) ?? null : loaded.needsSave ? null : activeEntry(loaded.library);
@@ -108,7 +113,15 @@ function selectGroup(value) {
   redraw();
 }
 function redraw() {
-  if (result && chartMode !== 'details') drawRide($('calc-chart'), result.ride, result.schedule, chartMode);
+  $('calc-terrain').hidden = chartMode !== 'elevation';
+  $('calc-chart').hidden = chartMode !== 'speed';
+  terrainRuler.setActive(!!result && chartMode === 'elevation' && !['equipment', 'fuel'].includes(group));
+  if (!result) return;
+  if (chartMode === 'speed') drawRide($('calc-chart'), result.ride, result.schedule, 'speed');
+  else if (chartMode === 'elevation') {
+    const route = recipe.mode === 'route' ? (Object.hasOwn(recipe, 'route') ? recipe.route : entry?.route) : null;
+    terrainRuler.update(previewRulerPlan(result.ride, result.schedule), rideTerrain(result.ride, route));
+  }
 }
 function calculate() {
   try {
@@ -135,7 +148,7 @@ function calculate() {
     notice($('calc-warning'), ride.warnings.join(' ')); notice($('calc-error'));
     $('calc-visuals').hidden = false; $('calc-preview').disabled = false; $('calc-copy').disabled = false; redraw();
   } catch (error) {
-    result = null; notice($('calc-error'), error.message);
+    result = null; terrainRuler.setActive(false); notice($('calc-error'), error.message);
     for (const id of ['calc-duration', 'calc-speed', 'calc-energy', 'calc-gels']) $(id).textContent = '—';
     $('calc-visuals').hidden = true; $('calc-preview').disabled = true; $('calc-copy').disabled = true; $('calc-warning').textContent = '';
   }

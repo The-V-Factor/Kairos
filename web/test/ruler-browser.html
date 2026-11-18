@@ -1,0 +1,29 @@
+<!doctype html><html lang="zh-CN" data-theme="rhythm"><meta charset="utf-8"><title>#21 距离尺边界回归</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../themes.css"><link rel="stylesheet" href="../ruler.css">
+<style>body{padding:20px}#fixture{width:354px;max-width:100%}#run{padding:15px}pre{white-space:pre-wrap}</style>
+<button id="run">运行距离尺边界回归</button><pre id="results" role="status"></pre><div id="fixture"><div id="first"></div><div id="second"></div></div>
+<script type="module">
+import {DistanceRuler,setRulerHaptics} from '../ruler.mjs';
+import {validateTerrain} from '../terrain.mjs';
+const root=document.getElementById('first'),second=document.getElementById('second'),output=document.getElementById('results');
+let selected=null;const ruler=new DistanceRuler(root,()=>{},id=>selected=id),other=new DistanceRuler(second);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const profile=validateTerrain({version:1,source:'simulation',distanceMeters:10000,points:[{distanceMeters:0,elevationMeters:0},{distanceMeters:5000,elevationMeters:1000},{distanceMeters:10000,elevationMeters:100}]});
+const stop=(id,distanceMeters)=>({id,distanceMeters,kind:'gel',reminder:'吃胶',name:''});
+document.getElementById('run').onclick=async()=>{let n=0;output.textContent='运行中…';const ok=(v,m)=>{if(!v)throw Error(m);output.textContent+=`\n✓ ${m}`;n++;};try{
+ const plan={totalDistanceMeters:10000,stops:[stop('start',0),stop('one',3000),stop('two',3050),stop('end',10000)]},before=JSON.stringify(plan);
+ ruler.update(plan);ok(!root.classList.contains('has-terrain')&&root.querySelector('output small').hidden,'无海拔保持单层距离尺，不伪造海拔');
+ ruler.update(plan,profile);other.update(plan,profile);await wait(50);ok(root.querySelector('.ruler-cluster-count')?.textContent==='2','相邻点位聚合，端点仍独立');
+ const zoom=ruler.zoom;root.querySelector('.cluster').click();await wait(400);ok(ruler.zoom>zoom,'点击聚合放大展开');
+ ruler.zoom=64;ruler.layout(3025);ok(!root.querySelector('.cluster')&&root.querySelectorAll('.ruler-marker').length===2,'放大后相邻点恢复独立标识');
+ root.querySelector('[data-distance="3000"].ruler-marker').click();await wait(400);ok(selected==='one'&&Math.abs(ruler.cursor-3000)<=1/ruler.scale,'补给定位只选择对应点');
+ const stable=root.querySelector('[data-distance="3000"].ruler-marker');ruler.update({...plan,stops:[plan.stops[0],plan.stops[1],{...plan.stops[2],reminder:'另一支胶'},plan.stops[3]]},profile);ok(root.querySelector('[data-distance="3000"].ruler-marker')===stable,'修改其他点保留现有补给节点');
+ ruler.update({totalDistanceMeters:20000,stops:[stop('past',15000)]},profile);ruler.layout(15000);ok(root.querySelector('output small').textContent.endsWith('海拔 —')&&root.querySelector('.ruler-uncovered'),'计划超出路书后显示未知海拔，不拉伸山形');
+ ruler.zoom=1;ruler.layout(20000);ok([...root.querySelectorAll('svg text')].some(e=>e.textContent==='20 km'),'非路线终点仍保留计划尾段公里标注');
+ ruler.layout(1234);ok(root.querySelector('output strong').textContent==='1.2 km','读数最多一位小数');
+ setRulerHaptics(false);ok(!ruler.haptics.enabled&&!other.haptics.enabled&&ruler.haptics.surface.hidden&&other.haptics.surface.hidden,'关闭触感同步所有实例并移除触摸遮层');
+ setRulerHaptics(true);ok(ruler.haptics.enabled===ruler.haptics.available&&other.haptics.enabled===other.haptics.available,'开启触感按设备能力应用到全部实例');
+ other.setActive(false);ok(!other.haptics.enabled,'隐藏预览停止触感层');
+ ok(JSON.stringify(plan)===before,'缩放、聚合、定位均不修改原始计划');output.textContent+=`\n全部通过：${n} 项。`;
+ }catch(e){output.textContent+=`\n失败（已通过 ${n} 项）：${e.message}`;}};
+</script></html>

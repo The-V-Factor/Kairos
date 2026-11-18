@@ -88,3 +88,7 @@ export function drawRide(svg, ride, schedule, mode = 'elevation') {
     else { focus = Math.max(0, Math.min(schedule.stops.length - 1, focus + (event.key === 'ArrowRight' ? 1 : -1))); show(schedule.stops[focus]); }
   };
 }
+
+export function previewRulerPlan(ride, schedule) {
+  return { totalDistanceMeters: ride.totalDistanceMeters, stops: schedule.stops.map((stop, i) => ({ ...stop, id: String(i) })) };
+}

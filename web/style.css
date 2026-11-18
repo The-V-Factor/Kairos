@@ -287,40 +287,6 @@ main { max-width: 600px; margin: auto; padding: 22px 24px calc(176px + env(safe-
 .eyebrow { display: flex; align-items: center; gap: 12px; font-size: 10px; font-weight: 500; letter-spacing: 3px; }
 .eyebrow i { flex: 1; height: 1px; background: var(--line); }
 h1 { font-size: 34px; letter-spacing: -1.3px; font-weight: 750; margin: 0; line-height: 1.3; }
-.ruler-section { margin-bottom: 25px; }
-.ruler { height: 144px; position: relative; user-select: none; -webkit-user-select: none; }
-.ruler-scroll { position: absolute; inset: 32px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
-.ruler-scroll::-webkit-scrollbar { display: none; }
-.ruler-track { height: 100%; }
-.haptic-surface { position: absolute; inset: 72px 0 0; touch-action: none; }
-.haptic-clip { position: absolute; inset: 0; overflow: hidden; opacity: 0; }
-.haptic-clip input { all: revert; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; margin: 0; transform: translate(-50%, -50%); touch-action: none; }
-.ruler-ticks { position: absolute; width: 100%; height: 144px; inset: 0; pointer-events: none; overflow: hidden; }
-.ruler-ticks line { stroke: var(--ink); stroke-linecap: round; }
-.ruler-ticks .focus-tick { stroke: var(--focus); }
-.ruler-ticks text { fill: var(--muted); font-size: 11px; font-weight: 500; text-anchor: middle; font-variant-numeric: tabular-nums; }
-.ruler output { position: absolute; top: 1px; transform: translateX(-50%); color: var(--focus); font-weight: 650; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
-.add-fuel { position: absolute; top: -10px; right: 0; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 5px 12px; font-size: 12px; font-weight: 650; color: var(--accent); background: var(--surface); border-radius: 24px; }
-.add-fuel .icon { width: 20px; height: 20px; }
-.ruler-markers { position: absolute; inset: 0; pointer-events: none; }
-.ruler-marker { position: absolute; top: 27px; width: 30px; height: 44px; transform: translateX(-50%); pointer-events: auto; color: var(--ink); }
-.ruler-marker::after { content: ''; display: block; position: absolute; width: 1px; height: 6px; bottom: 0; left: 50%; background: currentColor; opacity: .5; }
-.ruler-marker .fuel-art { width: 16px; height: 25px; margin: 0 auto 6px; }
-.ruler-marker .bottle-body { fill: none; }
-.ruler-marker .bottle-outline, .ruler-marker .tag-outline { stroke: currentColor; }
-.ruler-marker .bottle-cap, .ruler-marker .tag-hole { fill: currentColor; }
-.ruler-marker .water-fill { fill: currentColor; opacity: .8; }
-.ruler-marker .gel-packet { fill: none; stroke: currentColor; stroke-width: 2; }
-.ruler-marker .gel-cap { fill: none; }
-.ruler-marker .gel-word { fill: currentColor; }
-.ruler-marker .fuel-art g { transform: none; }
-.marker-water { color: var(--water); }
-.marker-gel { color: var(--gel); }
-.ruler-marker.cluster { border-radius: 50%; font-size: 12px; font-weight: 700; }
-.ruler-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
-.ruler-controls > div { display: flex; align-items: center; gap: 4px; }
-.ruler-controls button { display: grid; place-items: center; min-width: 38px; min-height: 40px; }
-.ruler-controls .icon { width: 18px; height: 18px; }
 .itinerary { display: grid; }
 .stop { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
 .stop-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 0; background: var(--canvas); text-align: left; touch-action: pan-y; transition: transform .22s ease; }

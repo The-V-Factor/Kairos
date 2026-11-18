@@ -1,0 +1,79 @@
+.ruler-section { margin-bottom: 25px; }
+.ruler-add-row { display: flex; justify-content: flex-end; min-height: 36px; margin-top: -12px; }
+.add-fuel { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 5px 12px; font-size: 12px; font-weight: 650; color: var(--accent); background: var(--surface); border-radius: 24px; }
+.add-fuel .icon { width: 20px; height: 20px; }
+.terrain-ruler { --ruler-height: 224px; min-width: 0; user-select: none; -webkit-user-select: none; }
+.ruler-viewport { height: 144px; position: relative; isolation: isolate; }
+.has-terrain .ruler-viewport { height: var(--ruler-height); }
+.ruler-scroll { position: absolute; inset: 40px 0 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.ruler-scroll::-webkit-scrollbar { display: none; }
+.ruler-track { height: 100%; }
+.haptic-surface { position: absolute; z-index: 1; inset: 44px 0 0; touch-action: none; }
+.haptic-clip { position: absolute; inset: 0; overflow: hidden; opacity: 0; }
+.haptic-clip input { all: revert; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; margin: 0; transform: translate(-50%, -50%); touch-action: none; }
+.ruler-ticks { position: absolute; width: 100%; height: 100%; inset: 0; pointer-events: none; overflow: hidden; }
+.ruler-ticks .tick { stroke: var(--ink); stroke-linecap: round; }
+.ruler-ticks .focus-tick { stroke: var(--focus); stroke-linecap: round; }
+.ruler-ticks text { fill: var(--muted); font-size: 11px; font-weight: 500; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.ruler-ticks .ruler-elevation-label { text-anchor: start; font-size: 9px; }
+.ruler-elevation-grid { stroke: var(--line); stroke-width: .6; stroke-dasharray: 2 5; }
+.ruler-profile { stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; fill: none; }
+.ruler-terrain-area { fill: var(--accent); opacity: .055; }
+.ruler-guide { stroke: var(--focus); stroke-width: .8; stroke-dasharray: 2 4; opacity: .4; }
+.ruler-cursor { fill: var(--focus); stroke: var(--canvas); stroke-width: 2; }
+.ruler-anchor { fill: currentColor; stroke: var(--canvas); stroke-width: 1.2; }
+.ruler-uncovered { fill: var(--muted); opacity: .04; }
+.ruler-ticks .ruler-uncovered-label { font-size: 11px; }
+.terrain-ruler .ruler-readout { position: absolute; z-index: 2; top: 1px; transform: translateX(-50%); color: var(--focus); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; pointer-events: none; }
+.ruler-readout strong { display: block; font-weight: 650; font-size: 15px; }
+.has-terrain .ruler-readout strong { font-size: 21px; }
+.ruler-readout small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 5px; }
+.ruler-markers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.ruler-marker { position: absolute; width: 32px; height: 44px; padding-top: 3px; transform: translateX(-50%); pointer-events: auto; color: var(--accent); }
+.ruler-marker::after { content: ''; display: block; position: absolute; width: 1px; height: 11px; bottom: 2px; left: 50%; background: currentColor; opacity: .6; }
+.ruler-marker .fuel-art { width: 18px; height: 28px; margin: 0 auto; }
+.ruler-marker .bottle-body { fill: var(--canvas); }
+.ruler-marker .bottle-outline, .ruler-marker .tag-outline { stroke: currentColor; }
+.ruler-marker .bottle-cap, .ruler-marker .tag-hole { fill: currentColor; }
+.ruler-marker .water-fill { fill: currentColor; opacity: .8; }
+.ruler-marker .gel-packet { fill: var(--canvas); stroke: currentColor; stroke-width: 2; }
+.ruler-marker .gel-cap { fill: currentColor; }
+.ruler-marker .gel-word { fill: currentColor; }
+.ruler-marker .fuel-art g { transform: none; }
+.marker-water { color: var(--water); }
+.marker-gel { color: var(--gel); }
+.marker-custom { color: var(--accent); }
+.ruler-cluster-count { display: grid; place-items: center; width: 23px; height: 23px; margin: 6px auto 0; border: 1px solid currentColor; border-radius: 50%; background: var(--canvas); font-size: 11px; font-weight: 700; }
+.ruler-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; color: var(--muted); font-size: 10px; }
+.ruler-controls > span { white-space: nowrap; }
+.ruler-controls > div { display: flex; align-items: center; gap: 4px; }
+.ruler-controls button { display: grid; place-items: center; min-width: 36px; min-height: 36px; font-size: 10px; }
+.ruler-controls .icon { width: 18px; height: 18px; }
+.help-body .how-to { padding: 0; margin: 18px 0 22px; list-style: none; counter-reset: steps; display: grid; gap: 18px; }
+.how-to li { display: flex; gap: 12px; counter-increment: steps; }
+.how-to li::before { content: counter(steps); display: grid; place-items: center; flex: 0 0 25px; height: 25px; border-radius: 50%; color: var(--accent); background: var(--selected); font-size: 11px; }
+.how-to strong { display: block; color: var(--ink); font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.how-to p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.help-body .help-essential { color: var(--muted); font-size: 11px; line-height: 1.8; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.help-body .preferences-heading { font-size: 11px; color: var(--muted); margin: 18px 0 4px; font-weight: 500; }
+.haptics-option { font-size: 14px; font-weight: 550; }
+.haptics-option .haptics-switch { appearance: none; -webkit-appearance: none; flex: 0 0 46px; width: 46px; height: 28px; margin: 0; padding: 0; border: 0; border-radius: 20px; background: var(--input-line); position: relative; }
+.haptics-switch::after { content: ''; position: absolute; width: 22px; height: 22px; background: var(--ink); border-radius: 50%; top: 3px; left: 3px; }
+.haptics-switch:checked { background: var(--accent); }
+.haptics-switch:checked::after { background: var(--on-accent); transform: translateX(18px); }
+.haptics-switch:disabled { opacity: .4; }
+.help-body #share { display: block; min-height: 40px; margin-top: 12px; font-size: 12px; color: var(--muted); text-align: left; }
+.help-body #support { margin: 4px 0; font-size: 11px; }
+@media (max-height: 740px) { .terrain-ruler { --ruler-height: 196px; } .help-body .how-to { gap: 14px; margin-block: 10px 16px; } }
+.fuel-sheet.showing-preview { height: min(720px, 88dvh); display: flex; flex-direction: column; }
+.fuel-sheet.showing-preview .sheet-grabber, .fuel-sheet.showing-preview .sheet-header { flex-shrink: 0; }
+.fuel-sheet.showing-preview .sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+#fuel-preview:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#fuel-preview > .fuel-plan-name, #fuel-chart, #fuel-preview-summary { flex-shrink: 0; }
+#fuel-preview-summary { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#fuel-preview-stops { flex: 1; min-height: 0; max-height: 150px; margin: 0; }
+#fuel-preview-stops li { min-height: 39px; grid-template-columns: 18px 80px 1fr auto; gap: 8px; }
+#fuel-preview-stops .focused-stop { background: var(--selected); }
+#fuel-save { flex-shrink: 0; margin-top: 8px; }
+#fuel-save-note { flex-shrink: 0; }
+@media (max-width: 899px) { .calculator-page .calc-layout { padding-bottom: calc(90px + env(safe-area-inset-bottom)); } }

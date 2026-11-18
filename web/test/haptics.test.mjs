@@ -43,7 +43,8 @@ test('zoom or range changes reset the baseline; ending a drag suppresses inertia
 
 function nativeRuler(t, actualRuler = false) {
   class Element {
-    constructor() { this.switch = false; this.style = {}; this.events = new Map(); }
+    constructor() { this.switch = false; this.style = {}; this.events = new Map(); this.classList = { add() {}, toggle() {} }; this.parts = new Map(); }
+    querySelector(selector) { if (!this.parts.has(selector)) this.parts.set(selector, new Element()); return this.parts.get(selector); }
     setAttribute() {}
     removeAttribute() { this.style = {}; }
     append(...children) { this.children = children; }

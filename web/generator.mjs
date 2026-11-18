@@ -1,16 +1,24 @@
 import { loadProfile } from './profile.mjs';
 import { initialRecipe, calculateRecipe, readTransfer, writeTransfer } from './generation.mjs';
-import { duration, drawRide, renderStops, notice } from './fueling-view.mjs';
+import { duration, renderStops, notice, previewRulerPlan } from './fueling-view.mjs';
 import { distanceLabel } from './workout.mjs';
 import { icon } from './artwork.mjs';
 import { today } from './library.mjs';
 import { renderGelSelect } from './gel-editor.mjs';
+import { DistanceRuler } from './ruler.mjs';
+import { rideTerrain } from './terrain.mjs';
 
 export function setupGenerator({ storage, current, openSheet, save, chooseRoute, manageGels, returnToPlan, available = () => true }) {
   const $ = id => document.getElementById(id), dialog = $('generation-dialog');
   const session = { getItem: key => sessionStorage.getItem(key), setItem: (key, value) => sessionStorage.setItem(key, value) };
   let recipe = null, result = null, preview = false, needsRoute = false, leaving = false, saved = false;
   let readGel = () => null;
+  const previewRuler = new DistanceRuler($('fuel-chart'), () => {}, id => {
+    const row = $('fuel-preview-stops').children[Number(id)];
+    for (const item of $('fuel-preview-stops').children) item.classList.toggle('focused-stop', item === row);
+    row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  previewRuler.setActive(false);
   const source = () => recipe?.sourceRevision === null ? null : current(recipe);
   const selectedRoute = () => Object.hasOwn(recipe, 'route') ? recipe.route : source()?.route;
   const number = input => input.value.trim() ? Number(input.value) : NaN;
@@ -50,16 +58,19 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     }
   }
   function view(value) {
-    preview = value; $('fuel-settings').hidden = preview; $('fuel-preview').hidden = !preview;
+    preview = value; dialog.classList.toggle('showing-preview', preview);
+    dialog.querySelector('.fuel-source').hidden = preview;
+    previewRuler.setActive(preview); $('fuel-settings').hidden = preview; $('fuel-preview').hidden = !preview;
     $('fuel-preview-button').hidden = preview; $('fuel-save').hidden = !preview; $('fuel-save-note').hidden = !preview;
     $('fuel-title').textContent = preview ? '补给预览' : '生成补给';
     $('fuel-back').setAttribute('aria-label', preview ? '返回生成设置' : '关闭生成补给');
     $('fuel-back').innerHTML = preview ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>' : icon('close');
     if (preview && result) {
       const { ride, schedule } = result;
-      $('fuel-preview-summary').textContent = `${recipe.gel.name} · ${recipe.gel.carbsGrams}g/支 · 约${duration(ride.elapsedSeconds)} · 目标 ${ride.carbsPerHour} g/h · ${schedule.gelCount} 支（${schedule.plannedCarbsGrams}g碳水） · 计划平均 ${schedule.actualCarbsPerHour.toFixed(0)} g/h`;
+      $('fuel-preview-summary').textContent = `${recipe.gel.name} · ${recipe.gel.carbsGrams}g/支 · ${schedule.gelCount} 支 · 约${duration(ride.elapsedSeconds)}`;
+      $('fuel-preview-summary').title = `目标 ${ride.carbsPerHour} g/h，共 ${schedule.plannedCarbsGrams}g，计划平均 ${schedule.actualCarbsPerHour.toFixed(0)} g/h`;
       renderStops($('fuel-preview-stops'), schedule); $('fuel-preview-empty').hidden = schedule.stops.length > 0;
-      requestAnimationFrame(() => { if (dialog.open && result) drawRide($('fuel-chart'), ride, schedule); });
+      requestAnimationFrame(() => { if (dialog.open && result) previewRuler.update(previewRulerPlan(ride, schedule), rideTerrain(ride, recipe.mode === 'route' ? selectedRoute() : null)); });
     }
     dialog.scrollTop = 0;
   }
@@ -116,6 +127,7 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     catch (error) { notice($('fuel-notice'), error.message); }
   });
   dialog.addEventListener('close', () => {
+    previewRuler.setActive(false);
     if (!leaving && !saved) requestAnimationFrame(() => returnToPlan(recipe));
     saved = false;
   });
@@ -124,7 +136,6 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     try { writeTransfer(session, recipe); }
     catch (error) { event.preventDefault(); notice($('fuel-notice'), error.message); }
   });
-  new ResizeObserver(() => { if (preview && result && dialog.open) drawRide($('fuel-chart'), result.ride, result.schedule); }).observe($('fuel-chart'));
   if (new URL(location.href).searchParams.get('generate') === 'preview') {
     const transferred = readTransfer(session);
     const url = new URL(location.href); url.searchParams.delete('generate'); history.replaceState(null, '', url);

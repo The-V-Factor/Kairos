@@ -1,3 +1,13 @@
+export const hapticsKey = 'kairos.web.haptics.v1';
+export function loadHaptics(storage) {
+  try { const value = JSON.parse(storage.getItem(hapticsKey)); return typeof value === 'boolean' ? value : true; }
+  catch { return true; }
+}
+export function storeHaptics(storage, enabled) {
+  try { storage.setItem(hapticsKey, JSON.stringify(!!enabled)); return ''; }
+  catch { return '此设置本次有效，浏览器未能保存。'; }
+}
+
 // Haptic slider semantics: cross a real tick, not the rounded displayed value.
 export class TickFeedback {
   begin(value, step, total) {
@@ -22,7 +32,7 @@ export class TickFeedback {
   }
 }
 
-// Local native-switch experiment, inspired by ios-vibrator-pro-max's drag technique.
+// Local native-switch bridge, inspired by ios-vibrator-pro-max's drag technique.
 // No document reparenting, synthetic clicks, global API patches, or blocking timers.
 export class RulerHaptics {
   constructor(ruler) {
@@ -33,7 +43,7 @@ export class RulerHaptics {
     this.input.tabIndex = -1; this.surface.setAttribute('aria-hidden', 'true');
     this.native = typeof navigator.vibrate !== 'function' && 'switch' in this.input;
     this.available = this.native || typeof navigator.vibrate === 'function';
-    this.clip.append(this.input); this.surface.append(this.clip); ruler.root.append(this.surface);
+    this.clip.append(this.input); this.surface.append(this.clip); (ruler.viewport ?? ruler.root).append(this.surface);
     this.setEnabled(false);
     this.input.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); });
     this.input.addEventListener('pointerdown', event => {

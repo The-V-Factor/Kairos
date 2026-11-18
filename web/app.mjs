@@ -1,8 +1,10 @@
-import { encodeWorkout, validatePlan, workoutSteps, distanceLabel, roundedMeters } from './workout.mjs';
+import { encodeWorkout, validatePlan, distanceLabel, roundedMeters } from './workout.mjs';
 import { sharePrepared, shareSupport } from './share.mjs';
 import { kinds, newID, parseDistance, validateDraft, saveStop } from './plan.mjs';
 import { fuelArtwork, icon } from './artwork.mjs';
-import { DistanceRuler } from './ruler.mjs';
+import { DistanceRuler, setRulerHaptics } from './ruler.mjs';
+import { entryTerrain } from './terrain.mjs';
+import { loadHaptics, storeHaptics } from './haptics.mjs';
 import { themes, loadTheme, storeTheme } from './themes.mjs';
 import { loadLibrary, storeLibrary, activeEntry, createPlan, updatePlan, updateDetails, selectPlan, duplicatePlan, deletePlan, restorePlan, recordExport, validateDate, today, validateLibrary } from './library.mjs';
 import { PlanCalendar, KilometerWheel, shortDate } from './plan-controls.mjs';
@@ -21,7 +23,7 @@ let themeID = loadTheme(storage);
 let library = loaded.library;
 let plan = activeEntry(library)?.plan ?? null;
 let writable = loaded.writable;
-let prepared = null, sharing = false, cursor = (plan?.totalDistanceMeters ?? 0) / 2, deleted = null, editing = null, lastShare = null;
+let prepared = null, sharing = false, cursor = (plan?.totalDistanceMeters ?? 0) / 2, deleted = null, editing = null;
 let removedPlan = null, libraryTab = 'plans', libraryMode = 'list', managedEntry = null, routeDraft = null, gelDraft = null, readPlanGel = () => null, storageNotice = loaded.message;
 let draft = null, reminderWasEdited = false, selectedID = null, swipedID = null;
 const removing = new Set();
@@ -33,11 +35,18 @@ const ruler = new DistanceRuler($('ruler'), value => { cursor = value; }, id => 
   selectedID = id; updateSelection();
   rows.get(id)?.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'instant' : 'smooth' });
 });
+const preferredHaptics = loadHaptics(storage);
+setRulerHaptics(preferredHaptics);
+$('haptics-toggle').checked = preferredHaptics && ruler.haptics.available;
 $('haptics-toggle').disabled = !ruler.haptics.available;
-$('haptics-status').textContent = ruler.haptics.available
-  ? '本次打开有效。开启后在刻度线上拖动，尝试跨刻度触感；松手后的惯性不震动，效果以真机为准。'
-  : '当前浏览器未提供可用的触感路径，距离尺仍可正常使用。';
-$('haptics-toggle').addEventListener('change', () => ruler.haptics.setEnabled($('haptics-toggle').checked));
+$('haptics-status').textContent = ruler.haptics.available ? '' : '此设备不支持触感。';
+$('haptics-status').hidden = ruler.haptics.available;
+$('haptics-toggle').addEventListener('change', () => {
+  const enabled = $('haptics-toggle').checked;
+  setRulerHaptics(enabled);
+  const warning = storeHaptics(storage, enabled);
+  $('haptics-status').textContent = warning; $('haptics-status').hidden = !warning;
+});
 
 for (const [index, theme] of themes.entries()) {
   const button = document.createElement('button'); button.type = 'button'; button.className = 'theme-choice';
@@ -169,54 +178,27 @@ function render(eventID) {
   $('total-label').textContent = plan ? distanceLabel(plan.totalDistanceMeters) : '';
   $('home-route-summary').textContent = current?.route?.title ?? '';
   $('home-route-summary').hidden = !current?.route;
-  renderRows(eventID); if (plan) ruler.update(plan); else ruler.haptics.stop(); prepare();
+  renderRows(eventID); if (plan) ruler.update(plan, entryTerrain(current)); else ruler.haptics.stop(); prepare();
 }
 function apply(next, eventID) {
   library = updatePlan(library, next); plan = activeEntry(library).plan;
   message('result'); persist(); render(eventID);
 }
-function diagnostics(support, bytes) {
-  const items = [
-    ['安全环境', isSecureContext ? '是' : '否，请使用 HTTPS'],
-    ['当前文件可分享', prepared ? support.ok ? '是，目标需在面板确认' : '否' : '文件尚未准备'],
-    ['文件', prepared ? `${prepared.name} · ${bytes} 字节` : '—'],
-    ['系统导入与手表接收', '网页无法检测，请在设备确认'],
-  ];
-  $('diagnostics').replaceChildren();
-  for (const [key, value] of items) {
-    const dt = document.createElement('dt'); dt.textContent = key;
-    const dd = document.createElement('dd'); dd.textContent = value;
-    $('diagnostics').append(dt, dd);
-  }
-  if (lastShare) {
-    const dt = document.createElement('dt'); dt.textContent = '最近分享结果';
-    const dd = document.createElement('dd'); dd.textContent = `${lastShare.state}${lastShare.reason ? ` · ${lastShare.reason}` : ''}`;
-    $('diagnostics').append(dt, dd);
-  }
-}
 function prepare() {
   prepared = null; $('share').disabled = true; $('download').disabled = true;
-  $('steps').replaceChildren(); message('error');
+  message('error');
   try {
     if (!plan) throw new Error('先创建一份骑行计划。');
     const valid = validatePlan(plan), bytes = encodeWorkout(valid, `Kairos · ${activeEntry(library).name}`);
     prepared = new File([bytes], `Kairos-${plan.id.slice(0, 8)}.workout`, { type: 'application/octet-stream' });
-    let from = 0;
-    for (const step of workoutSteps(valid)) {
-      const li = document.createElement('li'), title = document.createElement('strong'), caption = document.createElement('span');
-      title.textContent = step.name;
-      caption.textContent = step.distanceMeters === null ? '开放目标 · 由你手动结束运动' : `${distanceLabel(from)} → ${distanceLabel(from + step.distanceMeters)}，本段 ${distanceLabel(step.distanceMeters)}`;
-      if (step.distanceMeters !== null) from += step.distanceMeters;
-      li.append(title, caption); $('steps').append(li);
-    }
     const support = shareSupport(prepared, navigator, isSecureContext);
-    $('support').textContent = support.message;
+    $('support').textContent = support.ok ? '' : '当前浏览器不支持系统分享，可使用下载训练。';
+    $('support').hidden = support.ok;
     $('share').disabled = sharing || removing.size > 0 || !support.ok;
     $('download').disabled = sharing || removing.size > 0;
-    diagnostics(support, bytes.byteLength);
   } catch (error) {
     message('error', !plan || plan.stops.length ? error.message : '先添加一个补给点，再交给手表。');
-    $('support').textContent = '补全计划后即可分享或下载训练文件。'; diagnostics({ ok: false }, 0);
+    $('support').textContent = '安排补给后即可导入训练。'; $('support').hidden = false;
   }
 }
 async function removeStop(id) {
@@ -349,9 +331,7 @@ $('fuel-form').addEventListener('submit', event => {
 });
 $('delete-stop').addEventListener('click', () => { const id = editing; $('composer').close(); removeStop(id); });
 $('add').addEventListener('click', () => openComposer());
-$('zoom-in').addEventListener('click', () => ruler.changeZoom(2));
-$('zoom-out').addEventListener('click', () => ruler.changeZoom(.5));
-$('fit').addEventListener('click', () => { selectedID = null; updateSelection(); ruler.fit(); });
+$('fit').addEventListener('click', () => { selectedID = null; updateSelection(); });
 
 const accountMenu = $('account-menu');
 accountMenu.addEventListener('beforetoggle', event => {
@@ -392,7 +372,7 @@ function formatDate(value) {
 }
 function changeLibrary(next) {
   library = next; plan = activeEntry(library)?.plan ?? null;
-  deleted = null; removedPlan = null; selectedID = null; lastShare = null;
+  deleted = null; removedPlan = null; selectedID = null;
   $('undo-bar').hidden = true; closeSwipes(); message('result'); persist(); render();
 }
 const calendar = new PlanCalendar($('plan-calendar'), value => {
@@ -591,7 +571,7 @@ $('plan-form').addEventListener('submit', event => {
   try {
     const details = planDetails();
     const next = libraryMode === 'new' ? createPlan(library, details) : libraryMode === 'copy' ? duplicatePlan(library, managedEntry, details) : selectPlan(updateDetails(library, managedEntry.plan.id, details), managedEntry.plan.id);
-    changeLibrary(validateLibrary({ ...next, plans: next.plans.map(item => item.plan.id === next.activePlanID ? { ...item, route: routeDraft, gel: gelDraft } : item) }));
+    changeLibrary(validateLibrary({ ...next, plans: next.plans.map(item => item.plan.id === next.activePlanID ? { ...item, terrain: routeDraft ? undefined : item.terrain, route: routeDraft, gel: gelDraft } : item) }));
     if (storageNotice) { editPlanView('edit', activeEntry(library)); message('library-notice', storageNotice); }
     else $('library-dialog').close();
   } catch (error) { message('plan-form-error', error.message); }
@@ -613,7 +593,6 @@ async function shareWorkout() {
   try {
     // Keep the prepared File and invoke share before any await or network work.
     const outcome = await sharePrepared(prepared, navigator, isSecureContext);
-    lastShare = outcome;
     if (outcome.state === 'handed-off') { library = recordExport(library, snapshot, 'share'); persist(); }
     message('result', outcome.message);
   } finally { sharing = false; $('app').inert = false; prepare(); }
@@ -627,10 +606,6 @@ $('download').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
   library = recordExport(library, activeEntry(library), 'download'); persist();
   message('result', '已请求下载。打开训练文件，在“健身”中核对并添加到手表；Safari 可从下载列表打开。');
-});
-$('copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(`${$('diagnostics').innerText} 浏览器：${navigator.userAgent}`); message('result', '兼容性信息已复制，不含补给内容。'); }
-  catch { message('result', '未能复制，请截图兼容性信息。'); }
 });
 message('storage-message', loaded.message);
 const routePicker = setupRoutePicker({ storage, current: () => activeEntry(library), openSheet });

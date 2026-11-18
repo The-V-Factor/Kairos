@@ -1,12 +1,13 @@
 import { newID } from './plan.mjs';
 import { activeEntry, createPlan, updatePlan, today } from './library.mjs';
 import { validateGel } from './gels.mjs';
+import { rideTerrain } from './terrain.mjs';
 import { defaults, parameters, estimateRide, scheduleFuel } from './fueling-model.mjs';
 
 export const transferKey = 'kairos.web.generation.v1';
 export function revision(entry) {
   return entry ? JSON.stringify({ id: entry.plan.id, updatedAt: entry.updatedAt, name: entry.name, date: entry.rideDate,
-    plan: entry.plan, gel: entry.gel, route: entry.route ? [entry.route.id, entry.route.distanceMeters, entry.route.points.length] : null }) : null;
+    plan: entry.plan, gel: entry.gel, terrain: entry.terrain, route: entry.route ? [entry.route.id, entry.route.distanceMeters, entry.route.points.length] : null }) : null;
 }
 export function initialRecipe(entry, profile) {
   return { version: 1, sourceRevision: revision(entry), mode: entry?.route ? 'route' : 'simulation',
@@ -47,7 +48,7 @@ export function generatedLibrary(library, recipe, now = new Date().toISOString()
   const source = recipe.sourceRevision === null ? null : library.plans.find(entry => revision(entry) === recipe.sourceRevision), { ride, schedule } = calculateRecipe(recipe, source);
   const selectedRoute = Object.hasOwn(recipe, 'route') ? recipe.route : source?.route;
   let next = createPlan(library, { name: recipe.details?.name ?? `${(source?.name ?? ride.routeTitle).slice(0, 52)} · 自动补给`, rideDate: recipe.details?.rideDate ?? source?.rideDate ?? today(new Date(now)),
-    totalDistanceMeters: ride.totalDistanceMeters, ...(recipe.gel ? { gel: validateGel(recipe.gel) } : {}), ...(recipe.mode === 'route' && selectedRoute ? { route: selectedRoute } : {}) }, now);
+    totalDistanceMeters: ride.totalDistanceMeters, ...(recipe.gel ? { gel: validateGel(recipe.gel) } : {}), ...(recipe.mode === 'route' && selectedRoute ? { route: selectedRoute } : { terrain: rideTerrain(ride) }) }, now);
   const plan = { ...activeEntry(next).plan, stops: schedule.stops.map(stop => ({ id: newID(), distanceMeters: stop.distanceMeters, kind: stop.kind, name: stop.name, reminder: stop.reminder })) };
   next = updatePlan(next, plan, now);
   return next;
