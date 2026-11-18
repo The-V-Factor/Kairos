@@ -12,7 +12,7 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
   function cancelRead() {
     serial++; request?.abort(); request = null; $('profile-import').disabled = false; dialog.setAttribute('aria-busy', 'false');
   }
-  function connectionLabel() { $('profile-connection').textContent = loadSession(storage, sessionKey) ? '使用已连接的账号' : '连接后先核对，再填入'; }
+  function connectionLabel() { $('profile-connection').textContent = loadSession(storage, sessionKey) ? '已连接' : '未连接'; }
   function sex(value) {
     draft.sex = value;
     for (const button of dialog.querySelectorAll('[data-profile-sex]')) button.setAttribute('aria-pressed', String(button.dataset.profileSex === value));

@@ -71,7 +71,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     cancel(); notice('');
     const previous = provider?.id === item.id ? session : null;
     provider = item; api = item.createClient(); session = loadSession(storage, item.sessionKey) ?? validSession(previous);
-    $('route-login-caption').textContent = connectionOnly ? 'iGPSPORT 账号' : item.caption; $('route-browse-caption').textContent = item.caption;
+    $('route-browse-caption').textContent = item.caption;
     $('route-login-title').textContent = connectionOnly ? '连接后读取个人档案' : '连接你的路书库';
     $('route-login').textContent = connectionOnly ? '登录并读取档案' : '登录并查找路线';
     resetSearch(); connectedView(); if (!session) selectLoginMethod('password');
@@ -83,9 +83,8 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   function searchEmpty(query = '') {
     $('route-search-status').hidden = true; $('route-search-empty').hidden = false;
     $('route-search-empty').classList.toggle('no-results', !!query);
-    $('route-empty-title').textContent = query ? '换个关键词试试' : '下一趟，想骑哪儿？';
-    $('route-empty-copy').textContent = query ? `没有找到“${query}”的路书。` : '输入目的地，找一条适合这趟骑行的路。';
-    $('route-empty-hint').hidden = !query; $('route-search-clear').hidden = !query;
+    $('route-empty-title').textContent = query ? `没有找到“${query}”的路书` : '试试这些地点';
+    $('route-search-clear').hidden = !query;
   }
   async function run(work, success) {
     cancel(); const id = serial; request = new AbortController();
@@ -134,7 +133,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
       const challenge = await api.createQR(newID(), signal), expiresAt = Date.now() + 120000;
       if (signal.aborted) throw new DOMException('已取消', 'AbortError');
       $('route-qr-image').innerHTML = qrSVG(challenge.payload); $('route-qr-image').hidden = false;
-      $('route-qr-status').textContent = '等待扫码确认';
+      $('route-qr-status').textContent = '请用 iGPSPORT App 扫码';
       while (!signal.aborted && Date.now() < expiresAt) {
         await pause(1500, signal);
         if (Date.now() >= expiresAt) break;
@@ -143,7 +142,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
         if (signal.aborted) throw new DOMException('已取消', 'AbortError');
         if (result.state === 'verified') return result.session;
         if (result.state === 'expired') break;
-        $('route-qr-status').textContent = result.state === 'scanned' ? '扫码成功，请在 iGPSPORT App 确认登录' : '等待扫码确认';
+        $('route-qr-status').textContent = result.state === 'scanned' ? '扫码成功，请在 iGPSPORT App 确认登录' : '请用 iGPSPORT App 扫码';
       }
       throw new Error('二维码已过期，请刷新后重试。');
     }, loggedIn);
@@ -183,7 +182,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     $('route-search-status').textContent = '正在寻找路线…';
     await run(signal => api.search(session, query, nextPage, signal), results => {
       page = nextPage; keyword = query;
-      $('route-search-status').textContent = `“${query}” · 第 ${page} 页`;
+      $('route-search-status').textContent = `“${query}” · 本页 ${results.length} 条路线`;
       if (!results.length) searchEmpty(query);
       for (const route of results) {
         const button = document.createElement('button'); button.type = 'button'; button.className = 'route-result';

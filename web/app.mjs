@@ -52,7 +52,7 @@ for (const [index, theme] of themes.entries()) {
   const button = document.createElement('button'); button.type = 'button'; button.className = 'theme-choice';
   button.dataset.themeID = theme.id; button.setAttribute('role', 'radio');
   button.setAttribute('aria-label', `${theme.title}，${theme.caption}`);
-  button.innerHTML = `<span class="theme-preview" data-theme="${theme.id}" aria-hidden="true"><span class="mini-brand">KAIROS <i>${'ABCDE'[index]}</i></span><span class="mini-title">${theme.id === 'journal' ? '补给路书' : '骑行补给'}</span><span class="mini-landscape"></span><span class="mini-ruler"></span><span class="mini-stop">${fuelArtwork('water')}<strong>25.0<small>喝水</small></strong></span><span class="mini-stop">${fuelArtwork('gel')}<strong>45.0<small>吃胶</small></strong></span><span class="mini-action"></span></span><span class="theme-choice-title">${theme.title}<span class="theme-check" aria-hidden="true">✓</span></span><span class="theme-caption">${theme.caption}</span>`;
+  button.innerHTML = `<span class="theme-preview" data-theme="${theme.id}" aria-hidden="true"><span class="mini-brand">KAIROS <i>${'ABCDE'[index]}</i></span><span class="mini-title">${theme.id === 'journal' ? '补给路书' : '骑行补给'}</span><span class="mini-landscape"></span><span class="mini-ruler"></span><span class="mini-stop">${fuelArtwork('water')}<strong>25.0<small>喝水</small></strong></span><span class="mini-stop">${fuelArtwork('gel')}<strong>45.0<small>吃胶</small></strong></span><span class="mini-action"></span></span><span class="theme-choice-title">${theme.title}<span class="theme-check" aria-hidden="true">✓</span></span>`;
   button.addEventListener('click', () => { chooseTheme(theme.id); $('theme-dialog').close(); });
   button.addEventListener('keydown', event => {
     let next;
@@ -78,7 +78,7 @@ function renderTheme() {
 }
 function chooseTheme(id) {
   ruler.haptics.stop(); themeID = id; renderTheme();
-  $('theme-status').textContent = storeTheme(storage, id) || '只更换外观，沿途补给仍留在原位。';
+  message('theme-status', storeTheme(storage, id));
 }
 renderTheme();
 
@@ -157,8 +157,10 @@ function renderRows(eventID) {
       row.querySelector('.stop-art').innerHTML = fuelArtwork(stop.kind);
       row.querySelector('.stop-distance').textContent = distanceLabel(stop.distanceMeters);
       row.querySelector('.stop-reminder').textContent = stop.reminder;
-      row.querySelector('.stop-caption').textContent = `${displayName(stop)} · 距出发里程`;
-      row.querySelector('.stop-content').setAttribute('aria-label', `${distanceLabel(stop.distanceMeters)} ${stop.reminder}，编辑补给点`);
+      const caption = row.querySelector('.stop-caption');
+      caption.textContent = stop.kind === 'custom' && stop.name !== stop.reminder ? stop.name : '';
+      caption.hidden = !caption.textContent;
+      row.querySelector('.stop-content').setAttribute('aria-label', `${distanceLabel(stop.distanceMeters)} ${stop.reminder}${caption.hidden ? '' : `，${stop.name}`}，编辑补给点`);
       row.querySelector('.swipe-delete').setAttribute('aria-label', `删除 ${distanceLabel(stop.distanceMeters)} ${displayName(stop)}`);
       row.dataset.signature = JSON.stringify(stop);
     }
@@ -429,12 +431,12 @@ function renderLibraryList() {
     $(id).setAttribute('aria-selected', String(selected)); $(id).tabIndex = selected ? 0 : -1;
   }
   $('library-items').setAttribute('aria-labelledby', history ? 'history-tab' : 'plans-tab');
-  $('library-hint').textContent = history ? '保留导出时的版本。这里只记录下载请求或系统分享，不表示手表已收到。' : '按骑行日期排列。选择一份继续编辑，改动会自动保存在这个浏览器。';
+  message('library-hint', history && library.history.length ? '导出时间只记录本机操作。手表接收状态需在手表上确认。' : '');
   const entries = [...(history ? library.history : library.plans)].sort((a, b) => b.rideDate.localeCompare(a.rideDate) || (b.exportedAt ?? b.updatedAt).localeCompare(a.exportedAt ?? a.updatedAt));
   $('library-items').replaceChildren();
   if (!entries.length) {
     const empty = document.createElement('p'); empty.className = 'muted library-empty';
-    empty.textContent = history ? '还没有导出记录。下载一份训练后，会在这里留下当时的版本。' : '还没有计划。从一趟新的骑行开始。';
+    empty.textContent = history ? '还没有导出记录。' : '还没有计划。';
     $('library-items').append(empty);
   }
   let group;
@@ -475,7 +477,7 @@ function editPlanView(mode, source = null) {
   $('plan-date-label').textContent = shortDate($('library-plan-date').value);
   $('library-plan-distance').value = String((source?.plan.totalDistanceMeters ?? plan?.totalDistanceMeters ?? 75000) / 1000);
   expandPlanField(null);
-  $('copy-plan').hidden = mode !== 'edit'; $('delete-plan').hidden = mode !== 'edit';
+  $('copy-plan').hidden = mode !== 'edit'; $('delete-plan').hidden = mode !== 'edit'; $('delete-plan-note').hidden = mode !== 'edit';
   $('plan-method-back').hidden = mode === 'copy';
   $('save-plan').textContent = mode === 'edit' ? '保存计划' : '创建计划';
   validatePlanForm();
@@ -485,7 +487,6 @@ function showMethodChoice() {
   $('current-plan-tab').setAttribute('aria-controls', 'plan-methods');
   $('route-label').textContent = routeDraft?.title ?? '选择路线（手动可选）';
   $('route').setAttribute('aria-label', routeDraft ? `查看或更换路线 ${routeDraft.title}` : '选择路线，手动填写时可选');
-  $('plan-method-context').textContent = libraryMode === 'new' ? '创建一份新计划' : '编辑当前计划';
   readPlanGel = renderGelSelect($('plan-gel'), storage, gelDraft, '手动可不选；自动需选择');
 }
 function showPlanChoice(mode, source = null) { editPlanView(mode, source); showMethodChoice(); }
@@ -510,7 +511,7 @@ function showHistory(snapshot) {
   $('history-date').textContent = `骑行日期 · ${formatDate(snapshot.rideDate)}`;
   $('history-name').textContent = snapshot.name;
   $('history-summary').textContent = `全程 ${distanceLabel(snapshot.plan.totalDistanceMeters)}${snapshot.route ? ` · ${snapshot.route.title}` : ''}`;
-  $('history-status').textContent = `${new Date(snapshot.exportedAt).toLocaleString('zh-CN')} · ${snapshot.method === 'download' ? '请求下载' : '交给系统分享'}。这不是导入或运动完成回执。`;
+  $('history-status').textContent = `${new Date(snapshot.exportedAt).toLocaleString('zh-CN')} · ${snapshot.method === 'download' ? '请求下载' : '交给系统分享'}`;
   $('history-stops').replaceChildren();
   for (const stop of snapshot.plan.stops) {
     const item = document.createElement('li'), position = document.createElement('strong'), reminder = document.createElement('span');
@@ -639,7 +640,7 @@ const generator = setupGenerator({ storage, current: recipe => recipe ? library.
   if (!writable || !fresh.writable) throw new Error('本机计划库暂时无法保存，原内容未被覆盖。请先处理存储提示。');
   const next = generatedLibrary(fresh.library, recipe), warning = storeLibrary(storage, next);
   if (warning) throw new Error('浏览器未能保存新计划，请检查可用存储后重试。原计划保持不变。');
-  changeLibrary(next); message('result', '已保存为独立计划。原计划保留，沿途补给可继续调整。');
+  changeLibrary(next); message('result', '已保存为新计划。');
 } });
 if (loaded.needsSave && writable) persist();
 render();
