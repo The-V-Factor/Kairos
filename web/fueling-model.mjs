@@ -1,9 +1,9 @@
 import { roundedMeters } from './workout.mjs';
 
-export const modelVersion = 'steady-road-v2';
+export const modelVersion = 'steady-road-v3';
 export const defaults = Object.freeze({ ftpWatts: 250, weightKg: 70, effort: .7, bikeKg: 10,
   crr: .004, cda: .32, airDensity: 1.2, driveEfficiency: .975, bodyEfficiency: .22,
-  maxSpeedKph: 45, carbsPerHour: null, gelCarbsGrams: 45, waterIntervalMinutes: 20 });
+  maxSpeedKph: 45, carbsPerHour: null, gelCarbsGrams: 45 });
 export const examples = {
   flat: { title: '平路示例', segments: [{ distanceMeters: 30000, gradePercent: 0 }] },
   climb: { title: '三段爬坡示例', segments: [{ distanceMeters: 10000, gradePercent: 0 }, { distanceMeters: 10000, gradePercent: 5 }, { distanceMeters: 10000, gradePercent: 0 }] },
@@ -13,7 +13,7 @@ const ranges = {
   ftpWatts: ['FTP', 1, 2500], weightKg: ['体重', 1, 500], effort: ['强度比例', .1, 1.5], bikeKg: ['车与装备重量', 0, 150],
   crr: ['滚阻', .0001, .1], cda: ['风阻面积', .05, 2], airDensity: ['空气密度', .3, 2],
   driveEfficiency: ['传动效率', .5, 1], bodyEfficiency: ['人体效率', .1, .35], maxSpeedKph: ['下坡限速', 5, 100],
-  gelCarbsGrams: ['每包碳水', 5, 100], waterIntervalMinutes: ['喝水间隔', 0, 180],
+  gelCarbsGrams: ['每包碳水', 5, 100],
 };
 export function parameters(input) {
   const result = {};
@@ -133,33 +133,26 @@ export function distanceAtTime(ride, seconds) {
 }
 export function scheduleFuel(ride) {
   const events = [], p = ride.parameters;
-  const append = (seconds, kind) => {
-    if (events.length >= 200) throw new Error('补给提醒过多，请延长喝水间隔或调整碳水目标，计划最多支持 100 个点位。');
-    events.push({ seconds, kind, distanceMeters: roundedMeters(distanceAtTime(ride, seconds)) });
+  const append = seconds => {
+    if (events.length >= 200) throw new Error('补给提醒过多，请调整碳水目标或每支含量，计划最多支持 100 个点位。');
+    events.push({ seconds, distanceMeters: roundedMeters(distanceAtTime(ride, seconds)) });
   };
   if (ride.carbsPerHour > 0) {
     const interval = p.gelCarbsGrams / ride.carbsPerHour * 3600;
     // Centre each packet in its intake window, rather than postponing the first one until its end.
-    for (let seconds = interval / 2; seconds < ride.elapsedSeconds; seconds += interval) append(seconds, 'gel');
-  }
-  if (p.waterIntervalMinutes > 0) {
-    const interval = p.waterIntervalMinutes * 60;
-    for (let seconds = interval; seconds < ride.elapsedSeconds; seconds += interval) append(seconds, 'water');
+    for (let seconds = interval / 2; seconds < ride.elapsedSeconds; seconds += interval) append(seconds);
   }
   const merged = new Map();
   for (const event of events.sort((a, b) => a.seconds - b.seconds)) {
     let item = merged.get(event.distanceMeters);
-    if (!item) { item = { distanceMeters: event.distanceMeters, seconds: event.seconds, gels: 0, waters: 0 }; merged.set(event.distanceMeters, item); }
-    if (event.kind === 'gel') item.gels++; else item.waters++;
+    if (!item) { item = { distanceMeters: event.distanceMeters, seconds: event.seconds, gels: 0 }; merged.set(event.distanceMeters, item); }
+    item.gels++;
   }
   if (merged.size > 100) throw new Error('生成结果超过 100 个补给点，请延长间隔或调整补给参数。');
   const stops = [...merged.values()].map(item => {
-    const gel = item.gels ? `吃胶${item.gels > 1 ? ` ×${item.gels}` : ''}` : '';
-    const reminder = [gel, item.waters ? '喝水' : ''].filter(Boolean).join('，');
-    const custom = item.gels && item.waters || item.gels > 1;
-    return { ...item, kind: custom ? 'custom' : item.gels ? 'gel' : 'water', name: custom ? '组合补给' : '', reminder };
+    const reminder = `吃胶${item.gels > 1 ? ` ×${item.gels}` : ''}`;
+    return { ...item, kind: item.gels > 1 ? 'custom' : 'gel', name: item.gels > 1 ? '补胶' : '', reminder };
   });
-  const gelCount = events.filter(event => event.kind === 'gel').length;
-  return { stops, gelCount, waterCount: events.filter(event => event.kind === 'water').length,
-    plannedCarbsGrams: gelCount * p.gelCarbsGrams, actualCarbsPerHour: gelCount * p.gelCarbsGrams / (ride.elapsedSeconds / 3600) };
+  const gelCount = events.length;
+  return { stops, gelCount, plannedCarbsGrams: gelCount * p.gelCarbsGrams, actualCarbsPerHour: gelCount * p.gelCarbsGrams / (ride.elapsedSeconds / 3600) };
 }

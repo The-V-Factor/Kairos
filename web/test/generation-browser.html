@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>#15 计算器与生成回归</title>
-<style>body{background:#141614;color:#f7f8eb;font:14px system-ui}button{padding:12px}iframe{display:block;width:402px;height:700px;border:1px solid #53594c}pre{white-space:pre-wrap}</style>
-<button id="run" disabled>运行计算器与生成回归</button><pre id="results" role="status">仅在本机独立端口 8845 运行，使用合成档案与路线。</pre><iframe title="合成测试页面"></iframe>
+<style>body{margin:0;background:#141614;color:#f7f8eb;font:14px system-ui}button{padding:12px}iframe{display:block;width:402px;height:700px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run" disabled>运行计算器与生成回归</button><button data-preview="plan" disabled>预览计划表单</button><button data-preview="generator" disabled>预览生成设置</button><button data-preview="gels" disabled>预览胶配置</button><button data-preview="calculator" disabled>预览计算器</button><pre id="results" role="status">仅在本机独立端口 8845 运行，使用合成档案与路线。</pre><iframe title="合成测试页面"></iframe>
 <script type="module">
 import { loadLibrary, activeEntry, createPlan, updatePlan, setRoute, storeLibrary, libraryKey, updateDetails, validateLibrary } from '../library.mjs';
 import { gelsKey, storeGels } from '../gels.mjs';
@@ -19,7 +19,7 @@ let original, profileBefore;
 function seed({withRoute=true,withProfile=true}={}){
  let library=loadLibrary({getItem:()=>null},'2026-11-17').library;
  library=createPlan(library,{name:'合成手动计划',rideDate:'2026-11-17',totalDistanceMeters:30000});
- library=updatePlan(library,{...activeEntry(library).plan,stops:[{id:newID(),distanceMeters:10000,kind:'custom',name:'原有补给',reminder:'原有提示'}]});
+ library=updatePlan(library,{...activeEntry(library).plan,stops:[{id:newID(),distanceMeters:10000,kind:'water',name:'',reminder:'喝水'}]});
  if(withRoute)library=setRoute(library,library.activePlanID,route);
  const gel={id:newID(),name:'合成45g胶',carbsGrams:45};storeGels(localStorage,{version:1,items:[gel]});
  library=validateLibrary({...library,plans:library.plans.map(item=>item.plan.id===library.activePlanID?{...item,gel}:item)});
@@ -35,9 +35,15 @@ async function click(id){$(id).click();await wait(60);}
 async function generate(){await click('library');await click('plan-auto');await until(()=>$('generation-dialog').open);}
 async function fill(id,value){$(id).value=String(value);$(id).dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));await wait(70);}
 const saved=()=>JSON.parse(localStorage.getItem(libraryKey));
-if(location.port==='8845'&&['localhost','127.0.0.1'].includes(location.hostname))run.disabled=false;
+if(location.port==='8845'&&['localhost','127.0.0.1'].includes(location.hostname)){run.disabled=false;for(const button of document.querySelectorAll('[data-preview]'))button.disabled=false;}
+for(const button of document.querySelectorAll('[data-preview]'))button.onclick=async()=>{
+ output.hidden=true;seed();await load(button.dataset.preview==='calculator'?'../calculator.html':'../');
+ if(button.dataset.preview==='plan')await click('library');
+ if(button.dataset.preview==='generator')await generate();
+ if(button.dataset.preview==='gels'){await click('account');await click('profile-entry');await click('profile-gels');await until(()=>$('gels-dialog').open);await click('gel-add');await fill('gel-name','柠檬能量胶');await fill('gel-carbs',45);}
+};
 run.onclick=async()=>{
- run.disabled=true;let passed=0;
+ output.hidden=false;run.disabled=true;let passed=0;
  const ok=message=>{passed++;output.textContent+=`\n✓ ${message}`;};output.textContent='运行中…';
  try{
  seed();await load();await until(()=>$('plan-name').textContent==='合成手动计划');
@@ -55,14 +61,14 @@ run.onclick=async()=>{
  const slower=$('fuel-duration').textContent;doc().querySelector('[data-effort="0.8"]').click();await wait(70);check($('fuel-duration').textContent!==slower,'强度没有改变用时');ok('选择强度实时改变估算');
  check(JSON.stringify(saved().plans.find(p=>p.plan.id===original.plan.id))===JSON.stringify(original),'预览前修改原计划');ok('调整生成参数不修改原计划');
  await click('fuel-profile');await until(()=>$('profile-dialog').open);await click('profile-nav');await until(()=>$('generation-dialog').open);ok('独立档案编辑后返回生成，不叠加模态锁');
- $('fuel-gel').value='';$('fuel-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await wait(60);check($('fuel-preview-button').disabled,'未选择胶仍能生成');$('fuel-gel').selectedIndex=1;$('fuel-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await wait(60);check(!$('fuel-preview-button').disabled,'选择自己的胶后未恢复');ok('自动生成必须选择自己的胶，含量由配置带入');
+ $('fuel-gel').value='';$('fuel-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await wait(60);check($('fuel-preview-button').disabled,'未选择胶仍能生成');$('fuel-gel').selectedIndex=1;$('fuel-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await wait(60);check(!$('fuel-preview-button').disabled,'选择自己的胶后未恢复');ok('自动生成必须选择自己的胶，含量由配置带入');check(doc().querySelectorAll('#fuel-settings .ui-gel-select').length===1,'刷新套了重复选择容器');check($('fuel-gel').closest('.ui-gel-select').querySelector('.ui-gel-dose').textContent==='45 g / 支','选择展示未同步含量');ok('共享选择行刷新不重复包裹，原生值与展示一致');
  await click('fuel-preview-button');check($('fuel-plan-name').value==='合成手动计划','自动生成没有沿用统一入口名称');await fill('fuel-plan-name','南昆山周末骑');check(!$('fuel-preview').hidden&&$('fuel-chart').querySelector('.fuel-curve'),'预览图缺失');check($('fuel-preview-stops').children.length>0,'补给点为空');ok('预览具有带坐标海拔图和固定点位');
  check($('generation-dialog').scrollHeight<=$('generation-dialog').clientHeight+2,'预览弹窗高度溢出');ok('402×700 预览按钮保持可见，点位列表独立滚动');
  const countBefore=saved().plans.length;await click('fuel-save');check(!$('generation-dialog').open,'保存后未关闭');check(saved().plans.length===countBefore+1,'没有创建新计划');ok('确认后另存为独立计划');
  check(JSON.stringify(saved().plans.find(p=>p.plan.id===original.plan.id))===JSON.stringify(original),'原计划被覆盖');check(localStorage.getItem(profileKey)===profileBefore,'档案被改写');ok('保存后原计划、原有点和档案保持不变');
- const generated=activeEntry(saved());check(generated.name==='南昆山周末骑','保存忽略手动填写的生成名称');ok('生成预览可命名，保存使用填写的名字');validatePlan(generated.plan);check(encodeWorkout(generated.plan).length>0,'无法编码训练');ok('真实训练编码接受生成的点位及总距离');
+ const generated=activeEntry(saved());check(generated.name==='南昆山周末骑','保存忽略手动填写的生成名称');ok('生成预览可命名，保存使用填写的名字');validatePlan(generated.plan);check(encodeWorkout(generated.plan).length>0,'无法编码训练');ok('真实训练编码接受生成的点位及总距离');check(generated.plan.stops.every(stop=>stop.kind!=='water'&&!stop.reminder.includes('喝水')),'自动生成仍排水点');check(saved().plans.find(p=>p.plan.id===original.plan.id).plan.stops[0].kind==='water','原手动水点被修改');ok('只生成补胶点，原计划手动水点完整保留');
  doc().querySelector('.stop-content').click();await wait(50);check($('composer').open,'新计划无法编辑');await click('save-stop');ok('生成后的点位仍使用现有编辑器');
- await load('../calculator.html');await until(()=>$('calc-duration').textContent!=='—');check(!$('calc-preview').disabled,'计算器未启动');ok('独立计算器直接打开即可试算');
+ await load('../calculator.html');await until(()=>$('calc-duration').textContent!=='—');check(!$('calc-preview').disabled,'计算器未启动');ok('独立计算器直接打开即可试算');check(!$('calc-waterIntervalMinutes')&&!doc().querySelector('.fuel-water-key'),'计算器仍提供自动喝水参数或图例');check($('calc-gel-select').closest('.ui-gel-select'),'计算器未复用选胶组件');ok('计算器仅排补胶，复用同一能量胶选择组件');check([...doc().querySelectorAll('.calc-chart-tabs button')].every(button=>button.getBoundingClientRect().height<=40),'图表标签发生无故折行');check($('calc-route-summary').getBoundingClientRect().bottom<=doc().querySelector('.calc-actions').getBoundingClientRect().top+1,'底部按钮遮住参数区');ok('402×700计算器标签不折行，底部操作不遮挡参数');
  const libraryBefore=localStorage.getItem(libraryKey), beforeDuration=$('calc-duration').textContent;
  await fill('calc-ftpWatts',300);check($('calc-duration').textContent!==beforeDuration,'FTP没有改变用时');ok('FTP 数字输入实时计算');
  const range=doc().querySelector('[data-range="effort"]');range.value='65';range.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));await wait(70);check($('calc-effort').value==='65','滑杆未绑定数字');ok('强度滑杆与精确数字输入双向同步');
@@ -99,7 +105,7 @@ run.onclick=async()=>{
  for(const amount of [30,40]){await click('gel-add');await fill('gel-name',`合成${amount}g胶`);await fill('gel-carbs',amount);check($('gels-dialog').scrollHeight<=$('gels-dialog').clientHeight+2,'胶编辑高度溢出');$('gel-editor').requestSubmit();await wait(70);}
  check(JSON.parse(localStorage.getItem(gelsKey)).items.length===3,'不能保存多款胶');check(localStorage.getItem(libraryKey)===beforeConfig&&localStorage.getItem(profileKey)===beforeConfigProfile,'管理胶修改了计划或档案');ok('个人配置保存30／40／45g多款胶，弹窗适配且独立于计划和身体档案');
  const card=amount=>[...doc().querySelectorAll('.gel-card')].find(button=>button.textContent.includes(`合成${amount}g胶`));card(45).click();await wait(40);await fill('gel-carbs',50);$('gel-editor').requestSubmit();await wait(50);card(40).click();await wait(40);await click('gel-delete');check(JSON.parse(localStorage.getItem(gelsKey)).items.length===2,'胶删除失败');check(activeEntry(saved()).gel.carbsGrams===45,'修改胶偷偷重算已有计划');ok('修改或删除个人胶不覆盖已保存计划的含量快照');
- doc().querySelector('#gels-dialog [data-close]').click();await until(()=>$('profile-dialog').open);check($('profile-weight').value==='71','管理胶丢失未保存身体输入');await click('profile-nav');await click('library');const choices=[...$('plan-gel').options];check(choices.some(option=>option.textContent.includes('计划快照')),'旧胶被修改后未保留快照选项');const thirty=choices.find(option=>option.textContent.includes('合成30g胶'));$('plan-gel').value=thirty.value;$('plan-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await click('plan-manual');await click('save-plan');check(activeEntry(saved()).gel.carbsGrams===30,'手动计划未保存所选胶');await load();check(activeEntry(saved()).gel.carbsGrams===30,'重载丢失计划胶');ok('计划可选择自己的胶，保存和重载保留选择');
+ doc().querySelector('#gels-dialog [data-close]').click();await until(()=>$('profile-dialog').open);check($('profile-weight').value==='71','管理胶丢失未保存身体输入');await click('profile-nav');await click('library');const choices=[...$('plan-gel').options];check(choices.some(option=>option.textContent.includes('计划快照')),'旧胶被修改后未保留快照选项');check($('plan-gel').closest('.ui-gel-select').querySelector('.ui-gel-dose').textContent.includes('快照'),'选择行隐藏了计划快照标识');const thirty=choices.find(option=>option.textContent.includes('合成30g胶'));$('plan-gel').value=thirty.value;$('plan-gel').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));await click('plan-manual');await click('save-plan');check(activeEntry(saved()).gel.carbsGrams===30,'手动计划未保存所选胶');await load();check(activeEntry(saved()).gel.carbsGrams===30,'重载丢失计划胶');ok('计划可选择自己的胶，保存和重载保留选择');
  await generate();check($('fuel-gel').selectedOptions[0].textContent.includes('30g/支'),'自动生成未沿用计划所选胶');await click('fuel-preview-button');check($('fuel-preview-summary').textContent.includes('30g/支'),'预览不显示实际胶含量');await click('fuel-save');check(activeEntry(saved()).gel.carbsGrams===30,'生成新计划未保存胶快照');ok('生成器按选中30g胶计算并随新计划保存快照');
  seed();storeGels(localStorage,{version:1,items:[]});const noGel=saved();delete activeEntry(noGel).gel;storeLibrary(localStorage,noGel);await load();await generate();check($('fuel-preview-button').disabled&&$('fuel-notice').textContent.includes('能量胶'),'未配置胶仍按假定含量生成');await click('fuel-gel-manage');await until(()=>$('gels-dialog').open);await click('gel-add');await fill('gel-name','临时测试胶');await fill('gel-carbs',45);const savedCatalog=localStorage.getItem(gelsKey),originalSet=frame.contentWindow.Storage.prototype.setItem;frame.contentWindow.Storage.prototype.setItem=function(key,value){if(key===gelsKey)throw Error('synthetic quota');return originalSet.call(this,key,value);};$('gel-editor').requestSubmit();await wait(60);check(!$('gel-editor').hidden&&localStorage.getItem(gelsKey)===savedCatalog&&$('gels-notice').textContent.includes('未能保存'),'胶存储失败仍退出或覆盖原数据');frame.contentWindow.Storage.prototype.setItem=originalSet;ok('未选胶不能生成，胶配置存储失败保留编辑与原数据');
  output.textContent+=`\n\n通过 ${passed} 项`;run.disabled=false;

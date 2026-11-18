@@ -9,6 +9,21 @@ export function renderGelSelect(select, storage, snapshot, empty = '选择我的
     const option = document.createElement('option'); option.value = choice.value; option.textContent = choice.label; select.append(option);
   }
   select.value = options.selected;
+  let control = select.closest('.ui-gel-select');
+  if (!control) {
+    control = document.createElement('span'); control.className = 'ui-gel-select';
+    const summary = document.createElement('span'); summary.className = 'ui-gel-summary'; summary.setAttribute('aria-hidden', 'true');
+    summary.innerHTML = '<span class="ui-gel-symbol">GEL</span><span class="ui-gel-name"></span><span class="ui-gel-dose"></span><span class="ui-select-chevron">⌄</span>';
+    select.before(control); control.append(summary, select);
+    select.addEventListener('change', () => select.updateSummary());
+  }
+  select.updateSummary = () => {
+    const gel = options.choices.find(choice => choice.value === select.value)?.gel;
+    control.querySelector('.ui-gel-name').textContent = gel?.name ?? empty;
+    control.querySelector('.ui-gel-dose').textContent = gel ? `${gel.carbsGrams} g / 支${select.value === 'snapshot' ? ' · 快照' : ''}` : '';
+    control.classList.toggle('is-empty', !gel);
+  };
+  select.updateSummary();
   return value => options.choices.find(choice => choice.value === value)?.gel ?? null;
 }
 export function setupGelEditor({ storage, openSheet }) {
