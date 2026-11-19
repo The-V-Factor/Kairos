@@ -54,6 +54,8 @@
 .stop-distance { font-family: var(--reading-face); }
 #composer { border: 1px solid var(--line); border-radius: max(var(--panel-radius), 12px); }
 #composer::backdrop { background: rgb(10 15 12 / .35); }
+:root:not([data-theme="rhythm"]) .sheet { --sheet-entry-opacity: 1; }
+:root:not([data-theme="rhythm"]) :is(.sheet, #composer)::backdrop { background: color-mix(in srgb, var(--ink) 20%, transparent); }
 #composer .fuel-types { margin-top: 12px; }
 #composer .fuel-types button { border-radius: var(--panel-radius); }
 #composer .hero-art .fuel-art { width: 78px; height: 125px; }

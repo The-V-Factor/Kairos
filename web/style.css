@@ -366,7 +366,7 @@ dl { font-size: 11px; }
 dt { color: var(--muted); margin-top: 12px; }
 dd { margin-left: 0; overflow-wrap: anywhere; }
 #replace-draft { margin-top: 20px; }
-@keyframes sheet-arrive { from { transform: translateY(35%); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+@keyframes sheet-arrive { from { transform: translateY(35%); opacity: var(--sheet-entry-opacity, .4); } to { transform: translateY(0); opacity: 1; } }
 @media (max-height: 780px) {
   .library-sheet { --plan-row: 36px; --plan-header: 40px; --calendar-day: 28px; }
   .plan-sections button { min-height: 34px; }

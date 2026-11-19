@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#141614">
+    <meta name="theme-color">
     <meta name="description" content="出发前安排好补给，骑行时交给手表。用 Kairos 安排沿途喝水、吃胶与其他补给，再分享至系统健身。">
     <link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./style.css">
@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="./components.css">
     <link rel="stylesheet" href="./ruler.css">
     <link rel="stylesheet" href="./workbench.css">
+    <script src="./theme-init.js"></script>
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
@@ -19,7 +20,7 @@
       <header class="masthead">
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
         <nav class="desk-nav" aria-label="主导航"><a href="./" aria-current="page">当前计划</a><button id="browse-library" type="button">计划库</button><a href="./calculator.html">补给计算器</a></nav>
-        <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="account" class="icon-button" type="button" aria-label="个人菜单" title="个人菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" popovertarget="account-menu"><span data-icon="person"></span></button></div>
+        <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name"></span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="account" class="icon-button" type="button" aria-label="个人菜单" title="个人菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" popovertarget="account-menu"><span data-icon="person"></span></button></div>
       </header>
       <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><a href="./calculator.html" role="menuitem"><span data-icon="calculator"></span>补给计算器</a><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>设置与说明</button></div>
       <main>

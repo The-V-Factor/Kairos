@@ -1,7 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { themes, themeKey, loadTheme, storeTheme } from '../themes.mjs';
 import { draftKey } from '../plan.mjs';
+
+test('both pages restore the saved palette and toolbar color before rendering the body', () => {
+  const bootstrap = readFileSync(new URL('../theme-init.js', import.meta.url), 'utf8');
+  for (const page of ['index.html', 'calculator.html']) {
+    const html = readFileSync(new URL('../' + page, import.meta.url), 'utf8');
+    assert.match(html.split('</head>')[0], /href="\.\/workbench\.css">\s*<script src="\.\/theme-init\.js"><\/script>/);
+  }
+  for (const saved of [...themes.map(t => t.id), null, 'unknown', new Error('denied')]) {
+    const root = { dataset: {} }, meta = {};
+    const storage = { getItem(key) {
+      assert.equal(key, themeKey);
+      if (saved instanceof Error) throw saved;
+      return saved;
+    } };
+    runInNewContext(bootstrap, {
+      document: { documentElement: root, querySelector: () => meta }, localStorage: storage,
+      getComputedStyle: () => ({ getPropertyValue: name => name === '--canvas' ? ' #123456 ' : '' }),
+    });
+    assert.equal(root.dataset.theme, loadTheme(storage));
+    assert.equal(meta.content, '#123456');
+  }
+});
 
 test('all five original skins persist independently of the riding plan', () => {
   const values = new Map([[draftKey, 'existing plan']]);
