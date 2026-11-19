@@ -8,7 +8,7 @@ import { newID } from '../plan.mjs';
 import { routePoints } from '../routes.mjs';
 import { profileKey, storeProfile } from '../profile.mjs';
 import { encodeWorkout, validatePlan } from '../workout.mjs';
-import { readTransfer, calculateRecipe } from '../generation.mjs';
+import { calculateRecipe } from '../generation.mjs';
 const frame=document.querySelector('iframe'), output=document.querySelector('#results'), run=document.querySelector('#run');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(check){const end=Date.now()+5000;while(!check()){if(Date.now()>end)throw Error('等待页面状态超时');await wait(20);}}
@@ -64,7 +64,8 @@ run.onclick=async()=>{
  check($('generation-dialog').scrollHeight<=$('generation-dialog').clientHeight+2,'生成设置弹窗高度溢出');ok('402×700 生成设置不需要整页滚动');
  const slower=$('fuel-duration').textContent;doc().querySelector('[data-effort="0.8"]').click();await wait(70);check($('fuel-duration').textContent!==slower,'强度没有改变用时');ok('选择强度实时改变估算');
  check(JSON.stringify(saved().plans.find(p=>p.plan.id===original.plan.id))===JSON.stringify(original),'预览前修改原计划');ok('调整生成参数不修改原计划');
- await click('fuel-profile');await until(()=>$('profile-dialog').open);
+ $('fuel-profile').click();check($('profile-dialog').open&&!$('generation-dialog').open,'进入档案时没有在同一次切换中交接面板');
+ await until(()=>$('profile-dialog').open);
  for(const [button,child] of [['profile-import','route-dialog'],['profile-gels','gels-dialog']]){
    await click(button);await until(()=>$(child).open);
    check(doc().querySelectorAll('dialog[open]').length===1,'档案子面板叠加了生成设置');
@@ -99,10 +100,18 @@ run.onclick=async()=>{
  }
  doc().documentElement.dataset.theme='rhythm';
  let copied='';Object.defineProperty(frame.contentWindow.navigator.clipboard,'writeText',{configurable:true,value:async text=>{copied=text;}});await click('calc-copy');check(JSON.parse(copied).result.ride.modelVersion,'复制缺少模型版本');ok('可复制完整参数和结果，用于复现回归');
- const transfer= new Promise(resolve=>{frame.onload=resolve;});$('calc-preview').click();await transfer;await until(()=>$('generation-dialog')?.open&&!$('fuel-preview').hidden);
- const recipe=readTransfer(sessionStorage),expected=calculateRecipe(recipe,activeEntry(saved()));
+ const calculatorDocument=doc(),win=frame.contentWindow,write=win.Storage.prototype.setItem;let planWrites=0;
+ win.Storage.prototype.setItem=function(key,value){
+   if(this===win.sessionStorage)throw Error('session storage unavailable');
+   if(key===libraryKey)planWrites++;
+   return write.call(this,key,value);
+ };
+ $('calc-preview').click();await until(()=>$('generation-dialog')?.open&&!$('fuel-preview').hidden);
+ check(doc()===calculatorDocument,'补给预览重新加载了页面');const recipe=JSON.parse(copied).recipe,expected=calculateRecipe(recipe,activeEntry(saved()));
  check($('fuel-preview-stops').children.length===expected.schedule.stops.length,'计算器与生成点数不同');ok('计算器回到生成预览，使用同一计算结果');
- await click('fuel-save');const newPlan=activeEntry(saved()).plan;check(JSON.stringify(newPlan.stops.map(s=>s.distanceMeters))===JSON.stringify(expected.schedule.stops.map(s=>s.distanceMeters)),'保存点位不一致');ok('计算器、预览、存档点位完全一致');
+ $('fuel-save').click();$('fuel-save').click();await wait(80);
+ check(planWrites===1,'重复点击保存产生多次计划库写入');win.Storage.prototype.setItem=write;
+ const newPlan=activeEntry(saved()).plan;check(JSON.stringify(newPlan.stops.map(s=>s.distanceMeters))===JSON.stringify(expected.schedule.stops.map(s=>s.distanceMeters)),'保存点位不一致');ok('计算器、预览、存档点位完全一致');
  seed();await load();await generate();await click('fuel-preview-button');const beforeStale=saved();storeLibrary(localStorage,updateDetails(beforeStale,beforeStale.activePlanID,{name:'另一个标签页修改',rideDate:'2026-11-18'}));await click('fuel-save');check($('generation-dialog').open&&$('fuel-notice').textContent.includes('更改'),'过期预览未拦截');check(saved().plans.length===beforeStale.plans.length,'过期预览仍新增');ok('另一个标签页修改原计划后，过期预览不能保存');
  seed({withProfile:false});await load();await generate();check($('fuel-preview-button').disabled&&$('fuel-notice').textContent.includes('FTP'),'缺失档案未解释');ok('缺少档案不猜 FTP 和体重');
  seed({withRoute:false});await load();await generate();await fill('fuel-carbs',30);check($('fuel-preview-button').disabled&&$('fuel-notice').textContent.includes('路书'),'改参数绕过缺失路线');ok('无路书需明确选择模拟，不暗中当作平路');
@@ -112,10 +121,22 @@ run.onclick=async()=>{
  await click('fuel-save');check($('generation-dialog').open&&localStorage.getItem(libraryKey)===beforeQuota,'存储失败仍声称成功');check($('fuel-notice').textContent.includes('保存'),'存储失败无提示');ok('存储失败留在预览，不覆盖数据或报告成功');
  frame.contentWindow.Storage.prototype.setItem=nativeSet;
  const empty={...saved(),plans:[],activePlanID:null};storeLibrary(localStorage,empty);await load();await click('first-plan');check(!$('plan-methods').hidden,'首次创建没有统一入口');await click('plan-auto');await until(()=>$('generation-dialog').open);check(!$('fuel-choose-route').hidden&&$('fuel-choose-route').getBoundingClientRect().width>0,'没有计划时选择路线按钮不可见');await click('fuel-choose-route');await until(()=>$('route-dialog').open);await click('route-nav');await until(()=>$('generation-dialog').open);check(saved().plans.length===0,'选择或取消方式提前创建计划');ok('没有计划时也先选方式，自动路线选择可见且取消不建空草稿');await click('fuel-back');await until(()=>$('library-dialog').open);await click('plan-manual');await click('save-plan');check(saved().plans.length===1,'手动创建失效');ok('统一入口的手动创建仍可保存新计划');
- seed();await load('../calculator.html');await until(()=>$('calc-duration').textContent!=='—');const returning=new Promise(resolve=>{frame.onload=resolve;});$('calc-preview').click();await returning;await until(()=>$('generation-dialog')?.open&&!$('fuel-preview').hidden);
+ seed();await load('../calculator.html');await until(()=>$('calc-duration').textContent!=='—');const calculatorBefore=doc(),beforePreview=localStorage.getItem(libraryKey);$('calc-preview').click();await until(()=>$('generation-dialog')?.open&&!$('fuel-preview').hidden);
  check(!$('route-login-form')&&doc().querySelectorAll('dialog[open]').length===1&&!doc().documentElement.hasAttribute('data-loading-preview'),'预览夹带登录表单、其他弹窗或加载提示');
  ok('从计算器预览直接打开补给结果，登录控件不在页面内');
- await click('fuel-back');await click('fuel-back');await until(()=>$('library-dialog').open);check(!$('plan-methods').hidden&&$('library-plan-date').value==='2026-11-17','独立计算器取消后名称日期无法恢复');check(saved().plans.length===2,'取消计算器生成改动计划库');ok('独立计算器的生成预览取消后恢复可用名称日期，不新增计划');
+ await click('fuel-back');await until(()=>!$('generation-dialog').open&&frame.contentWindow.location.hash==='');check(doc()===calculatorBefore&&$('calc-preview').getClientRects().length&&localStorage.getItem(libraryKey)===beforePreview,'取消预览没有回到原计算器或修改了计划库');ok('取消预览保留计算器和原计划');
+ frame.contentWindow.history.forward();await until(()=>$('generation-dialog').open);frame.contentWindow.history.back();await until(()=>!$('generation-dialog').open);check(doc()===calculatorBefore,'浏览器前进后退重载页面');ok('浏览器前进后退恢复预览与计算器');
+ seed();await load();await generate();const sameDocument=doc();
+ await click('fuel-calculator');await until(()=>$('calc-ftpWatts').getClientRects().length);
+ await fill('calc-ftpWatts',311);await click('calc-preview');await fill('fuel-plan-name','周末耐力');await click('fuel-back');
+ await until(()=>!frame.contentWindow.location.hash);frame.contentWindow.history.back();await until(()=>$('generation-dialog').open);
+ check($('fuel-profile-summary').textContent.includes('311'),'返回生成设置时丢失 FTP');
+ frame.contentWindow.history.forward();await until(()=>$('calc-ftpWatts').getClientRects().length);
+ check($('calc-ftpWatts').value==='311'&&doc()===sameDocument,'前进未恢复同一份草稿');
+ await click('calc-preview');check($('fuel-plan-name').value==='周末耐力','丢失预览名称');
+ const reloaded=new Promise(resolve=>{frame.onload=resolve;});frame.contentWindow.location.reload();await reloaded;
+ await until(()=>$('generation-dialog')?.open);check($('fuel-plan-name').value==='周末耐力'&&$('calc-ftpWatts').value==='311','刷新丢失草稿');
+ ok('高级参数与预览在同一文档往返，浏览器前进、后退及刷新保留最新草稿');
  seed();await load();const beforeConfig=localStorage.getItem(libraryKey),beforeConfigProfile=localStorage.getItem(profileKey);await click('account');await click('profile-entry');await fill('profile-weight','71');await click('profile-gels');await until(()=>$('gels-dialog').open);check($('gels-dialog').scrollHeight<=$('gels-dialog').clientHeight+2,'胶列表高度溢出');
  for(const amount of [30,40]){await click('gel-add');await fill('gel-name',`合成${amount}g胶`);await fill('gel-carbs',amount);check($('gels-dialog').scrollHeight<=$('gels-dialog').clientHeight+2,'胶编辑高度溢出');$('gel-editor').requestSubmit();await wait(70);}
  check(JSON.parse(localStorage.getItem(gelsKey)).items.length===3,'不能保存多款胶');check(localStorage.getItem(libraryKey)===beforeConfig&&localStorage.getItem(profileKey)===beforeConfigProfile,'管理胶修改了计划或档案');ok('个人配置保存30／40／45g多款胶，弹窗适配且独立于计划和身体档案');

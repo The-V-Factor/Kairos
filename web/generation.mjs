@@ -26,17 +26,19 @@ export function calculateRecipe(recipe, entry) {
   const ride = estimateRide(p, route);
   return { ride, schedule: scheduleFuel(ride) };
 }
+export function isRecipe(recipe) {
+  return recipe?.version === 1 && ['route', 'simulation'].includes(recipe.mode)
+    && (recipe.sourceRevision === null || typeof recipe.sourceRevision === 'string')
+    && recipe.parameters && typeof recipe.parameters === 'object' && !Array.isArray(recipe.parameters)
+    && Array.isArray(recipe.segments) && recipe.segments.length > 0 && recipe.segments.length <= 30
+    && recipe.segments.every(segment => segment && typeof segment === 'object');
+}
 export function readTransfer(storage) {
   try {
     const raw = storage.getItem(transferKey);
     if (!raw) return null;
     const recipe = JSON.parse(raw);
-    const valid = recipe?.version === 1 && ['route', 'simulation'].includes(recipe.mode)
-      && (recipe.sourceRevision === null || typeof recipe.sourceRevision === 'string')
-      && recipe.parameters && typeof recipe.parameters === 'object' && !Array.isArray(recipe.parameters)
-      && Array.isArray(recipe.segments) && recipe.segments.length > 0 && recipe.segments.length <= 30
-      && recipe.segments.every(segment => segment && typeof segment === 'object');
-    return valid ? recipe : null;
+    return isRecipe(recipe) ? recipe : null;
   } catch { return null; }
 }
 export function writeTransfer(storage, recipe) {

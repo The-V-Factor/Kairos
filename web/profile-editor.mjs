@@ -1,3 +1,4 @@
+import { visitSheet } from './sheets.mjs';
 import { emptyProfile, loadProfile, storeProfile, validateProfile, profileValue, profileChanges, mergeProfile } from './profile.mjs';
 import { IGPSPORT, sessionKey } from './igpsport.mjs';
 import { ConnectionExpired, loadSession, storeSession, validSession } from './route-session.mjs';
@@ -7,7 +8,7 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
   const $ = id => document.getElementById(id), dialog = $('profile-dialog'), api = new IGPSPORT();
   const loaded = loadProfile(storage);
   let saved = loaded.profile, draft = emptyProfile(), incoming = null, base = null, request = null, serial = 0;
-  let finish = null, openingChild = false;
+  let finish = null;
   const inputs = { ageYears: 'profile-age', heightCm: 'profile-height', weightKg: 'profile-weight', ftpWatts: 'profile-ftp' };
   function notice(text = '') { $('profile-notice').textContent = text; $('profile-notice').hidden = !text; }
   function cancelRead() {
@@ -31,10 +32,6 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
     $('profile-nav').setAttribute('aria-label', review ? '返回个人档案' : '关闭个人档案');
     $('profile-nav').innerHTML = review ? '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>' : icon('close');
     dialog.scrollTop = 0;
-  }
-  function afterClose(sheet) {
-    openingChild = true;
-    return new Promise(resolve => { sheet.addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); sheet.close(); });
   }
   function open() {
     $('account-menu').hidePopover();
@@ -83,15 +80,14 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
     view(true); notice(result.message); updateApply();
   }
   $('profile-gels').addEventListener('click', async () => {
-    await afterClose(dialog);
-    await manageGels(); openSheet(dialog);
+    cancelRead();
+    await visitSheet(dialog, manageGels, () => openSheet(dialog));
   });
   $('profile-import').addEventListener('click', async () => {
     try { read(); } catch (error) { notice(error.message); return; }
     let session = loadSession(storage, sessionKey);
     if (!session) {
-      await afterClose(dialog);
-      try { session = await connect(); } finally { openSheet(dialog); connectionLabel(); }
+      session = await visitSheet(dialog, connect, value => { openSheet(dialog); connectionLabel(); return value; });
       if (!validSession(session)) return;
     }
     cancelRead(); const id = serial; request = new AbortController();
@@ -116,7 +112,6 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
   });
   dialog.addEventListener('close', () => {
     cancelRead(); incoming = null; base = null; $('profile-review-fields').replaceChildren();
-    if (openingChild) { openingChild = false; return; }
     finish?.(); finish = null;
   });
   return { open };

@@ -64,7 +64,7 @@ export function setupGelEditor({ storage, openSheet }) {
     } catch (error) { notice(error.message); }
   });
   $('gel-delete').addEventListener('click', () => { if (editing) save(loaded.catalog.items.filter(item => item.id !== editing.id)); });
-  dialog.addEventListener('close', () => { const resolve = finish; finish = null; requestAnimationFrame(() => resolve?.()); });
+  dialog.addEventListener('close', () => { const resolve = finish; finish = null; resolve?.(); });
   return { open() {
     loaded = loadGels(storage); render(); notice(loaded.message); openSheet(dialog);
     return new Promise(resolve => { finish = resolve; });

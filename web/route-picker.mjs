@@ -1,10 +1,8 @@
 import { ConnectionExpired, loadSession, storeSession, validSession } from './route-session.mjs';
 import { routeProviders } from './route-providers.mjs';
-import { qrSVG } from './qr.mjs';
 import { previewLines } from './routes.mjs';
 import { distanceLabel } from './workout.mjs';
 import { newID } from './plan.mjs';
-import { ElevationChart } from './elevation-chart.mjs';
 
 function pause(ms, signal) {
   return new Promise((resolve, reject) => {
@@ -19,7 +17,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   const loginTemplate = document.getElementById('route-connect-template');
   const $ = id => document.getElementById(id) ?? loginTemplate.content.getElementById(id), dialog = $('route-dialog');
   const loginPanel = $('route-connect');
-  const elevationChart = new ElevationChart($('route-elevation'), $('elevation-controls'), $('elevation-range'));
+  let elevationChart;
   let provider = null, api = null, session = null, request = null, serial = 0, selected = null, page = 1, keyword = '', mode = 'sources', loginMethod = 'password';
   let connectionOnly = null, connectedSession = null, selectionOnly = null;
   const savedRoute = () => selectionOnly ? selectionOnly.route : current()?.route;
@@ -30,7 +28,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   }
   function view(nextMode) {
     mode = nextMode;
-    if (mode !== 'detail') elevationChart.clear();
+    if (mode !== 'detail') elevationChart?.clear();
     if (mode === 'connect') loginTemplate.after(loginPanel);
     else if (loginPanel.isConnected) loginTemplate.content.append(loginPanel);
     for (const name of ['sources', 'browse', 'detail']) $(`route-${name}`).hidden = name !== mode;
@@ -139,7 +137,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     $('route-qr-image').replaceChildren(); $('route-qr-image').hidden = true;
     $('route-qr-status').textContent = '正在生成二维码…';
     const ok = await run(async signal => {
-      const challenge = await api.createQR(newID(), signal), expiresAt = Date.now() + 120000;
+      const [challenge, { qrSVG }] = await Promise.all([api.createQR(newID(), signal), import('./qr.mjs')]), expiresAt = Date.now() + 120000;
       if (signal.aborted) throw new DOMException('已取消', 'AbortError');
       $('route-qr-image').innerHTML = qrSVG(challenge.payload); $('route-qr-image').hidden = false;
       $('route-qr-status').textContent = '请用 iGPSPORT App 扫码';
@@ -170,7 +168,19 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     $('route-outline').querySelector('circle').setAttribute('cx', cx);
     $('route-outline').querySelector('circle').setAttribute('cy', cy);
     $('elevation-view').hidden = !lines.elevation;
-    if (lines.elevation) elevationChart.setRoute(route); else elevationChart.clear();
+    if (!lines.elevation) elevationChart?.clear();
+    else if (elevationChart) elevationChart.setRoute(route);
+    else {
+      // The saved profile is usable immediately, including offline. Enhance it with zoom when available.
+      const svg = $('route-elevation'), line = document.createElementNS(svg.namespaceURI, 'polyline');
+      line.setAttribute('points', lines.elevation); line.setAttribute('fill', 'none'); svg.replaceChildren(line);
+      $('elevation-controls').hidden = true;
+      import('./elevation-chart.mjs').then(({ ElevationChart }) => {
+        if (selected !== route || mode !== 'detail' || !dialog.open) return;
+        elevationChart ??= new ElevationChart(svg, $('elevation-controls'), $('elevation-range'));
+        $('elevation-controls').hidden = false; elevationChart.setRoute(route);
+      }).catch(() => { /* Keep the static profile if the zoom module is unavailable. */ });
+    }
     $('route-elevation-status').hidden = !!lines.elevation;
     $('route-elevation-status').textContent = lines.elevation ? '' : '此路书缺少完整海拔，暂不展示海拔曲线。';
     $('route-metrics').replaceChildren();
@@ -257,17 +267,17 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   $('route-use').addEventListener('click', () => { if (selected) apply(selected); });
   $('route-remove').addEventListener('click', () => apply(null));
   dialog.addEventListener('close', () => {
-    cancel(); elevationChart.clear(); selected = null; clearPassword(); $('route-qr-image').replaceChildren(); dialog.setAttribute('aria-busy', 'false');
+    cancel(); elevationChart?.clear(); selected = null; clearPassword(); $('route-qr-image').replaceChildren(); dialog.setAttribute('aria-busy', 'false');
     if (loginPanel.isConnected) loginTemplate.content.append(loginPanel);
     $('route-login').disabled = false; $('route-search').disabled = false;
     if (selectionOnly) {
       const { resolve, result } = selectionOnly; selectionOnly = null;
-      requestAnimationFrame(() => resolve(result));
+      resolve(result);
     }
     if (connectionOnly) {
       const resolve = connectionOnly, value = connectedSession;
       connectionOnly = null; connectedSession = null;
-      requestAnimationFrame(() => resolve(value));
+      resolve(value);
     }
   });
   return {

@@ -1,3 +1,6 @@
+import { showSheet, suspendSheet, releaseSheets, visitSheet } from './sheets.mjs';
+import { setupCalculator } from './calculator.mjs';
+import { setupNavigation } from './navigation.mjs';
 import { encodeWorkout, validatePlan, distanceLabel, roundedMeters } from './workout.mjs';
 import { sharePrepared, shareSupport } from './share.mjs';
 import { kinds, newID, parseDistance, validateDraft, saveStop } from './plan.mjs';
@@ -12,7 +15,7 @@ import { setupRoutePicker } from './route-picker.mjs';
 import { loadProfile } from './profile.mjs';
 import { setupProfileEditor } from './profile-editor.mjs';
 import { setupGenerator } from './generator.mjs';
-import { generatedLibrary, initialRecipe, revision } from './generation.mjs';
+import { generatedLibrary, initialRecipe, readTransfer, revision } from './generation.mjs';
 import './focus.mjs';
 import { setupGelEditor, renderGelSelect } from './gel-editor.mjs';
 
@@ -109,11 +112,12 @@ function wiggle(node) {
   if (!node || reduced.matches) return;
   node.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-12deg)' }, { transform: 'rotate(9deg)' }, { transform: 'rotate(-5deg)' }, { transform: 'rotate(0deg)' }], { duration: 500, easing: 'ease-out' });
 }
-function persist() {
-  if (writable) storageNotice = storeLibrary(storage, library);
+function reportStorage(warning) {
+  storageNotice = warning;
   message('storage-message', storageNotice);
   message('library-notice', storageNotice);
 }
+function persist() { reportStorage(writable ? storeLibrary(storage, library) : storageNotice); }
 function updateSelection() {
   for (const [id, row] of rows) row.classList.toggle('selected', id === selectedID);
   const stops = plan?.stops ?? [];
@@ -208,7 +212,9 @@ function renderRows(eventID) {
   $('empty').hidden = stops.length > 0;
   updateSelection();
 }
+let homeRendered = false;
 function render(eventID) {
+  homeRendered = true;
   const current = activeEntry(library);
   $('plan-name').textContent = current?.name ?? '';
   $('library').setAttribute('aria-label', current ? `${current.name}，编辑骑行计划` : '计划');
@@ -279,12 +285,10 @@ $('undo').addEventListener('click', () => {
   } catch (error) { message('result', `暂时无法撤销：${error.message}`); }
 });
 
-let sheetScrollY = 0;
+
 function openSheet(dialog) {
   ruler.haptics.stop();
-  sheetScrollY = window.scrollY;
-  Object.assign(document.body.style, { overflow: 'hidden', position: 'fixed', top: `${-sheetScrollY}px`, width: '100%' });
-  dialog.showModal(); updateViewport();
+  const sheetScrollY = showSheet(dialog); updateViewport();
   if (dialog === $('composer') && matchMedia('(max-width: 899px)').matches) {
     const chartBottom = $('ruler').getBoundingClientRect().bottom + sheetScrollY;
     const available = window.innerHeight - dialog.offsetHeight;
@@ -294,8 +298,7 @@ function openSheet(dialog) {
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
-    Object.assign(document.body.style, { overflow: '', position: '', top: '', width: '' });
-    window.scrollTo({ top: sheetScrollY, behavior: 'instant' });
+    requestAnimationFrame(releaseSheets);
   });
   let outsidePress = false;
   dialog.addEventListener('pointerdown', event => {
@@ -421,10 +424,12 @@ $('replace-draft').addEventListener('click', () => { writable = true; persist();
 function formatDate(value) {
   return new Date(`${value}T12:00:00`).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 }
-function changeLibrary(next) {
+function changeLibrary(next, requireSave = false) {
+  const warning = writable ? storeLibrary(storage, next) : storageNotice;
+  if (requireSave && warning) throw new Error('浏览器未能保存新计划，请检查可用存储后重试。原计划保持不变。');
   library = next; plan = activeEntry(library)?.plan ?? null;
   deleted = null; removedPlan = null; selectedID = null;
-  $('undo-bar').hidden = true; closeSwipes(); message('result'); persist(); render();
+  $('undo-bar').hidden = true; closeSwipes(); message('result'); reportStorage(warning); render();
 }
 const calendar = new PlanCalendar($('plan-calendar'), value => {
   $('library-plan-date').value = value; $('plan-date-label').textContent = shortDate(value);
@@ -589,7 +594,7 @@ $('plan-auto').addEventListener('click', async () => {
   let details;
   try { details = planIdentity(); message('library-notice'); }
   catch (error) { message('library-notice', error.message); return; }
-  await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
+  suspendSheet($('library-dialog'));
   const recipe = initialRecipe(libraryMode === 'new' ? null : managedEntry, loadProfile(storage).profile);
   recipe.details = details;
   recipe.gel = gelDraft;
@@ -663,24 +668,32 @@ $('download').addEventListener('click', () => {
 });
 message('storage-message', loaded.message);
 const routePicker = setupRoutePicker({ storage, current: () => activeEntry(library), openSheet });
-$('route').addEventListener('click', async () => {
-  await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
-  const selected = await routePicker.pick(routeDraft);
-  if (selected !== undefined) {
-    routeDraft = selected;
-    if (selected) $('library-plan-distance').value = String(roundedMeters(selected.distanceMeters) / 1000);
-    validatePlanForm();
-  }
-  showMethodChoice(); openSheet($('library-dialog'));
+$('route').addEventListener('click', () => {
+  visitSheet($('library-dialog'), () => routePicker.pick(routeDraft), selected => {
+    if (selected !== undefined) {
+      routeDraft = selected;
+      if (selected) $('library-plan-distance').value = String(roundedMeters(selected.distanceMeters) / 1000);
+      validatePlanForm();
+    }
+    showMethodChoice(); openSheet($('library-dialog'));
+  });
 });
 const gelEditor = setupGelEditor({ storage, openSheet });
 $('plan-gel').addEventListener('change', () => { gelDraft = readPlanGel($('plan-gel').value); });
-$('plan-gel-manage').addEventListener('click', async () => {
-  await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
-  await gelEditor.open(); showMethodChoice(); openSheet($('library-dialog'));
+$('plan-gel-manage').addEventListener('click', () => {
+  visitSheet($('library-dialog'), gelEditor.open, () => { showMethodChoice(); openSheet($('library-dialog')); });
 });
 const profileEditor = setupProfileEditor({ storage, openSheet, connect: () => routePicker.connect(), manageGels: () => gelEditor.open() });
-const generator = setupGenerator({ storage, current: recipe => recipe ? library.plans.find(item => revision(item) === recipe.sourceRevision) ?? null : activeEntry(library), openSheet, available: () => !sharing && !removing.size,
+const fuelDraft = { recipe: null, result: null };
+function sourceEntry(recipe) {
+  return recipe ? library.plans.find(item => revision(item) === recipe.sourceRevision) ?? null : activeEntry(library);
+}
+const generator = setupGenerator({
+  draft: fuelDraft, storage, current: sourceEntry, openSheet,
+  available: () => !sharing && !removing.size,
+  openCalculator: () => navigation.calculator(true),
+  closeCalculatorPreview: saved => navigation.finishPreview(saved),
+  finishGenerator: () => navigation.finishGenerator(),
   manageGels: () => gelEditor.open(),
   editProfile: profileEditor.open,
   chooseRoute: route => routePicker.pick(route), returnToPlan: recipe => {
@@ -689,15 +702,28 @@ const generator = setupGenerator({ storage, current: recipe => recipe ? library.
     if (Object.hasOwn(recipe, 'gel')) { gelDraft = recipe.gel; showMethodChoice(); }
     if (Object.hasOwn(recipe, 'route')) { routeDraft = recipe.route; showMethodChoice(); }
     openSheet($('library-dialog'));
-  }, save: recipe => {
-  const fresh = loadLibrary(storage);
-  if (!writable || !fresh.writable) throw new Error('本机计划库暂时无法保存，原内容未被覆盖。请先处理存储提示。');
-  const next = generatedLibrary(fresh.library, recipe), warning = storeLibrary(storage, next);
-  if (warning) throw new Error('浏览器未能保存新计划，请检查可用存储后重试。原计划保持不变。');
-  changeLibrary(next); message('result', '已保存为新计划。');
-} });
-if (loaded.needsSave && writable) persist();
-render();
+  },
+  save(recipe) {
+    const fresh = loadLibrary(storage);
+    if (!writable || !fresh.writable) throw new Error('本机计划库暂时无法保存，原内容未被覆盖。请先处理存储提示。');
+    changeLibrary(generatedLibrary(fresh.library, recipe), true);
+    message('result', '已保存为新计划。');
+  },
+});
+function showHome() {
+  if (homeRendered) return;
+  if (loaded.needsSave && writable) persist();
+  render();
+}
+const navigation = setupNavigation({
+  draft: fuelDraft, generator, ruler, showHome,
+  getCalculator() {
+    return setupCalculator({ storage, draft: fuelDraft, manageGels: () => gelEditor.open(), onPreview: () => navigation.preview() });
+  },
+  source: recipe => !recipe && !homeRendered && loaded.needsSave ? null : sourceEntry(recipe),
+  legacyRecipe: () => readTransfer({ getItem: key => sessionStorage.getItem(key) }),
+});
+if (document.documentElement.dataset.page !== 'calculator') showHome();
 // Restore the prepared file and enabled actions when returning through browser history.
 window.addEventListener('pageshow', event => { if (event.persisted) prepare(); });
 // Keep long results and larger text from covering the final list item.

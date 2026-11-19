@@ -88,7 +88,8 @@ export class DistanceRuler {
     this.root.addEventListener('touchcancel', endPinch);
     this.haptics = new RulerHaptics(this);
     instances.add(this); this.haptics.setEnabled(hapticsEnabled);
-    new ResizeObserver(() => { this.haptics.stop(); if (this.total) this.layout(this.cursor); }).observe(root);
+    this.resize = new ResizeObserver(() => { this.haptics.stop(); if (this.active && this.total) this.layout(this.cursor); });
+    this.resize.observe(root);
     this.reduced.addEventListener('change', () => { this.wave = 0; this.targetWave = 0; this.frame(); });
   }
   get width() { return this.viewport.clientWidth; }
@@ -96,7 +97,13 @@ export class DistanceRuler {
   get step() { return majorInterval(this.total / this.zoom) / 10; }
   clamp(value) { return Math.max(0, Math.min(this.total, value)); }
   setActive(active) {
+    if (this.active === active) return;
     this.active = active; this.haptics.setEnabled(active && hapticsEnabled);
+    if (active) this.resize.observe(this.root);
+    else {
+      this.resize.disconnect(); cancelAnimationFrame(this.frameID); clearTimeout(this.settle);
+      this.frameID = null; this.transition = null; this.wave = this.targetWave = 0;
+    }
   }
   update(plan, profile = null) {
     this.haptics.stop();
@@ -142,7 +149,7 @@ export class DistanceRuler {
   }
   fit() { this.haptics.stop(); this.transition = null; this.zoom = 1; this.layout(this.total / 2); }
   frame() {
-    if (this.frameID) return;
+    if (this.frameID || !this.active) return;
     this.frameID = requestAnimationFrame(now => {
       this.frameID = null;
       if (this.transition) {
