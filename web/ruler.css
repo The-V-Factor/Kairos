@@ -32,14 +32,6 @@
 .ruler-marker { position: absolute; width: 32px; height: 44px; padding-top: 3px; transform: translateX(-50%); pointer-events: auto; color: var(--accent); }
 .ruler-marker::after { content: ''; display: block; position: absolute; width: 1px; height: 11px; bottom: 2px; left: 50%; background: currentColor; opacity: .6; }
 .ruler-marker .fuel-art { width: 18px; height: 28px; margin: 0 auto; }
-.ruler-marker .bottle-body { fill: var(--canvas); }
-.ruler-marker .bottle-outline, .ruler-marker .tag-outline { stroke: currentColor; }
-.ruler-marker .bottle-cap, .ruler-marker .tag-hole { fill: currentColor; }
-.ruler-marker .water-fill { fill: currentColor; opacity: .8; }
-.ruler-marker .gel-packet { fill: var(--canvas); stroke: currentColor; stroke-width: 2; }
-.ruler-marker .gel-cap { fill: currentColor; }
-.ruler-marker .gel-word { fill: currentColor; }
-.ruler-marker .fuel-art g { transform: none; }
 .marker-water { color: var(--water); }
 .marker-gel { color: var(--gel); }
 .marker-custom { color: var(--accent); }
@@ -62,7 +54,7 @@
 .help-body #share { display: block; min-height: 40px; margin-top: 12px; font-size: 12px; color: var(--muted); text-align: left; }
 .help-body #support { margin: 4px 0; font-size: 11px; }
 @media (max-height: 740px) { .terrain-ruler { --ruler-height: 196px; } .help-body .how-to { gap: 14px; margin-block: 10px 16px; } }
-.fuel-sheet.showing-preview { height: min(720px, 88dvh); display: flex; flex-direction: column; }
+.fuel-sheet.showing-preview:where([open]) { height: min(720px, 88dvh); display: flex; flex-direction: column; }
 .fuel-sheet.showing-preview .sheet-grabber, .fuel-sheet.showing-preview .sheet-header { flex-shrink: 0; }
 .fuel-sheet.showing-preview .sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 #fuel-preview:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }

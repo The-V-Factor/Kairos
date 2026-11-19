@@ -285,15 +285,7 @@ h1 { font-size: 34px; letter-spacing: -1.3px; font-weight: 750; margin: 0; line-
 .stop-symbol { display: flex; flex: 0 0 29px; flex-direction: column; align-items: center; gap: 6px; }
 .stop-number { color: var(--accent); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .fuel-art { display: block; width: 29px; height: 43px; overflow: visible; transform-origin: 50% 85%; }
-.bottle-body { fill: var(--surface); }
-.water-fill { fill: var(--water-fill); transform-origin: center bottom; transform-box: fill-box; }
-.bottle-outline { fill: none; stroke: var(--ink); stroke-width: 1.6; }
-.bottle-cap, .gel-cap { fill: var(--ink); }
-.bottle-label { fill: var(--surface); opacity: .8; }
-.gel-packet { fill: var(--gel-fill); }
-.gel-word { font: 900 8px -apple-system, BlinkMacSystemFont, sans-serif; fill: var(--surface); }
-.tag-outline { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
-.tag-hole { fill: var(--accent); }
+.water-fill { transform-origin: center bottom; transform-box: fill-box; }
 .stop-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 5px; }
 .stop-distance { font-size: 25px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.2; }
 .stop-reminder { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }

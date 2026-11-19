@@ -11,31 +11,40 @@
     <link rel="stylesheet" href="./fueling.css">
     <link rel="stylesheet" href="./components.css">
     <link rel="stylesheet" href="./ruler.css">
+    <link rel="stylesheet" href="./workbench.css">
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
     <div id="app">
       <header class="masthead">
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
+        <nav class="desk-nav" aria-label="主导航"><a href="./" aria-current="page">当前计划</a><button id="browse-library" type="button">计划库</button><a href="./calculator.html">补给计算器</a></nav>
         <div class="masthead-actions"><button id="theme" class="theme-badge" type="button" aria-label="更换皮肤，当前节奏" aria-haspopup="dialog"><span data-icon="palette"></span><span id="theme-name">节奏</span></button><button id="history" class="icon-button" type="button" aria-label="历史计划" title="历史计划" aria-haspopup="dialog"><span data-icon="history"></span></button><button id="account" class="icon-button" type="button" aria-label="个人菜单" title="个人菜单" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu" popovertarget="account-menu"><span data-icon="person"></span></button></div>
       </header>
       <div id="account-menu" class="account-menu" popover="auto" role="menu" aria-label="个人菜单"><button id="profile-entry" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="person"></span>个人档案</button><a href="./calculator.html" role="menuitem"><span data-icon="calculator"></span>补给计算器</a><button id="help" type="button" role="menuitem" aria-haspopup="dialog"><span data-icon="help"></span>设置与说明</button></div>
       <main>
-        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span>全程 <strong id="total-label"></strong></span></p><p id="home-route-summary" class="home-route-summary" hidden></p></section>
+        <section id="plan-heading" class="plan-heading"><h1><button id="library" class="plan-title" type="button" aria-label="编辑骑行计划" title="编辑计划" aria-haspopup="dialog"><span id="plan-name"></span><span data-icon="pencil"></span></button></h1><p class="plan-meta"><span id="ride-date"></span><span aria-hidden="true">·</span><span><span class="total-caption">全程</span> <strong id="total-label"><span></span> <small></small></strong></span></p><p id="home-route-summary" class="home-route-summary" hidden></p></section>
         <section id="no-plan" class="no-plan" hidden><h1>我的骑行计划</h1><button id="first-plan" class="secondary" type="button">创建计划</button></section>
         <div id="ride-content">
+        <div class="ride-course">
         <section class="ruler-section" aria-label="浏览沿途补给">
-          <div class="ruler-add-row"><button id="add" class="add-fuel" type="button"><span data-icon="plus"></span>补给</button></div>
+          <div class="ruler-add-row"><h2>海拔与补给</h2><button id="add" class="add-fuel" type="button"><span data-icon="plus"></span>补给</button></div>
           <div id="ruler"></div>
         </section>
+        <h2 class="itinerary-heading">沿途补给 <small id="stop-count"></small></h2>
         <div id="stops" class="itinerary" aria-label="沿途补给点"></div>
         <div id="empty" class="empty" hidden><p>在距离尺上选一个位置，添加第一个补给点。</p></div>
         <p class="finish-note"><span aria-hidden="true">∞</span>骑至计划终点后，可继续骑行。</p>
         </div>
-        <p id="storage-message" class="notice" role="status" hidden></p>
-      </main>
-    </div>
-    <aside class="send-dock" aria-label="下载计划">
+        <aside class="ride-inspector" aria-label="当前补给">
+          <header><h2 id="detail-heading">当前补给</h2><span id="detail-index"></span></header>
+          <div class="object-stage"><span id="detail-type"></span><div id="detail-art"></div><strong id="detail-distance"></strong></div>
+          <h3 id="detail-name"></h3>
+          <p id="detail-prompt"><span>手表提示</span><strong id="detail-reminder"></strong></p>
+          <button id="detail-edit" class="secondary" type="button">编辑补给点</button>
+        </aside>
+        </div>
+            <aside class="send-dock" aria-label="下载计划">
       <div class="dock-content">
         <div id="undo-bar" class="undo-bar" hidden><span id="undo-message"></span><button id="undo" type="button">撤销</button></div>
         <p id="result" class="notice" role="status" aria-live="polite" hidden></p>
@@ -44,6 +53,9 @@
         <p class="instruction">打开训练文件，在“健身”添加到手表</p>
       </div>
     </aside>
+        <p id="storage-message" class="notice" role="status" hidden></p>
+      </main>
+    </div>
 
     <dialog id="composer" class="sheet" aria-labelledby="composer-title">
       <div class="sheet-grabber" aria-hidden="true"><i></i></div>

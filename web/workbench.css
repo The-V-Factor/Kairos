@@ -1,0 +1,162 @@
+/* The desktop route and inspector share a stop. Narrow screens keep the route above the editor. */
+:root, [data-theme="rhythm"] {
+  --canvas: #151816; --surface: #20251f; --ink: #f5f5eb; --accent: #ddf65c; --focus: var(--accent);
+  --line: #3a4238; --muted: #b2bbad; --water: #7cd6d5; --gel: #f38c77;
+  --stage: #d8e1cc; --stage-ink: #344637; --panel-radius: 6px;
+  --reading-face: "DIN Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+[data-theme="trail"] {
+  --canvas: #f6f2e8; --surface: #eeede1; --ink: #263f32; --accent: #305d44; --focus: #246044;
+  --stage: #d6e2cb; --stage-ink: #344d38; --line: #c5cebd; --muted: #566858; --panel-radius: 16px;
+  --reading-face: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+}
+[data-theme="journal"] {
+  --canvas: #faf7ec; --surface: #f0ede1; --ink: #223954; --accent: #274e80; --focus: var(--accent);
+  --stage: #e6e6db; --stage-ink: #2f4260; --line: #bac2c1; --muted: #606c78; --panel-radius: 1px;
+  --reading-face: Georgia, "Songti SC", serif;
+}
+[data-theme="pocket"] {
+  --canvas: #fff0bf; --surface: #ffe7a4; --ink: #402c51; --accent: #583975; --focus: var(--accent);
+  --stage: #f2d687; --stage-ink: #593852; --line: #d6b786; --muted: #705a67; --panel-radius: 22px;
+  --reading-face: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+}
+[data-theme="precision"] {
+  --canvas: #f2f3ef; --surface: #e7eae5; --ink: #202829; --accent: #b63d26; --focus: var(--accent);
+  --stage: #dfe3dd; --stage-ink: #384240; --line: #bac3bd; --muted: #556165; --panel-radius: 2px;
+  --reading-face: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+.masthead, .calc-header { border-bottom: 1px solid var(--line); }
+.wordmark { display: inline-flex; align-items: center; gap: 9px; font: italic 800 25px/1 Arial, sans-serif; letter-spacing: -.06em; }
+.wordmark::before { content: ""; display: block; width: 23px; height: 23px; background: var(--accent); clip-path: polygon(0 0,22% 0,22% 44%,72% 0,100% 0,46% 50%,100% 100%,70% 100%,22% 57%,22% 100%,0 100%); }
+.desk-nav, .ride-inspector, .stop-kind { display: none; }
+.masthead { padding-block: max(7px, env(safe-area-inset-top)) 7px; }
+#app main { padding-bottom: var(--dock-clearance, 150px); }
+#ride-content, .ride-course { min-width: 0; }
+.plan-heading { padding-bottom: 18px; margin: 4px 0 18px; border-bottom: 1px solid var(--line); }
+.ruler-add-row { justify-content: space-between; align-items: center; margin: 0 0 7px; }
+.ruler-add-row h2, .itinerary-heading, .ride-inspector h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -.035em; }
+.add-fuel { border-radius: var(--panel-radius); min-height: 44px; border: 1px solid var(--line); font-size: 14px; }
+#ruler .ruler-readout { left: 0 !important; top: 2px; transform: none; text-align: left; display: flex; align-items: baseline; gap: 18px; }
+#ruler .ruler-readout strong { font: 650 clamp(34px, 5vw, 52px)/1 var(--reading-face); letter-spacing: -.04em; }
+#total-label small, #ruler .reading-unit { font: 550 .42em/1 system-ui,sans-serif; letter-spacing: 0; }
+@media (max-width: 899px) { #total-label small { font: inherit; } }
+#ruler .ruler-readout small { font-size: 14px; }
+.ruler-terrain-area { opacity: .16; }
+.terrain-contour { fill: none; stroke: var(--accent); stroke-width: 1.2; opacity: .35; }
+.terrain-screen { display: none; }
+[data-theme="journal"] .terrain-screen, [data-theme="precision"] .terrain-screen { display: block; }
+[data-theme="journal"] .terrain-contour, [data-theme="precision"] .terrain-contour { display: none; }
+.terrain-hatch { stroke: var(--accent); opacity: .32; stroke-width: 1; }
+[data-theme="journal"] .terrain-hatch { transform: skewX(-35deg) translateX(5px); }
+[data-theme="trail"] .terrain-contour, [data-theme="pocket"] .terrain-contour { stroke-width: 3.5; opacity: .18; }
+.itinerary-heading { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.itinerary-heading small, #detail-index, #detail-type { font: 500 12px/1.3 ui-monospace, Menlo, monospace; letter-spacing: .07em; color: var(--muted); }
+.stop-distance { font-family: var(--reading-face); }
+#composer { border: 1px solid var(--line); border-radius: max(var(--panel-radius), 12px); }
+#composer::backdrop { background: rgb(10 15 12 / .35); }
+#composer .fuel-types { margin-top: 12px; }
+#composer .fuel-types button { border-radius: var(--panel-radius); }
+#composer .hero-art .fuel-art { width: 78px; height: 125px; }
+#composer .sheet-body { padding-top: 8px; padding-bottom: 12px; }
+#composer .sheet-header h2 { color: var(--ink); }
+#download { border-radius: var(--panel-radius); }
+.calc-header h1 { font-size: 20px; }
+.calc-summary strong { font-family: var(--reading-face); }
+[data-theme="journal"] .ruler-readout strong { font-style: italic; }
+@media (max-width: 699px) {
+  #app main { padding-inline: 18px; padding-top: 18px; }
+  .masthead { padding-inline: 18px; }
+  .theme-badge { background: none; }
+  .ruler-controls button { min-height: 44px; }
+  #composer { width: 100%; margin-bottom: 0; padding-bottom: max(6px, env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; }
+  #composer .fuel-types button { min-height: 55px; }
+  .plan-meta { font-size: 14px; }
+}
+@media (min-width: 900px) {
+  #app, .calculator-page { --gutter: clamp(24px, 3.7vw, 64px); }
+  .masthead, #app main, .calc-header, .calc-layout { width: min(100%, 1520px); max-width: none; padding-inline: var(--gutter); }
+  .masthead { justify-content: flex-start; min-height: 72px; }
+  .masthead-actions { margin-left: auto; }
+  .desk-nav { display: flex; align-items: stretch; align-self: stretch; gap: 30px; margin-left: clamp(24px, 6vw, 88px); }
+  .desk-nav > * { display: flex; align-items: center; border-bottom: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 15px; }
+  .desk-nav [aria-current], .desk-nav > :hover { color: var(--ink); border-color: var(--accent); }
+  #app main { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(250px, 1fr); grid-template-rows: auto auto 1fr; align-items: start; column-gap: clamp(36px, 5vw, 80px); padding-block: 0 32px; }
+  .plan-heading, #no-plan, #storage-message { grid-column: 1/-1; }
+  .plan-heading { position: relative; margin: 0 0 24px; padding: 34px 24% 23px 0; }
+  .plan-heading h1 { font-size: clamp(38px, 4.4vw, 66px); line-height: 1.18; }
+  .plan-meta { font-size: 16px; }
+  .plan-meta > [aria-hidden] { display: none; }
+  .plan-meta > span:last-child { position: absolute; right: 0; bottom: 18px; display: grid; text-align: right; gap: 2px; }
+  .plan-meta strong { font: 600 clamp(28px, 3.5vw, 54px)/1.1 var(--reading-face); letter-spacing: -.05em; }
+  .home-route-summary { font-size: 14px; }
+  #ride-content { display: contents; }
+  .ride-course { grid-column: 1; grid-row: 2/4; }
+  .ruler-section { margin-bottom: 14px; }
+  .ruler-add-row { margin-bottom: 16px; }
+  .ruler-add-row h2, .ride-inspector h2, .itinerary-heading { font-size: 23px; }
+  #ruler { --ruler-height: clamp(220px, 25vh, 285px); padding: 18px 18px 3px; background: var(--surface); border-radius: var(--panel-radius); }
+  #ruler .ruler-viewport { min-height: 184px; }
+  .ruler-controls { font-size: 12px; }
+  #stops { max-height: 280px; overflow: auto; scrollbar-color: var(--input-line) transparent; scrollbar-width: thin; }
+  .ride-course .stop-content { gap: 16px; min-height: 62px; padding: 8px 14px; }
+  .ride-course .stop-symbol { flex: 0 0 74px; flex-direction: row; justify-content: space-between; }
+  .ride-course .stop-art .fuel-art { width: 24px; height: 39px; }
+  .stop-kind { display: block; flex: 1; overflow-wrap: anywhere; font-weight: 600; }
+  .stop-copy { flex: 1.4; flex-direction: row-reverse; align-items: baseline; justify-content: space-between; }
+  .stop-distance { font-size: 21px; white-space: nowrap; }
+  .stop-reminder { color: var(--muted); font-size: 14px; }
+  .stop-caption { display: none; }
+  .stop.selected .stop-content { box-shadow: inset 3px 0 var(--accent); }
+  .ride-inspector { grid-column: 2; grid-row: 2; min-width: 0; display: block; border-left: 1px solid var(--line); padding-left: clamp(18px, 2vw, 32px); }
+  .ride-inspector header { min-height: 44px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .object-stage { isolation: isolate; display: grid; place-items: center; position: relative; overflow: hidden; height: clamp(184px, 23vh, 246px); background: var(--stage); color: var(--stage-ink); border-radius: var(--panel-radius); }
+  .object-stage::before { content: ''; position: absolute; z-index: -1; inset: -70%; background: repeating-radial-gradient(ellipse at 76% 93%, transparent 0 12px, color-mix(in srgb, var(--stage-ink) 24%, transparent) 13px, transparent 14px); transform: rotate(-16deg); }
+  [data-theme="precision"] .object-stage::before { background: radial-gradient(var(--muted) .8px, transparent 1px) 0 0/13px 13px; transform: none; opacity: .4; }
+  #detail-type { position: absolute; top: 15px; left: 16px; color: inherit; }
+  #detail-art .fuel-art { width: auto; height: clamp(140px, 17vh, 190px); }
+  #detail-distance { position: absolute; right: 16px; bottom: 12px; font: 15px ui-monospace, monospace; }
+  #detail-name { margin: 21px 0 14px; font-size: 26px; overflow-wrap: anywhere; }
+  #detail-prompt { display: flex; justify-content: space-between; gap: 15px; padding-bottom: 14px; margin: 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  #detail-prompt span { color: var(--muted); flex-shrink: 0; }
+  #detail-reminder { text-align: right; overflow-wrap: anywhere; }
+  #detail-edit { border: 1px solid var(--input-line); min-height: 44px; margin: 14px 0; border-radius: var(--panel-radius); width: 100%; }
+  .send-dock { position: static; grid-column: 2; grid-row: 3; border: 0; border-left: 1px solid var(--line); padding-left: clamp(18px, 2vw, 32px); }
+  .dock-content { max-width: none; padding: 10px 0; }
+  .finish-note { margin-top: 16px; }
+  .sheet { inset: 50% auto auto 50%; transform: translate(-50%,-50%); margin: 0; border: 1px solid var(--line); border-radius: max(8px,var(--panel-radius)); }
+  .sheet[open] { animation: none; }
+  .sheet .sheet-grabber { visibility: hidden; }
+  .theme-sheet { max-width: 900px; }
+  .theme-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); }
+}
+
+@media (min-width: 900px) {
+  .library-sheet, .route-sheet, .fuel-sheet { max-width: min(850px, 86vw); }
+  .profile-sheet, .gels-sheet { max-width: 650px; }
+  .library-sheet .sheet-body, .route-sheet .sheet-body, .fuel-sheet .sheet-body { padding-inline: 30px; }
+  .sheet-header h2, .route-sheet .sheet-header h2 { font-size: 21px; color: var(--ink); }
+  .library-group { padding-top: 12px; font-family: var(--reading-face); color: var(--accent); }
+  .library-open { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+  .library-open strong { flex: 1; }
+  .library-open small { font-variant-numeric: tabular-nums; }
+  #route-detail { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 28px; }
+  #route-detail > * { grid-column: 1/-1; }
+  #route-detail #route-outline, #route-detail #elevation-view { grid-row: 5; }
+  #route-detail #route-outline { grid-column: 1; height: 200px; }
+  #route-detail #elevation-view { grid-column: 2; }
+  #route-detail .route-metrics { grid-row: 4; padding-block: 10px; }
+  .route-metrics strong, #fuel-duration { font-family: var(--reading-face); font-size: 34px; }
+  #fuel-settings { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px 24px; align-items: center; }
+  #fuel-settings > .fuel-profile, #fuel-settings > .fuel-calculator-link { grid-column: 1/-1; }
+  #fuel-settings > .fuel-section-heading, #fuel-settings > .fuel-efforts { grid-column: 1; }
+  #fuel-settings > .fuel-estimate { grid-column: 2; grid-row: 2 / 4; }
+  #fuel-settings .ui-field { align-self: start; }
+  .fuel-sheet.showing-preview { height: auto; min-height: 0; }
+  .fuel-sheet.showing-preview #fuel-preview { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 10px 24px; align-items: start; }
+  #fuel-preview .fuel-plan-name, #fuel-preview-summary, #fuel-preview-empty { grid-column: 1/-1; }
+  #fuel-preview #fuel-chart, #fuel-preview #fuel-preview-stops { grid-row: 2; }
+  #fuel-preview #fuel-preview-stops { grid-column: 2; max-height: 244px; }
+  #fuel-preview-stops li { grid-template-columns: 18px minmax(52px,auto) 1fr auto; }
+  #gel-editor .ui-field { max-width: 100%; }
+  .calc-stats strong { font-family: var(--reading-face); }
+}

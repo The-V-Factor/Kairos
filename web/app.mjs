@@ -31,9 +31,30 @@ const rows = new Map();
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 for (const node of document.querySelectorAll('[data-icon]')) node.innerHTML = icon(node.dataset.icon);
 for (const button of document.querySelectorAll('[data-kind]')) button.querySelector('.type-art').innerHTML = fuelArtwork(button.dataset.kind);
-const ruler = new DistanceRuler($('ruler'), value => { cursor = value; }, id => {
+const ruler = new DistanceRuler($('ruler'), value => {
+  cursor = value;
+  const nearest = plan?.stops.reduce((best, stop) => {
+    const delta = Math.abs(stop.distanceMeters - value);
+    if (!best || delta < Math.abs(best.distanceMeters - value)
+      || (delta === Math.abs(best.distanceMeters - value) && stop.id === selectedID)) return stop;
+    return best;
+  }, null);
+  if (selectedID !== (nearest?.id ?? null)) {
+    selectedID = nearest?.id ?? null;
+    updateSelection();
+  }
+  $('detail-heading').textContent = nearest && nearest.distanceMeters !== value ? '最近补给' : '当前补给';
+}, id => {
   selectedID = id; updateSelection();
-  rows.get(id)?.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'instant' : 'smooth' });
+  const list = $('stops'), row = rows.get(id);
+  if (!row) return;
+  const behavior = reduced.matches ? 'instant' : 'smooth';
+  if (list.scrollHeight <= list.clientHeight) row.scrollIntoView({ block: 'nearest', behavior });
+  else {
+    const bounds = list.getBoundingClientRect(), item = row.getBoundingClientRect();
+    const delta = item.top < bounds.top ? item.top - bounds.top : Math.max(0, item.bottom - bounds.bottom);
+    list.scrollBy({ top: delta, behavior });
+  }
 });
 const preferredHaptics = loadHaptics(storage);
 setRulerHaptics(preferredHaptics);
@@ -93,7 +114,22 @@ function persist() {
   message('storage-message', storageNotice);
   message('library-notice', storageNotice);
 }
-function updateSelection() { for (const [id, row] of rows) row.classList.toggle('selected', id === selectedID); }
+function updateSelection() {
+  for (const [id, row] of rows) row.classList.toggle('selected', id === selectedID);
+  const stops = plan?.stops ?? [];
+  const index = stops.findIndex(stop => stop.id === selectedID), stop = stops[index];
+  const gel = stop?.kind === 'gel' ? activeEntry(library)?.gel : null;
+  $('detail-index').textContent = stop ? `${String(index + 1).padStart(2, '0')} / ${String(stops.length).padStart(2, '0')}` : '';
+  $('detail-type').textContent = stop ? { water: 'WATER', gel: 'ENERGY GEL', custom: 'CUSTOM' }[stop.kind] : '';
+  $('detail-art').innerHTML = stop ? fuelArtwork(stop.kind) : '';
+  $('detail-distance').textContent = stop ? distanceLabel(stop.distanceMeters) : '';
+  $('detail-name').textContent = stop ? (gel?.name ?? displayName(stop)) : '尚无补给点';
+  $('detail-reminder').textContent = stop?.reminder ?? '';
+  $('detail-prompt').hidden = !stop;
+  $('detail-edit').hidden = !stop;
+  $('detail-art').parentElement.hidden = !stop;
+}
+$('detail-edit').addEventListener('click', () => { if (selectedID) openComposer(selectedID); });
 function closeSwipes() {
   swipedID = null;
   for (const row of rows.values()) {
@@ -149,10 +185,11 @@ function renderRows(eventID) {
     let row = rows.get(stop.id);
     if (!row) {
       row = document.createElement('div'); row.className = 'stop';
-      row.innerHTML = `<button class="swipe-delete" type="button" inert>${icon('trash')}<span>删除</span></button><button class="stop-content" type="button"><span class="stop-symbol"><span class="stop-number"></span><span class="stop-art"></span></span><span class="stop-copy"><strong class="stop-distance"></strong><span class="stop-reminder"></span><span class="stop-caption"></span></span>${icon('chevron')}</button>`;
+      row.innerHTML = `<button class="swipe-delete" type="button" inert>${icon('trash')}<span>删除</span></button><button class="stop-content" type="button"><span class="stop-symbol"><span class="stop-number"></span><span class="stop-art"></span></span><span class="stop-kind"></span><span class="stop-copy"><strong class="stop-distance"></strong><span class="stop-reminder"></span><span class="stop-caption"></span></span>${icon('chevron')}</button>`;
       rows.set(stop.id, row); wireSwipe(row, stop.id);
     }
     row.querySelector('.stop-number').textContent = String(index + 1).padStart(2, '0');
+    row.querySelector('.stop-kind').textContent = stop.kind === 'gel' ? (activeEntry(library)?.gel?.name ?? '能量胶') : displayName(stop);
     if (row.dataset.signature !== JSON.stringify(stop)) {
       row.querySelector('.stop-art').innerHTML = fuelArtwork(stop.kind);
       row.querySelector('.stop-distance').textContent = distanceLabel(stop.distanceMeters);
@@ -167,6 +204,7 @@ function renderRows(eventID) {
     if ($('stops').children[index] !== row) $('stops').insertBefore(row, $('stops').children[index] ?? null);
     if (stop.id === eventID) wiggle(row.querySelector('.fuel-art'));
   }
+  $('stop-count').textContent = String(stops.length).padStart(2, '0');
   $('empty').hidden = stops.length > 0;
   updateSelection();
 }
@@ -177,10 +215,18 @@ function render(eventID) {
   $('ride-date').textContent = current ? `${current.rideDate.slice(0, 4) === String(new Date().getFullYear()) ? '' : `${current.rideDate.slice(0, 4)}年`}${shortDate(current.rideDate)}` : '';
   $('plan-heading').hidden = !current;
   $('no-plan').hidden = !!current; $('ride-content').hidden = !current;
-  $('total-label').textContent = plan ? distanceLabel(plan.totalDistanceMeters) : '';
+  const [total, unit] = plan ? distanceLabel(plan.totalDistanceMeters).split(' ') : ['', ''];
+  $('total-label').firstElementChild.textContent = total;
+  $('total-label').lastElementChild.textContent = unit;
   $('home-route-summary').textContent = current?.route?.title ?? '';
   $('home-route-summary').hidden = !current?.route;
-  renderRows(eventID); if (plan) ruler.update(plan, entryTerrain(current)); else ruler.haptics.stop(); prepare();
+  renderRows(eventID);
+  if (plan) {
+    ruler.update(plan, entryTerrain(current));
+    const changed = eventID && plan.stops.find(stop => stop.id === eventID);
+    if (changed) ruler.layout(changed.distanceMeters);
+  } else ruler.haptics.stop();
+  prepare();
 }
 function apply(next, eventID) {
   library = updatePlan(library, next); plan = activeEntry(library).plan;
@@ -239,6 +285,11 @@ function openSheet(dialog) {
   sheetScrollY = window.scrollY;
   Object.assign(document.body.style, { overflow: 'hidden', position: 'fixed', top: `${-sheetScrollY}px`, width: '100%' });
   dialog.showModal(); updateViewport();
+  if (dialog === $('composer') && matchMedia('(max-width: 899px)').matches) {
+    const chartBottom = $('ruler').getBoundingClientRect().bottom + sheetScrollY;
+    const available = window.innerHeight - dialog.offsetHeight;
+    document.body.style.top = `${-Math.max(0, chartBottom - available + 8)}px`;
+  }
 }
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
@@ -268,7 +319,7 @@ function updateViewport() {
   const keyboard = Math.max(0, window.innerHeight - view.height);
   if (keyboard > 80 && document.activeElement === $('library-plan-name')) expandPlanField(null);
   for (const dialog of document.querySelectorAll('dialog[open]')) {
-    dialog.style.bottom = `${keyboard}px`; dialog.style.maxHeight = `${view.height * .88}px`;
+    dialog.style.bottom = keyboard > 0 ? `${keyboard}px` : ''; dialog.style.maxHeight = `${view.height * .88}px`;
     dialog.classList.toggle('keyboard-open', keyboard > 80);
   }
 }
@@ -279,7 +330,7 @@ function openComposer(id = null) {
   if (!plan || sharing || removing.size) return;
   closeSwipes(); editing = id;
   const existing = plan.stops.find(stop => stop.id === id);
-  if (existing) { selectedID = id; updateSelection(); }
+  if (existing) { selectedID = id; ruler.layout(existing.distanceMeters); updateSelection(); }
   draft = existing ? { ...existing } : { id: newID(), distanceMeters: roundedMeters(cursor), kind: 'water', name: '', reminder: '喝水' };
   reminderWasEdited = !!existing;
   $('stop-reminder').value = draft.reminder; $('stop-name').value = draft.name;
@@ -287,7 +338,7 @@ function openComposer(id = null) {
   $('stop-unit').value = draft.distanceMeters >= 1000 ? 'km' : 'm';
   previousUnit = $('stop-unit').value;
   $('stop-distance').value = String(draft.distanceMeters / ($('stop-unit').value === 'km' ? 1000 : 1));
-  $('composer-title').textContent = distanceLabel(draft.distanceMeters);
+  $('composer-title').textContent = existing ? '编辑补给点' : `添加补给 · ${distanceLabel(draft.distanceMeters)}`;
   $('save-stop').textContent = existing ? '保存' : '添加';
   renderKind(); validateComposer(); openSheet($('composer'));
 }
@@ -304,7 +355,6 @@ function validateComposer() {
   try {
     const stop = candidate(); saveStop(plan, stop);
     $('save-stop').disabled = false; message('fuel-error');
-    if (editing) $('composer-title').textContent = distanceLabel(stop.distanceMeters);
     return stop;
   } catch (error) { $('save-stop').disabled = true; message('fuel-error', error.message); return null; }
 }
@@ -333,7 +383,6 @@ $('fuel-form').addEventListener('submit', event => {
 });
 $('delete-stop').addEventListener('click', () => { const id = editing; $('composer').close(); removeStop(id); });
 $('add').addEventListener('click', () => openComposer());
-$('fit').addEventListener('click', () => { selectedID = null; updateSelection(); });
 
 const accountMenu = $('account-menu');
 accountMenu.addEventListener('beforetoggle', event => {
@@ -523,6 +572,10 @@ $('library').addEventListener('click', () => {
   if (sharing || removing.size) return;
   closeSwipes(); if (plan) showPlanChoice('edit', activeEntry(library)); else renderLibraryList(); openSheet($('library-dialog'));
 });
+$('browse-library').addEventListener('click', () => {
+  if (sharing || removing.size) return;
+  closeSwipes(); libraryTab = 'plans'; renderLibraryList(); openSheet($('library-dialog'));
+});
 $('history').addEventListener('click', () => {
   if (sharing || removing.size) return;
   closeSwipes(); libraryTab = 'history'; renderLibraryList(); openSheet($('library-dialog'));
@@ -647,4 +700,4 @@ render();
 // Restore the prepared file and enabled actions when returning through browser history.
 window.addEventListener('pageshow', event => { if (event.persisted) prepare(); });
 // Keep long results and larger text from covering the final list item.
-new ResizeObserver(() => { document.querySelector('main').style.paddingBottom = `${document.querySelector('.send-dock').offsetHeight + 32}px`; }).observe(document.querySelector('.send-dock'));
+new ResizeObserver(() => { document.querySelector('main').style.setProperty('--dock-clearance', `${document.querySelector('.send-dock').offsetHeight + 32}px`); }).observe(document.querySelector('.send-dock'));

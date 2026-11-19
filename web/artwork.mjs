@@ -1,12 +1,11 @@
-// The same bottle, gel packet and tag geometry as Kairos/FuelArtwork.swift.
-const drawings = {
-  water: '<path class="bottle-body" d="M9.3 4h10.4v4.6Q27 11.6 27 17.2v20.6q0 4.3-5.3 4.3H7.3Q2 42.1 2 37.8V17.2q0-5.6 7.3-8.6Z"/><path class="water-fill" d="M2.8 16Q10 13 14.5 16T26.2 16v21.8q0 3.5-4.5 3.5H7.3q-4.5 0-4.5-3.5Z"/><path class="bottle-outline" d="M9.3 4h10.4v4.6Q27 11.6 27 17.2v20.6q0 4.3-5.3 4.3H7.3Q2 42.1 2 37.8V17.2q0-5.6 7.3-8.6Z"/><rect class="bottle-cap" x="8" y="0" width="13" height="5" rx="2"/><rect class="bottle-label" x="8" y="23" width="13" height="6" rx="3"/>',
-  gel: '<g transform="rotate(-9 14.5 24)"><rect class="gel-cap" x="8" y="3" width="13" height="5"/><path class="gel-packet" d="M3 10h23q3 0 3 3v25q0 5-5 5H5q-5 0-5-5V13q0-3 3-3Z"/><text class="gel-word" x="14.5" y="29" text-anchor="middle">GEL</text></g>',
-  custom: '<path class="tag-outline" d="m3 23 16-16h9v9L12 32a3 3 0 0 1-4 0l-5-5a3 3 0 0 1 0-4Z"/><circle class="tag-hole" cx="23" cy="12" r="1.5"/>',
-};
+const objects = new URL('./assets/fuel-objects.svg', import.meta.url).href;
 
 export function fuelArtwork(kind) {
-  return `<svg class="fuel-art" viewBox="-3 -2 35 48" aria-hidden="true">${drawings[kind] ?? drawings.custom}</svg>`;
+  const object = kind === 'water'
+    ? `<use href="${objects}#bottle"/><use class="water-fill" href="${objects}#water"/>`
+    : kind === 'gel' ? `<use href="${objects}#gel"/>`
+    : '<path d="m17 92 51-52h23v24L40 115a7 7 0 0 1-10 0l-13-13a7 7 0 0 1 0-10Z" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="77" cy="53" r="4" fill="currentColor"/>';
+  return `<svg class="fuel-art" viewBox="0 0 110 180" aria-hidden="true">${object}</svg>`;
 }
 
 const icons = {

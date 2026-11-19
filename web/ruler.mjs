@@ -6,6 +6,7 @@ import { elevationAt, terrainDomain, visibleTerrain } from './terrain.mjs';
 
 let hapticsEnabled = true;
 const instances = new Set();
+let nextProfileID = 0;
 export function setRulerHaptics(enabled) {
   hapticsEnabled = !!enabled;
   for (const ruler of instances) ruler.haptics.setEnabled(hapticsEnabled && ruler.active);
@@ -15,8 +16,9 @@ export function setRulerHaptics(enabled) {
 export class DistanceRuler {
   constructor(root, onBrowse = () => {}, onSelect = () => {}) {
     this.root = root;
+    this.profileID = `terrain-${++nextProfileID}`;
     root.classList.add('terrain-ruler');
-    root.innerHTML = `<div class="ruler-viewport"><div class="ruler-scroll" role="slider" tabindex="0" aria-label="距离尺" aria-valuemin="0"><div class="ruler-track"></div></div><svg class="ruler-ticks" aria-hidden="true"></svg><output class="ruler-readout" aria-label="当前里程"><strong></strong><small></small></output><div class="ruler-markers" role="group" aria-label="沿途补给"></div></div><div class="ruler-controls"><span>距出发里程</span><div><button type="button" data-ruler="out" aria-label="缩小距离尺">${icon('minus')}</button><button type="button" data-ruler="in" aria-label="放大距离尺">${icon('zoom')}</button><button type="button" data-ruler="fit">全览</button></div></div>`;
+    root.innerHTML = `<div class="ruler-viewport"><div class="ruler-scroll" role="slider" tabindex="0" aria-label="距离尺" aria-valuemin="0"><div class="ruler-track"></div></div><svg class="ruler-ticks" aria-hidden="true"></svg><output class="ruler-readout" aria-label="当前里程"><strong><span></span> <span class="reading-unit"></span></strong><small></small></output><div class="ruler-markers" role="group" aria-label="沿途补给"></div></div><div class="ruler-controls"><span>距出发里程</span><div><button type="button" data-ruler="out" aria-label="缩小距离尺">${icon('minus')}</button><button type="button" data-ruler="in" aria-label="放大距离尺">${icon('zoom')}</button><button type="button" data-ruler="fit">全览</button></div></div>`;
     this.viewport = root.querySelector('.ruler-viewport');
     this.profile = null; this.domain = null; this.points = []; this.markerNodes = new Map(); this.active = true;
     for (const [action, id] of [['out', 'zoom-out'], ['in', 'zoom-in'], ['fit', 'fit']]) {
@@ -29,7 +31,8 @@ export class DistanceRuler {
     this.svg = root.querySelector('.ruler-ticks');
     this.markers = root.querySelector('.ruler-markers');
     this.readout = root.querySelector('output');
-    this.distanceReadout = this.readout.querySelector('strong');
+    this.distanceReadout = this.readout.querySelector('strong > span');
+    this.unitReadout = this.readout.querySelector('.reading-unit');
     this.altitudeReadout = this.readout.querySelector('small');
     this.onBrowse = onBrowse;
     this.onSelect = onSelect;
@@ -115,7 +118,8 @@ export class DistanceRuler {
     this.draw(); this.publish();
   }
   publish() {
-    this.distanceReadout.textContent = distanceLabel(this.cursor);
+    const [value, unit] = distanceLabel(this.cursor).split(' ');
+    this.distanceReadout.textContent = value; this.unitReadout.textContent = unit;
     const altitude = elevationAt(this.profile, this.cursor);
     this.altitudeReadout.hidden = !this.profile;
     this.altitudeReadout.textContent = `${this.profile?.source === 'simulation' ? '模拟海拔' : '海拔'} ${altitude === null ? '—' : `${Math.round(altitude)} m`}`;
@@ -184,7 +188,13 @@ export class DistanceRuler {
       const points = visibleTerrain(this.profile, from, to, [...this.points.map(p => p.distanceMeters), this.cursor]);
       if (points.length) {
         const line = points.map(p => `${xAt(p.distanceMeters)},${yAt(p.elevationMeters)}`).join(' ');
-        elements.push(`<polygon class="ruler-terrain-area" points="${xAt(points[0].distanceMeters)},${bottom} ${line} ${xAt(points.at(-1).distanceMeters)},${bottom}"/><polyline class="ruler-profile fuel-curve" points="${line}"/>`);
+        const id = this.profileID;
+        const area = `${xAt(points[0].distanceMeters)},${bottom} ${line} ${xAt(points.at(-1).distanceMeters)},${bottom}`;
+        elements.push(`<defs><polyline id="${id}" points="${line}"/><pattern id="${id}-hatch" width="7" height="7" patternUnits="userSpaceOnUse"><path class="terrain-hatch" d="M0 0V7"/></pattern></defs><polygon class="ruler-terrain-area" points="${area}"/><polygon class="terrain-screen" points="${area}" fill="url(#${id}-hatch)"/>`);
+        for (const fraction of [.18, .34, .50, .66, .82]) {
+          elements.push(`<use class="terrain-contour" href="#${id}" transform="translate(0 ${bottom * (1 - fraction)}) scale(1 ${fraction})"/>`);
+        }
+        elements.push(`<polyline class="ruler-profile fuel-curve" points="${line}"/>`);
       }
       const cursorAltitude = elevationAt(this.profile, this.cursor);
       if (cursorAltitude !== null) elements.push(`<line class="ruler-guide" x1="${middle}" x2="${middle}" y1="${yAt(cursorAltitude) + 5}" y2="${baseline - 28}"/><circle class="ruler-cursor" cx="${middle}" cy="${yAt(cursorAltitude)}" r="4"/>`);

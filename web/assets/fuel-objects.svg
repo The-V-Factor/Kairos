@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 180">
+  <defs>
+    <linearGradient id="foil" x2="1" y2=".22" gradientUnits="objectBoundingBox">
+      <stop stop-color="#a6443d"/><stop offset=".09" stop-color="#ff9b84"/><stop offset=".17" stop-color="#eb725e"/><stop offset=".43" stop-color="#f68b73"/><stop offset=".69" stop-color="#e66b57"/><stop offset=".91" stop-color="#c85447"/><stop offset="1" stop-color="#ff9c83"/>
+    </linearGradient>
+    <linearGradient id="shell">
+      <stop stop-color="#237b82"/><stop offset=".09" stop-color="#9eeae6"/><stop offset=".22" stop-color="#71d5d6"/><stop offset=".58" stop-color="#4db7ba"/><stop offset=".87" stop-color="#309a9f"/><stop offset="1" stop-color="#9ce1dc"/>
+    </linearGradient>
+    <linearGradient id="liquid">
+      <stop stop-color="#63c7c6"/><stop offset=".18" stop-color="#a6eeea"/><stop offset=".34" stop-color="#70d7d4"/><stop offset=".84" stop-color="#40adb2"/><stop offset="1" stop-color="#71d7d6"/>
+    </linearGradient>
+    <pattern id="crimp" width="3.6" height="10" patternUnits="userSpaceOnUse" patternTransform="skewX(-5)">
+      <rect width="1.1" height="10" fill="#8f3634" opacity=".55"/><rect x="1.2" width=".8" height="10" fill="#ffd4b6" opacity=".8"/>
+    </pattern>
+    <pattern id="grip" width="3.3" height="18" patternUnits="userSpaceOnUse">
+      <rect width="1" height="18" fill="#257c82"/><rect x="1.2" width=".8" height="18" fill="#b8f5ee"/>
+    </pattern>
+  </defs>
+  <g id="gel" transform="rotate(12 55 90)">
+    <path d="M25 8Q54 5 85 8l1 12q0 3-8 5l-3 7q-1 4 6 8l4 3 2 116 1 12q-28 4-65 0l1-15 3-109q0-6 7-10 4-3 2-9l-3-5-8-3Z" fill="url(#foil)" stroke="#a64e42" stroke-width="1.2"/>
+    <path d="M26 9q25-2 58 0l1 10q-29-2-59 1Zm-2 151q33 3 62-1l1 11q-28 3-63 0Z" fill="url(#crimp)"/>
+    <path d="m34 24 38 1-8 3-20 5Zm-7 20 12-8 13-3-16 12-7 94Zm58-1-8-5-7 7 7 68 3-63Z" fill="#ffb19a" opacity=".52"/>
+    <path d="m28 155 7-10 33 6 15 7-19-3-27-4Zm47-117-9 4-18 1 21-6Z" fill="#a74940" opacity=".55"/>
+    <path d="m31 61 1 59m48-47 1 39" stroke="#ffe1c1" opacity=".45" stroke-width="1.3"/>
+    <text x="55" y="98" text-anchor="middle" fill="#fff6da" font-family="Arial, sans-serif" font-size="23" font-weight="900" font-style="italic">GEL</text>
+    <path d="M45 106h21" stroke="#fff0d5" stroke-width="2.5"/>
+  </g>
+  <g id="bottle">
+    <path d="M27 34h55l-1 15q-1 4 5 10 5 5 5 13l-2 83q-1 13-12 15-22 4-45 0-11-2-12-14l-2-83q-1-9 7-16 6-5 4-12Z" fill="url(#shell)" stroke="#499da1" stroke-width="1.6"/>
+    <path d="M44 7q10-4 21 0l1 10-22 1Z" fill="url(#shell)" stroke="#469da0"/>
+    <ellipse cx="55" cy="7" rx="11" ry="2.7" fill="#9ce8e4"/><ellipse cx="55" cy="7" rx="7.2" ry="1.3" fill="#388f92"/>
+    <path d="M22 22q2-6 33-6t32 6v15q-2 5-32 5t-33-5Z" fill="url(#shell)" stroke="#398e95"/>
+    <path d="M24 22q28-5 61 0v14q-32 5-61 0Z" fill="url(#grip)" opacity=".82"/>
+    <path d="M24 38q30 5 61 0M28 52q24-4 52 0M24 66q28-5 62 0" fill="none" stroke="#c3f5ef" stroke-width="1.6"/>
+    <path d="M24 157q8 13 61 3" fill="none" stroke="#dcfcf8" opacity=".6" stroke-width="2"/>
+  </g>
+  <g id="water">
+    <path d="M22 81q11-5 28-2t37-1l-2 77q-1 9-10 11-21 3-40 0-10-1-11-10Z" fill="url(#liquid)"/>
+    <path d="M23 81q12-4 28-2t35-1" fill="none" stroke="#e1fff5" opacity=".72"/>
+    <path d="M29 85q-1 33 1 65" fill="none" stroke="#e5fffa" stroke-width="3" opacity=".52" stroke-linecap="round"/>
+  </g>
+</svg>
