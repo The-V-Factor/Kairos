@@ -8,7 +8,7 @@ import { renderGelSelect } from './gel-editor.mjs';
 import { DistanceRuler } from './ruler.mjs';
 import { rideTerrain } from './terrain.mjs';
 
-export function setupGenerator({ storage, current, openSheet, save, chooseRoute, manageGels, returnToPlan, available = () => true }) {
+export function setupGenerator({ storage, current, openSheet, save, chooseRoute, manageGels, editProfile, returnToPlan, available = () => true }) {
   const $ = id => document.getElementById(id), dialog = $('generation-dialog');
   const session = { getItem: key => sessionStorage.getItem(key), setItem: (key, value) => sessionStorage.setItem(key, value) };
   let recipe = null, result = null, preview = false, needsRoute = false, leaving = false, saved = false;
@@ -79,25 +79,21 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
     if (!available()) return;
     const loaded = loadProfile(storage);
     recipe = transferred ?? initialRecipe(current(), loaded.profile); needsRoute = missingRoute || !transferred && !current()?.route;
-    fill(); view(false); openSheet(dialog);
+    fill();
     if (needsRoute) $('fuel-route-name').textContent = '尚未选择路线';
-    if (calculate() && showPreview) view(true);
+    view(calculate() && showPreview); openSheet(dialog);
     if (loaded.message) notice($('fuel-notice'), loaded.message);
   }
-  async function openOther(buttonID, dialogID) {
+  $('fuel-profile').addEventListener('click', async () => {
     settings(); const previous = structuredClone(recipe), beforeProfile = loadProfile(storage).profile, previousNeedsRoute = needsRoute;
     leaving = true;
     await new Promise(resolve => { dialog.addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); dialog.close(); });
     leaving = false;
-    $(dialogID).addEventListener('close', () => requestAnimationFrame(() => {
-      if (buttonID !== 'profile-entry') { open(); return; }
-      const nextProfile = loadProfile(storage).profile;
-      for (const key of ['ftpWatts', 'weightKg']) if (nextProfile[key] !== beforeProfile[key]) previous.parameters[key] = nextProfile[key];
-      open(previous, false, previousNeedsRoute);
-    }), { once: true });
-    $(buttonID).click();
-  }
-  $('fuel-profile').addEventListener('click', () => openOther('profile-entry', 'profile-dialog'));
+    await editProfile();
+    const nextProfile = loadProfile(storage).profile;
+    for (const key of ['ftpWatts', 'weightKg']) if (nextProfile[key] !== beforeProfile[key]) previous.parameters[key] = nextProfile[key];
+    open(previous, false, previousNeedsRoute);
+  });
   $('fuel-gel-manage').addEventListener('click', async () => {
     settings(); const previous = structuredClone(recipe), missing = needsRoute;
     leaving = true;
@@ -138,7 +134,8 @@ export function setupGenerator({ storage, current, openSheet, save, chooseRoute,
   if (new URL(location.href).searchParams.get('generate') === 'preview') {
     const transferred = readTransfer(session);
     const url = new URL(location.href); url.searchParams.delete('generate'); history.replaceState(null, '', url);
-    requestAnimationFrame(() => transferred ? open(transferred, true) : open());
+    if (transferred) open(transferred, true); else open();
+    delete document.documentElement.dataset.loadingPreview;
   }
   return { open };
 }

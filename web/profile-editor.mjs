@@ -7,6 +7,7 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
   const $ = id => document.getElementById(id), dialog = $('profile-dialog'), api = new IGPSPORT();
   const loaded = loadProfile(storage);
   let saved = loaded.profile, draft = emptyProfile(), incoming = null, base = null, request = null, serial = 0;
+  let finish = null, openingChild = false;
   const inputs = { ageYears: 'profile-age', heightCm: 'profile-height', weightKg: 'profile-weight', ftpWatts: 'profile-ftp' };
   function notice(text = '') { $('profile-notice').textContent = text; $('profile-notice').hidden = !text; }
   function cancelRead() {
@@ -32,12 +33,15 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
     dialog.scrollTop = 0;
   }
   function afterClose(sheet) {
+    openingChild = true;
     return new Promise(resolve => { sheet.addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); sheet.close(); });
   }
-  $('profile-entry').addEventListener('click', () => {
+  function open() {
     $('account-menu').hidePopover();
     fill(saved); incoming = null; view(); connectionLabel(); notice(loaded.message); openSheet(dialog);
-  });
+    return new Promise(resolve => { finish = resolve; });
+  }
+  $('profile-entry').addEventListener('click', open);
   for (const button of dialog.querySelectorAll('[data-profile-sex]')) button.addEventListener('click', () => sex(draft.sex === button.dataset.profileSex ? null : button.dataset.profileSex));
   $('profile-nav').addEventListener('click', () => {
     if (!$('profile-review').hidden) { incoming = null; view(); notice(loaded.message); }
@@ -112,5 +116,8 @@ export function setupProfileEditor({ storage, openSheet, connect, manageGels }) 
   });
   dialog.addEventListener('close', () => {
     cancelRead(); incoming = null; base = null; $('profile-review-fields').replaceChildren();
+    if (openingChild) { openingChild = false; return; }
+    finish?.(); finish = null;
   });
+  return { open };
 }

@@ -18,12 +18,18 @@ test('both pages restore the saved palette and toolbar color before rendering th
       if (saved instanceof Error) throw saved;
       return saved;
     } };
-    runInNewContext(bootstrap, {
+    const context = {
+      URL, location: { href: 'https://kairos.test/' },
       document: { documentElement: root, querySelector: () => meta }, localStorage: storage,
       getComputedStyle: () => ({ getPropertyValue: name => name === '--canvas' ? ' #123456 ' : '' }),
-    });
+    };
+    runInNewContext(bootstrap, context);
     assert.equal(root.dataset.theme, loadTheme(storage));
+    assert.equal(root.dataset.loadingPreview, undefined);
     assert.equal(meta.content, '#123456');
+    context.location.href += '?generate=preview';
+    runInNewContext(bootstrap, context);
+    assert.equal(root.dataset.loadingPreview, '');
   }
 });
 

@@ -16,7 +16,9 @@ function pause(ms, signal) {
 }
 
 export function setupRoutePicker({ storage, current, openSheet }) {
-  const $ = id => document.getElementById(id), dialog = $('route-dialog');
+  const loginTemplate = document.getElementById('route-connect-template');
+  const $ = id => document.getElementById(id) ?? loginTemplate.content.getElementById(id), dialog = $('route-dialog');
+  const loginPanel = $('route-connect');
   const elevationChart = new ElevationChart($('route-elevation'), $('elevation-controls'), $('elevation-range'));
   let provider = null, api = null, session = null, request = null, serial = 0, selected = null, page = 1, keyword = '', mode = 'sources', loginMethod = 'password';
   let connectionOnly = null, connectedSession = null, selectionOnly = null;
@@ -29,7 +31,9 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   function view(nextMode) {
     mode = nextMode;
     if (mode !== 'detail') elevationChart.clear();
-    for (const name of ['sources', 'connect', 'browse', 'detail']) $(`route-${name}`).hidden = name !== mode;
+    if (mode === 'connect') loginTemplate.after(loginPanel);
+    else if (loginPanel.isConnected) loginTemplate.content.append(loginPanel);
+    for (const name of ['sources', 'browse', 'detail']) $(`route-${name}`).hidden = name !== mode;
     const sources = mode === 'sources', root = sources || !!connectionOnly, disconnect = !root && !!session;
     $('route-disconnect').hidden = !disconnect;
     $('route-close').hidden = root || disconnect;
@@ -40,7 +44,10 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     $('route-title').textContent = sources ? '路线库' : mode === 'detail' ? '路线详情' : provider.name;
     dialog.scrollTop = 0;
   }
-  function connectedView() { view(session ? 'browse' : 'connect'); }
+  function connectedView() {
+    if (session && !connectionOnly) view('browse');
+    else { view('connect'); selectLoginMethod('password'); }
+  }
   function sourcesView() {
     cancel(); notice(''); view('sources');
     const saved = savedRoute();
@@ -67,14 +74,16 @@ export function setupRoutePicker({ storage, current, openSheet }) {
       $('route-provider-list').append(button);
     }
   }
-  function enterProvider(item) {
+  function enterProvider(item, saved = null) {
     cancel(); notice('');
     const previous = provider?.id === item.id ? session : null;
     provider = item; api = item.createClient(); session = loadSession(storage, item.sessionKey) ?? validSession(previous);
     $('route-browse-caption').textContent = item.caption;
     $('route-login-title').textContent = connectionOnly ? '连接后读取个人档案' : '连接你的路书库';
     $('route-login').textContent = connectionOnly ? '登录并读取档案' : '登录并查找路线';
-    resetSearch(); connectedView(); if (!session) selectLoginMethod('password');
+    resetSearch();
+    if (saved) { showDetail(saved, true); return; }
+    connectedView();
   }
   function resetSearch() {
     page = 1; keyword = ''; $('route-results').replaceChildren(); $('route-pagination').hidden = true;
@@ -96,7 +105,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     } catch (error) {
       if (id !== serial || !dialog.open || error.name === 'AbortError') return;
       if (error instanceof ConnectionExpired) {
-        session = null; resetSearch(); connectedView(); selectLoginMethod('password');
+        session = null; resetSearch(); connectedView();
         const warning = storeSession(storage, null, provider.sessionKey); notice(`${error.message}${warning}`);
       } else notice(error.message);
     } finally {
@@ -227,7 +236,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   $('route-saved').addEventListener('click', () => {
     const route = savedRoute(); if (!route) return;
     const item = routeProviders.find(item => item.id === route.source); if (!item) return;
-    enterProvider(item); showDetail(route, true);
+    enterProvider(item, route);
   });
   $('route-search-form').addEventListener('submit', event => { event.preventDefault(); search(1); });
   for (const button of dialog.querySelectorAll('[data-route-example]')) button.addEventListener('click', () => {
@@ -239,7 +248,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   });
   $('route-back').addEventListener('click', () => { cancel(); notice(''); connectedView(); });
   $('route-disconnect').addEventListener('click', () => {
-    cancel(); session = null; resetSearch(); clearPassword(); connectedView(); selectLoginMethod('password'); notice(storeSession(storage, null, provider.sessionKey));
+    cancel(); session = null; resetSearch(); clearPassword(); connectedView(); notice(storeSession(storage, null, provider.sessionKey));
   });
   function apply(route) {
     if (!selectionOnly) return;
@@ -249,6 +258,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
   $('route-remove').addEventListener('click', () => apply(null));
   dialog.addEventListener('close', () => {
     cancel(); elevationChart.clear(); selected = null; clearPassword(); $('route-qr-image').replaceChildren(); dialog.setAttribute('aria-busy', 'false');
+    if (loginPanel.isConnected) loginTemplate.content.append(loginPanel);
     $('route-login').disabled = false; $('route-search').disabled = false;
     if (selectionOnly) {
       const { resolve, result } = selectionOnly; selectionOnly = null;
@@ -270,7 +280,7 @@ export function setupRoutePicker({ storage, current, openSheet }) {
     connect() {
       return new Promise(resolve => {
         connectionOnly = resolve; connectedSession = null;
-        enterProvider(routeProviders[0]); view('connect'); selectLoginMethod('password'); openSheet(dialog);
+        enterProvider(routeProviders[0]); openSheet(dialog);
       });
     },
   };

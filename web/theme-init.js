@@ -1,6 +1,7 @@
 // Runs after the stylesheets and before either page's body can be painted.
 (() => {
   const root = document.documentElement;
+  if (new URL(location.href).searchParams.get('generate') === 'preview') root.dataset.loadingPreview = '';
   let theme = 'rhythm';
   try {
     const saved = localStorage.getItem('kairos.web.theme.v1');

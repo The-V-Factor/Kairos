@@ -679,9 +679,10 @@ $('plan-gel-manage').addEventListener('click', async () => {
   await new Promise(resolve => { $('library-dialog').addEventListener('close', () => requestAnimationFrame(resolve), { once: true }); $('library-dialog').close(); });
   await gelEditor.open(); showMethodChoice(); openSheet($('library-dialog'));
 });
-setupProfileEditor({ storage, openSheet, connect: () => routePicker.connect(), manageGels: () => gelEditor.open() });
+const profileEditor = setupProfileEditor({ storage, openSheet, connect: () => routePicker.connect(), manageGels: () => gelEditor.open() });
 const generator = setupGenerator({ storage, current: recipe => recipe ? library.plans.find(item => revision(item) === recipe.sourceRevision) ?? null : activeEntry(library), openSheet, available: () => !sharing && !removing.size,
   manageGels: () => gelEditor.open(),
+  editProfile: profileEditor.open,
   chooseRoute: route => routePicker.pick(route), returnToPlan: recipe => {
     if (!['new', 'edit'].includes(libraryMode)) showPlanChoice(plan ? 'edit' : 'new', activeEntry(library)); else showMethodChoice();
     if (recipe.details) { $('library-plan-name').value = recipe.details.name; $('library-plan-date').value = recipe.details.rideDate; $('plan-date-label').textContent = shortDate(recipe.details.rideDate); validatePlanForm(); }

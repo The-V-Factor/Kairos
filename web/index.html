@@ -16,6 +16,7 @@
     <title>Kairos · 骑行补给</title>
   </head>
   <body>
+    <p id="preview-loading" role="status">正在载入补给预览…</p>
     <div id="app">
       <header class="masthead">
         <a class="wordmark" href="./" aria-label="Kairos 首页">KAIROS</a>
@@ -142,7 +143,7 @@
           <h3 class="route-section-title route-find-title">查找新路线</h3>
           <div id="route-provider-list" class="route-provider-list"></div>
         </div>
-        <div id="route-connect" hidden>
+        <template id="route-connect-template"><div id="route-connect">
           <h3 id="route-login-title">连接你的路书库</h3>
           <div class="route-login-tabs ui-segments" role="tablist" aria-label="登录方式"><button id="route-password-tab" type="button" role="tab" aria-selected="true" aria-controls="route-login-form">账号密码</button><button id="route-qr-tab" type="button" role="tab" aria-selected="false" aria-controls="route-qr-panel" tabindex="-1">扫码登录</button></div>
           <form id="route-login-form" role="tabpanel" aria-labelledby="route-password-tab">
@@ -158,6 +159,7 @@
             <p class="fine-print muted">连接成功后，令牌仅保存在此浏览器。</p>
           </div>
         </div>
+        </template>
         <div id="route-browse" hidden>
           <p id="route-browse-caption" class="route-provider muted">中国站路书</p>
           <form id="route-search-form" class="route-search ui-value"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="route-keyword" type="search" placeholder="地点、路书名称或编号" aria-label="搜索路书" maxlength="100" required><button id="route-search" type="submit">搜索</button></form>
